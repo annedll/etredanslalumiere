@@ -7,6 +7,7 @@ import { brand } from "../lib/brand";
 import { Reviews, useReviews } from "../lib/engage";
 import { supabase, isConfigured } from "../lib/supabase";
 import { useApp, Editable, EditableImage, EditableList, useOfferings, useSessions, useQuery, fmtDate } from "../lib/data";
+import { SectionBackground, Sections, imageFrameRadius } from "../lib/content";
 import { DEFAULT_POSTS } from "../lib/defaults";
 import { ButtonLink, Card, Container, Reveal, Blobs, Section, Skeleton, H1, Badge } from "../components/ui";
 import { OfferCard, SessionCard } from "../components/Offers";
@@ -37,11 +38,18 @@ export function HomeModern() {
   const posts = useQuery<any[]>(() => supabase.from("posts").select("*").eq("is_published", true).lte("published_at", new Date().toISOString()).order("published_at", { ascending: false }).limit(3), DEFAULT_POSTS);
   const highlight = ["consultation-soin-energetique", "numerologie-metamorphose", "reiki-usui", "meditations-hebdomadaires", "soin-energetique", "pendule-radiesthesie"];
   const shown = [...offers.data].sort((a, b) => { const ia = highlight.indexOf(a.slug), ib = highlight.indexOf(b.slug); return (ia < 0 ? 99 : ia) - (ib < 0 ? 99 : ib); }).slice(0, 6);
+  // The halo around the photo takes the frame chosen for it (cercle, arrondi, droit…).
+  const heroFrame = imageFrameRadius(g("home.hero.image.frame"));
   const fullAddress = `${g("biz.address")}, ${g("biz.postal")} ${g("biz.city")}, ${g("biz.country")}`;
   return (
     <>
-      {/* Héros */}
+      <Sections
+        k="home.sections"
+        items={[
+        { id: "hero", label: "Haut de page", fixed: true, node: (
+          <>
       <section className="relative overflow-hidden min-h-[calc(100dvh-4rem)] flex items-center bg-gradient-to-br from-[var(--brand)]/[0.12] via-yellow-50 to-[var(--brand-accent)]/50 dark:from-neutral-950 dark:via-neutral-950 dark:to-neutral-900">
+        <SectionBackground k="home.hero.bg" />
         <Blobs />
         <Container className="relative grid grid-cols-1 lg:grid-cols-[1.15fr_1fr] gap-10 lg:gap-16 items-center py-14 sm:py-20">
           <div className="space-y-6 text-center lg:text-left anim-fade">
@@ -56,16 +64,18 @@ export function HomeModern() {
           </div>
           <div className="relative mx-auto w-full max-w-sm sm:max-w-md anim-zoom">
             <div aria-hidden className="absolute -inset-6 rounded-full bg-gradient-to-tr from-[var(--brand)]/30 via-white/40 to-[var(--brand-accent)]/70 blur-2xl dark:opacity-40" />
-            <div className="relative p-3 rounded-[46%_54%_52%_48%/48%_46%_54%_52%] bg-white/60 dark:bg-neutral-900/60 shadow-[0_30px_80px_-30px_rgba(90,45,125,0.5)]">
+            <div style={heroFrame ? { borderRadius: heroFrame } : undefined} className="relative p-3 rounded-[46%_54%_52%_48%/48%_46%_54%_52%] bg-white/60 dark:bg-neutral-900/60 shadow-[0_30px_80px_-30px_rgba(90,45,125,0.5)]">
               <EditableImage settingKey="home.hero.image" alt={`${g("biz.practitioner")}, soins énergétiques à ${g("biz.city")}`} aspect={1} eager className="w-full rounded-[46%_54%_52%_48%/48%_46%_54%_52%]" />
             </div>
           </div>
         </Container>
         <a href="#bienfaits" aria-label="Défiler" className="hidden md:grid absolute bottom-6 left-1/2 -translate-x-1/2 h-11 w-11 place-items-center rounded-full bg-white/70 dark:bg-neutral-900 text-[var(--brand)] float-soft"><ChevronDown className="h-5 w-5" /></a>
       </section>
-
-      {/* Bienfaits */}
-      <Section tone="white" id="bienfaits">
+          </>
+        ) },
+        { id: "benefits", label: "Bienfaits", node: (
+          <>
+      <Section tone="white" id="bienfaits" bg="home.benefits.bg">
         <Container className="space-y-10">
           <Reveal className="text-center space-y-3 max-w-2xl mx-auto"><Editable settingKey="home.benefits.title" as="h2" className="font-script text-4xl sm:text-5xl text-[var(--brand)] dark:text-neutral-100" /></Reveal>
           <EditableList settingKey="home.benefits" render={(items) => (
@@ -81,9 +91,11 @@ export function HomeModern() {
           )} />
         </Container>
       </Section>
-
-      {/* Les soins énergétiques */}
-      <Section tone="tint">
+          </>
+        ) },
+        { id: "energy", label: "Les soins énergétiques", node: (
+          <>
+      <Section tone="tint" bg="home.energy.bg">
         <Container className="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-16 items-center">
           <Reveal className="space-y-5">
             <Editable settingKey="home.intro.title" as="h2" className="text-3xl sm:text-4xl font-bold tracking-tight text-neutral-900 dark:text-neutral-100" />
@@ -100,9 +112,11 @@ export function HomeModern() {
           </Reveal>
         </Container>
       </Section>
-
-      {/* Offres */}
-      <Section>
+          </>
+        ) },
+        { id: "offers", label: "Offres", node: (
+          <>
+      <Section bg="home.offers.bg">
         <Container className="space-y-10">
           <Reveal className="flex flex-wrap items-end justify-between gap-4">
             <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-neutral-900 dark:text-neutral-100">{t("home.offersTitle")}</h2>
@@ -113,9 +127,11 @@ export function HomeModern() {
           </div>
         </Container>
       </Section>
-
-      {/* Agenda */}
-      <Section tone="white">
+          </>
+        ) },
+        { id: "agenda", label: "Prochaines dates", node: (
+          <>
+      <Section tone="white" bg="home.agenda.bg">
         <Container className="space-y-8">
           <Reveal className="flex flex-wrap items-end justify-between gap-4">
             <h2 className="font-script text-4xl sm:text-5xl text-[var(--brand)] dark:text-neutral-100">{t("home.agendaTitle")}</h2>
@@ -124,19 +140,19 @@ export function HomeModern() {
           <div className="grid gap-4">{sessions.loading ? <Skeleton className="h-32" /> : sessions.data.slice(0, 3).map((s, i) => <Reveal key={s.id} delay={i * 80}><SessionCard s={s} /></Reveal>)}</div>
         </Container>
       </Section>
-
-      {/* Avis */}
-      {isConfigured && (
-        <Section tone="tint">
+          </>
+        ) },
+        { id: "reviews", label: "Avis", node: (isConfigured && (
+        <Section tone="tint" bg="home.reviews.bg">
           <Container className="space-y-8">
             <Reveal><h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-neutral-900 dark:text-neutral-100 text-center">{t("home.reviewsTitle")}</h2></Reveal>
             <Reveal><Reviews supabase={supabase} /></Reveal>
           </Container>
         </Section>
-      )}
-
-      {/* Blog */}
-      <Section>
+      )) || null },
+        { id: "blog", label: "Blog", node: (
+          <>
+      <Section bg="home.blog.bg">
         <Container className="space-y-8">
           <Reveal className="flex flex-wrap items-end justify-between gap-4">
             <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-neutral-900 dark:text-neutral-100">{t("home.postsTitle")}</h2>
@@ -160,9 +176,11 @@ export function HomeModern() {
           </div>
         </Container>
       </Section>
-
-      {/* Zone */}
-      <Section tone="white">
+          </>
+        ) },
+        { id: "zone", label: "Zone et accès", node: (
+          <>
+      <Section tone="white" bg="home.zone.bg">
         <Container className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
           <Reveal className="space-y-4">
             <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-neutral-900 dark:text-neutral-100">{t("home.zoneTitle")}</h2>
@@ -180,9 +198,11 @@ export function HomeModern() {
           </Reveal>
         </Container>
       </Section>
-
-      {/* FAQ */}
-      <Section tone="tint">
+          </>
+        ) },
+        { id: "faq", label: "Questions fréquentes", node: (
+          <>
+      <Section tone="tint" bg="home.faq.bg">
         <Container className="max-w-3xl space-y-8">
           <Reveal><h2 className="font-script text-4xl sm:text-5xl text-center text-[var(--brand)] dark:text-neutral-100">{t("home.faqTitle")}</h2></Reveal>
           <div className="space-y-3">
@@ -200,8 +220,10 @@ export function HomeModern() {
           </div>
         </Container>
       </Section>
-
-      {/* Appel final */}
+          </>
+        ) },
+        { id: "cta", label: "Appel final", node: (
+          <>
       <section className="relative py-16 sm:py-24">
         <Container>
           <Reveal>
@@ -220,6 +242,10 @@ export function HomeModern() {
           </Reveal>
         </Container>
       </section>
+          </>
+        ) },
+        ]}
+      />
     </>
   );
 }
