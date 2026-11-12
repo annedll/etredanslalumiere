@@ -56,6 +56,8 @@ const persist = (s: Settings) => {
   } catch {
     // Not kept for the next visit: still applied.
   }
+  // Page titles for Google (./seo) follow the new settings right away.
+  setTimeout(() => window.dispatchEvent(new Event("usin:settings")), 0);
 };
 
 /** Cookie consent (measurement): read by the visits counter. */
@@ -169,7 +171,11 @@ export function ContentProvider({ supabase, defaults = {}, children }: { supabas
       if (translated !== key) return translated;
     }
     const value = settings[key];
-    return isEmpty(value) ? (defaults[key] ?? "") : value;
+    if (!isEmpty(value)) return value;
+    if (defaults[key] !== undefined) return defaults[key];
+    // A text of the app's translations (section titles…): shown until the admin writes their own.
+    const own = translate(key);
+    return own !== key ? own : "";
   };
   const save = async (key: string, value: unknown, opts: { translated?: boolean } = {}) => {
     const target = opts.translated !== false && typeof value === "string" && lang !== main ? `${key}.${lang}` : key;
@@ -441,7 +447,8 @@ export function Editable({ k, as = "span", className, multiline }: { k: string; 
   const [draft, setDraft] = useState(value);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const Tag = as;
+  // Several paragraphs: a block (the dashed frame then surrounds the whole text).
+  const Tag = multiline && as === "span" ? "div" : as;
   const content = multiline ? <Paragraphs text={value} /> : value;
   if (!editMode) return <Tag className={className}>{content}</Tag>;
   if (editing)

@@ -1,5 +1,5 @@
 // Injected by Usin. Do not edit.
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { brand } from "./brand";
 
 export type SeoOptions = {
@@ -29,13 +29,38 @@ function meta(attr: "name" | "property", key: string, value: string | undefined)
   el.setAttribute("content", value);
 }
 
+/** Title / description written by the admin for this address (Réglages → Référencement Google), if any. */
+function override(path: string, field: "title" | "description"): string | undefined {
+  const key = "seo:" + (path.replace(/\/+$/, "") || "/") + ":" + field;
+  const pick = (s: unknown) => {
+    const v = s && typeof s === "object" ? (s as Record<string, unknown>)[key] : undefined;
+    return typeof v === "string" && v.trim() ? v.trim() : undefined;
+  };
+  try {
+    const cached = pick(JSON.parse(localStorage.getItem("usin:settings") || "null"));
+    if (cached) return cached;
+  } catch {
+    // No saved settings: the published ones.
+  }
+  return pick((window as unknown as { __USIN_SETTINGS__?: unknown }).__USIN_SETTINGS__);
+}
+
 /** Call once at the top of every page component. */
 export function useSeo(options: SeoOptions = {}) {
   const { title, description, image, noindex, jsonLd } = options;
   const ld = jsonLd ? JSON.stringify(jsonLd) : "";
+  // Settings loaded or changed by the admin: the tags follow right away.
+  const [tick, setTick] = useState(0);
   useEffect(() => {
-    const fullTitle = title ? title + " · " + brand.name : brand.tagline ? brand.name + " · " + brand.tagline : brand.name;
-    const desc = description || brand.description || brand.tagline;
+    const on = () => setTick((t) => t + 1);
+    window.addEventListener("usin:settings", on);
+    return () => window.removeEventListener("usin:settings", on);
+  }, []);
+  useEffect(() => {
+    const path = window.location.pathname;
+    const ownTitle = noindex ? undefined : override(path, "title");
+    const fullTitle = ownTitle || (title ? title + " · " + brand.name : brand.tagline ? brand.name + " · " + brand.tagline : brand.name);
+    const desc = (noindex ? undefined : override(path, "description")) || description || brand.description || brand.tagline;
     document.title = fullTitle;
     meta("name", "description", desc);
     meta("property", "og:title", fullTitle);
@@ -58,5 +83,5 @@ export function useSeo(options: SeoOptions = {}) {
       script.text = ld;
       document.head.appendChild(script);
     }
-  }, [title, description, image, noindex, ld]);
+  }, [title, description, image, noindex, ld, tick]);
 }

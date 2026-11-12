@@ -9,6 +9,9 @@ import { useSeo } from "./seo";
 
 const T: Record<string, Record<string, string>> = {
   fr: {
+    seo: "Référencement Google", seoIntro: "Le titre et la description que Google affiche pour chaque page. Écrivez ce que vos clients tapent dans Google : votre activité et votre ville (ex. « Soins énergétiques à Bailleul »). Chaque page doit avoir les siens.",
+    seoTitle: "Titre dans Google", seoDesc: "Description dans Google", seoReset: "Reprendre le texte d'origine", seoNone: "La liste des pages apparaît sur le site publié (après une publication).",
+    seoTitleTip: "Idéal : 30 à 60 caractères", seoDescTip: "Idéal : 120 à 160 caractères", seoLive: "Appliqué tout de suite sur le site ; pris en compte par Google à son prochain passage.",
     add: "Ajouter", edit: "Modifier", del: "Supprimer", save: "Enregistrer", cancel: "Annuler", search: "Rechercher…", export: "Exporter",
     saved: "Enregistré ✓", deleted: "Supprimé ✓", delAsk: "Supprimer cet élément ?", empty: "Aucun élément pour le moment", emptyHint: "Ajoutez le premier avec le bouton « Ajouter ».",
     required: "Champ obligatoire", yes: "Oui", no: "Non", image: "Choisir une image", visits7: "Visites (7 jours)", visits30: "Visites (30 jours)",
@@ -18,6 +21,9 @@ const T: Record<string, Record<string, string>> = {
     legal: "Pages légales", menu: "Menu",
   },
   en: {
+    seo: "Google search", seoIntro: "The title and description Google shows for each page. Write what your customers type into Google: your activity and your town. Each page needs its own.",
+    seoTitle: "Title in Google", seoDesc: "Description in Google", seoReset: "Back to the original text", seoNone: "The list of pages appears on the published site (after a publication).",
+    seoTitleTip: "Best: 30 to 60 characters", seoDescTip: "Best: 120 to 160 characters", seoLive: "Applied on the site right away; taken into account by Google on its next visit.",
     add: "Add", edit: "Edit", del: "Delete", save: "Save", cancel: "Cancel", search: "Search…", export: "Export",
     saved: "Saved ✓", deleted: "Deleted ✓", delAsk: "Delete this item?", empty: "Nothing here yet", emptyHint: "Add the first one with the « Add » button.",
     required: "Required", yes: "Yes", no: "No", image: "Choose an image", visits7: "Visits (7 days)", visits30: "Visits (30 days)",
@@ -50,9 +56,12 @@ export type AdminSection = { id: string; label: string; icon?: ReactNode; elemen
  * The chosen section is kept in the address (?s=…) so a reload or a shared link opens the same place.
  * <AdminConsole title="Gestion" sections={[{ id: "dashboard", label: "Tableau de bord", icon: <Gauge />, element: <… /> }, …]} actions={…} />
  */
-export function AdminConsole({ title, sections, actions }: { title: string; sections: AdminSection[]; actions?: ReactNode }) {
+export function AdminConsole({ title, sections: own, actions, seo = true }: { title: string; sections: AdminSection[]; actions?: ReactNode; /** false on a second console (daily management): Google titles stay in one place. */ seo?: boolean }) {
   const location = useLocation();
   const navigate = useNavigate();
+  const tr = useT();
+  // Every management space can write the Google titles of the pages (once, even if the app adds its own).
+  const sections: AdminSection[] = !seo || own.some((s) => s.id === "seo") ? own : [...own, { id: "seo", label: tr("seo"), icon: <SearchIcon />, element: <SeoEditor /> }];
   useSeo({ title, noindex: true });
   const current = new URLSearchParams(location.search).get("s");
   const active = sections.find((s) => s.id === current) ?? sections[0];
@@ -293,6 +302,7 @@ export function CrudTable({
   select = "*",
   defaults = {},
   filter,
+  where,
   label,
   actions,
   noCreate,
@@ -308,6 +318,8 @@ export function CrudTable({
   defaults?: Row;
   /** Narrows the rows, e.g. (q) => q.eq("kind", "atelier"). */
   filter?: (q: any) => any;
+  /** Rows of one parent only, e.g. where={{ offering_id: offer.id }} (new rows get these values too). */
+  where?: Record<string, string | number | boolean>;
   /** Main line of each row (default: the first column), e.g. (r) => r.offering?.title + " · " + r.email. */
   label?: (row: Row) => ReactNode;
   /** Buttons of each row (business actions): (row, reload) => <Button …/>. */
@@ -318,9 +330,10 @@ export function CrudTable({
 }) {
   const tr = useT();
   const { supabase, lang } = useContent();
-  const key = "admin:" + table + ":" + (filter ? filter.toString() : "");
+  const key = "admin:" + table + ":" + (filter ? filter.toString() : "") + (where ? JSON.stringify(where) : "");
   const { data, loading, error } = useData<Row[]>(key, () => {
     let q: any = supabase!.from(table).select(select);
+    for (const [k, v] of Object.entries(where ?? {})) q = q.eq(k, v);
     if (filter) q = filter(q);
     return q.order(orderBy, { ascending }).limit(limit);
   });
@@ -345,7 +358,7 @@ export function CrudTable({
     const payload: Row = {};
     for (const c of columns) if (!c.readOnly) payload[c.key] = fromInput(c, editing[c.key]);
     setBusy(true);
-    const res = editing.id ? await supabase.from(table).update(payload).eq("id", editing.id) : await supabase.from(table).insert({ ...defaults, ...payload });
+    const res = editing.id ? await supabase.from(table).update(payload).eq("id", editing.id) : await supabase.from(table).insert({ ...defaults, ...where, ...payload });
     setBusy(false);
     if (res.error) return toast(res.error.message, "error");
     toast(tr("saved"));
@@ -731,4 +744,122 @@ export function useSectionTitle(title: string) {
       document.title = before;
     };
   }, [title]);
+}
+
+// ------------------------------------------------------------------ Google search
+
+function SearchIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <circle cx="11" cy="11" r="8" />
+      <path d="m21 21-4.3-4.3" />
+    </svg>
+  );
+}
+
+type SeoPage = { path: string; title: string; description: string };
+
+/**
+ * Title and description of each public page in Google, written by the admin (settings seo:<path>:title / :description),
+ * with a Google preview and length hints. Applied right away on the site and written into the pages at publication.
+ */
+export function SeoEditor() {
+  const tr = useT();
+  const { get, save, remove } = useContent();
+  const [pages, setPages] = useState<SeoPage[] | null>(null);
+  const [failed, setFailed] = useState(false);
+  const [draft, setDraft] = useState<Record<string, string>>({});
+  const [busy, setBusy] = useState<string | null>(null);
+  useEffect(() => {
+    fetch("/seo-pages.json", { cache: "no-store" })
+      .then((r) => (r.ok ? r.json() : Promise.reject()))
+      .then((list: SeoPage[]) => setPages(Array.isArray(list) ? list : []))
+      .catch(() => setFailed(true));
+  }, []);
+  const value = (p: SeoPage, field: "title" | "description") => {
+    const k = "seo:" + p.path + ":" + field;
+    if (draft[k] !== undefined) return draft[k];
+    const own = get(k);
+    return typeof own === "string" && own ? own : p[field];
+  };
+  const host = typeof window !== "undefined" ? window.location.host : "";
+  if (failed) return <EmptyState title={tr("seo")} text={tr("seoNone")} />;
+  if (!pages) return <Skeleton className="h-64" />;
+  return (
+    <div className="space-y-5">
+      <div className="space-y-1">
+        <h2 className="text-xl font-semibold text-neutral-900 dark:text-neutral-100">{tr("seo")}</h2>
+        <p className="text-sm text-neutral-600 dark:text-neutral-400">{tr("seoIntro")}</p>
+      </div>
+      {pages.map((p) => {
+        const t = value(p, "title");
+        const d = value(p, "description");
+        const kt = "seo:" + p.path + ":title";
+        const kd = "seo:" + p.path + ":description";
+        const changed = draft[kt] !== undefined || draft[kd] !== undefined;
+        const custom = Boolean(get(kt) || get(kd));
+        return (
+          <Card key={p.path} className="space-y-4 p-5">
+            {/* What Google shows */}
+            <div className="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-black/5 dark:bg-neutral-900 dark:ring-white/10">
+              <p className="truncate text-xs text-neutral-600 dark:text-neutral-400">{host + (p.path === "/" ? "" : p.path)}</p>
+              <p className="line-clamp-1 text-lg text-[#1a0dab] dark:text-[#8ab4f8]">{t}</p>
+              <p className="line-clamp-2 text-sm text-neutral-700 dark:text-neutral-300">{d}</p>
+            </div>
+            <Field label={tr("seoTitle")} hint={`${t.length} · ${tr("seoTitleTip")}`}>
+              <Input value={t} maxLength={90} onChange={(e) => setDraft({ ...draft, [kt]: e.target.value })} />
+            </Field>
+            <Field label={tr("seoDesc")} hint={`${d.length} · ${tr("seoDescTip")}`}>
+              <Textarea value={d} maxLength={220} onChange={(e) => setDraft({ ...draft, [kd]: e.target.value })} />
+            </Field>
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              {custom ? (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  disabled={busy === p.path}
+                  onClick={async () => {
+                    setBusy(p.path);
+                    await remove(kt);
+                    await remove(kd);
+                    const next = { ...draft };
+                    delete next[kt];
+                    delete next[kd];
+                    setDraft(next);
+                    setBusy(null);
+                  }}
+                >
+                  {tr("seoReset")}
+                </Button>
+              ) : (
+                <span />
+              )}
+              <Button
+                size="sm"
+                disabled={!changed || busy === p.path}
+                onClick={async () => {
+                  setBusy(p.path);
+                  try {
+                    if (draft[kt] !== undefined) await save(kt, draft[kt].trim(), { translated: false });
+                    if (draft[kd] !== undefined) await save(kd, draft[kd].trim(), { translated: false });
+                    const next = { ...draft };
+                    delete next[kt];
+                    delete next[kd];
+                    setDraft(next);
+                    toast(tr("saved") + " " + tr("seoLive"));
+                  } catch (e) {
+                    toast((e as Error).message, "error");
+                  } finally {
+                    setBusy(null);
+                  }
+                }}
+              >
+                {tr("save")}
+              </Button>
+            </div>
+          </Card>
+        );
+      })}
+    </div>
+  );
 }
