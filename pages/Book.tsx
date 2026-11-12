@@ -147,9 +147,7 @@ export function RegisterPage() {
   if (sessions.loading) return <Container className="py-14"><Skeleton className="h-64" /></Container>;
   if (!s) return <Container className="py-14"><EmptyState title={t("reg.notFound")} action={<ButtonLink to="/agenda">{t("nav.agenda")}</ButtonLink>} /></Container>;
   const left = Math.max(0, s.capacity - s.seats_taken);
-  // Deposit set on the offer (Réglages → Offres & tarifs), shown only when lower than the price.
-  const depositCents = Number(s.offering?.deposit_cents) || 0;
-  const deposit = depositCents > 0 && (!s.price || depositCents < s.price.amount_cents);
+  const deposit = app.flag("deposit.enabled") && s.offering?.kind === "formation";
   const pay = async (dep: boolean) => {
     setErr("");
     if (!app.session) { nav("/compte?next=" + encodeURIComponent(location.pathname)); return; }
@@ -175,7 +173,7 @@ export function RegisterPage() {
       {err && <p className="text-sm text-red-600">{err}</p>}
       <div className="flex flex-col sm:flex-row flex-wrap gap-3">
         <Button size="lg" loading={busy === "f"} disabled={!left || isDemoId(s.id)} onClick={() => pay(false)}>{deposit ? t("reg.full") : t("reg.pay")}</Button>
-        {deposit && <Button size="lg" variant="outline" loading={busy === "d"} disabled={!left || isDemoId(s.id)} onClick={() => pay(true)}>{t("reg.deposit")} ({money(depositCents, lang)})</Button>}
+        {deposit && <Button size="lg" variant="outline" loading={busy === "d"} disabled={!left || isDemoId(s.id)} onClick={() => pay(true)}>{t("reg.deposit")} ({money(Number(app.get("deposit.amount")) * 100, lang)})</Button>}
       </div>
       <PayTerms />
       <p className="text-sm text-neutral-600 dark:text-neutral-400">{app.get("cancel.policy")}</p>

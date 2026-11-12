@@ -1,5 +1,5 @@
 // Injected by Usin (content engine: texts, images and lists editable with the pencil, data cache, visits). Do not edit.
-import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from "react";
+import { createContext, Fragment, useContext, useEffect, useRef, useState, type ReactNode } from "react";
 import { useLocation } from "react-router-dom";
 import { createPortal } from "react-dom";
 import type { SupabaseClient, Session } from "@supabase/supabase-js";
@@ -20,11 +20,11 @@ const VIEW_AS = "usin:view-as";
 const TIMEOUT = 8000;
 
 const UI: Record<string, Record<string, string>> = {
-  fr: { save: "Enregistrer", cancel: "Annuler", image: "Changer l'image", list: "Modifier la liste", add: "Ajouter", remove: "Retirer", up: "Monter", down: "Descendre", empty: "Texte à écrire", bg: "Fond de la section", bgPick: "Choisir une image", bgStrength: "Intensité", bgNone: "Retirer le fond", bgHint: "Plus l'intensité est basse, plus l'image est pâle et le texte reste lisible." },
-  en: { save: "Save", cancel: "Cancel", image: "Change image", list: "Edit list", add: "Add", remove: "Remove", up: "Move up", down: "Move down", empty: "Text to write", bg: "Section background", bgPick: "Choose an image", bgStrength: "Intensity", bgNone: "Remove the background", bgHint: "The lower the intensity, the paler the image and the easier the text is to read." },
-  nl: { save: "Opslaan", cancel: "Annuleren", image: "Afbeelding wijzigen", list: "Lijst bewerken", add: "Toevoegen", remove: "Verwijderen", up: "Omhoog", down: "Omlaag", empty: "Tekst te schrijven", bg: "Achtergrond van de sectie", bgPick: "Kies een afbeelding", bgStrength: "Intensiteit", bgNone: "Achtergrond verwijderen", bgHint: "Hoe lager de intensiteit, hoe bleker de afbeelding en hoe leesbaarder de tekst." },
-  de: { save: "Speichern", cancel: "Abbrechen", image: "Bild ändern", list: "Liste bearbeiten", add: "Hinzufügen", remove: "Entfernen", up: "Nach oben", down: "Nach unten", empty: "Text schreiben", bg: "Hintergrund des Abschnitts", bgPick: "Bild wählen", bgStrength: "Intensität", bgNone: "Hintergrund entfernen", bgHint: "Je geringer die Intensität, desto blasser das Bild und desto besser lesbar der Text." },
-  es: { save: "Guardar", cancel: "Cancelar", image: "Cambiar imagen", list: "Editar lista", add: "Añadir", remove: "Quitar", up: "Subir", down: "Bajar", empty: "Texto por escribir", bg: "Fondo de la sección", bgPick: "Elegir una imagen", bgStrength: "Intensidad", bgNone: "Quitar el fondo", bgHint: "Cuanto más baja la intensidad, más pálida la imagen y más legible el texto." },
+  fr: { save: "Enregistrer", cancel: "Annuler", image: "Changer l'image", list: "Modifier la liste", add: "Ajouter", remove: "Retirer", up: "Monter", down: "Descendre", empty: "Texte à écrire", bg: "Fond de la section", bgPick: "Choisir une image", bgStrength: "Intensité", bgNone: "Retirer le fond", bgHint: "Plus l'intensité est basse, plus l'image est pâle et le texte reste lisible.", sections: "Sections de la page", shown: "Affichée", hiddenS: "Masquée", fixedS: "Toujours en haut", sectionsHint: "Masquez une section ou changez l'ordre : rien n'est supprimé, tout peut être réaffiché." },
+  en: { save: "Save", cancel: "Cancel", image: "Change image", list: "Edit list", add: "Add", remove: "Remove", up: "Move up", down: "Move down", empty: "Text to write", bg: "Section background", bgPick: "Choose an image", bgStrength: "Intensity", bgNone: "Remove the background", bgHint: "The lower the intensity, the paler the image and the easier the text is to read.", sections: "Page sections", shown: "Shown", hiddenS: "Hidden", fixedS: "Always on top", sectionsHint: "Hide a section or change the order: nothing is deleted, everything can be shown again." },
+  nl: { save: "Opslaan", cancel: "Annuleren", image: "Afbeelding wijzigen", list: "Lijst bewerken", add: "Toevoegen", remove: "Verwijderen", up: "Omhoog", down: "Omlaag", empty: "Tekst te schrijven", bg: "Achtergrond van de sectie", bgPick: "Kies een afbeelding", bgStrength: "Intensiteit", bgNone: "Achtergrond verwijderen", bgHint: "Hoe lager de intensiteit, hoe bleker de afbeelding en hoe leesbaarder de tekst.", sections: "Secties van de pagina", shown: "Zichtbaar", hiddenS: "Verborgen", fixedS: "Altijd bovenaan", sectionsHint: "Verberg een sectie of wijzig de volgorde: niets wordt verwijderd, alles kan weer getoond worden." },
+  de: { save: "Speichern", cancel: "Abbrechen", image: "Bild ändern", list: "Liste bearbeiten", add: "Hinzufügen", remove: "Entfernen", up: "Nach oben", down: "Nach unten", empty: "Text schreiben", bg: "Hintergrund des Abschnitts", bgPick: "Bild wählen", bgStrength: "Intensität", bgNone: "Hintergrund entfernen", bgHint: "Je geringer die Intensität, desto blasser das Bild und desto besser lesbar der Text.", sections: "Abschnitte der Seite", shown: "Sichtbar", hiddenS: "Ausgeblendet", fixedS: "Immer oben", sectionsHint: "Blenden Sie einen Abschnitt aus oder ändern Sie die Reihenfolge: nichts wird gelöscht, alles kann wieder angezeigt werden." },
+  es: { save: "Guardar", cancel: "Cancelar", image: "Cambiar imagen", list: "Editar lista", add: "Añadir", remove: "Quitar", up: "Subir", down: "Bajar", empty: "Texto por escribir", bg: "Fondo de la sección", bgPick: "Elegir una imagen", bgStrength: "Intensidad", bgNone: "Quitar el fondo", bgHint: "Cuanto más baja la intensidad, más pálida la imagen y más legible el texto.", sections: "Secciones de la página", shown: "Visible", hiddenS: "Oculta", fixedS: "Siempre arriba", sectionsHint: "Oculte una sección o cambie el orden: nada se borra, todo puede volver a mostrarse." },
 };
 const ui = (lang: string, key: string) => (UI[lang] ?? UI.en)[key] ?? UI.en[key];
 
@@ -637,6 +637,102 @@ export function SectionBackground({ k }: { k: string }) {
           }}
         />,
         document.body,
+      )}
+    </>
+  );
+}
+
+export type PageSection = { id: string; label: string; node: ReactNode; fixed?: boolean };
+
+/**
+ * The sections of a page, which an admin can hide or reorder in edit mode (« Sections de la page »). By default: the
+ * order and sections given, all shown; a fixed section (the top of the page) never moves nor hides; a section added
+ * later appears at its place. <Sections k="home.sections" items={[{ id: "hero", label: "Haut de page", node: <Hero />, fixed: true }, …]} />
+ */
+export function Sections({ k, items }: { k: string; items: PageSection[] }) {
+  const { get, save, editMode, lang } = useContent();
+  const [open, setOpen] = useState(false);
+  const saved = get(k) as { order?: string[]; hidden?: string[] } | undefined;
+  const plan = (o: { order?: string[]; hidden?: string[] } | undefined) => {
+    const fixed = items.filter((i) => i.fixed);
+    const movable = items.filter((i) => !i.fixed);
+    const known = (o?.order ?? []).map((id) => movable.find((i) => i.id === id)).filter(Boolean) as PageSection[];
+    // A section the saved order doesn't know yet goes back next to the one it follows in the code.
+    for (const item of movable) if (!known.includes(item)) {
+      const before = movable[movable.indexOf(item) - 1];
+      known.splice(before ? known.indexOf(before) + 1 : 0, 0, item);
+    }
+    return { list: [...fixed, ...known], hidden: new Set(o?.hidden ?? []) };
+  };
+  const current = plan(saved && typeof saved === "object" ? saved : undefined);
+  const [draft, setDraft] = useState(current);
+  useEffect(() => {
+    if (open) setDraft(plan(saved && typeof saved === "object" ? saved : undefined));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
+  const move = (i: number, d: number) => {
+    const list = [...draft.list];
+    const j = i + d;
+    if (j < 0 || j >= list.length || list[i].fixed || list[j].fixed) return;
+    [list[i], list[j]] = [list[j], list[i]];
+    setDraft({ ...draft, list });
+  };
+  const toggle = (id: string) => {
+    const hidden = new Set(draft.hidden);
+    if (hidden.has(id)) hidden.delete(id);
+    else hidden.add(id);
+    setDraft({ ...draft, hidden });
+  };
+  const ghost = "rounded-full border border-black/10 px-2 py-1 text-sm disabled:opacity-30 dark:border-white/15";
+  return (
+    <>
+      {current.list.filter((i) => i.fixed || !current.hidden.has(i.id)).map((i) => (
+        <Fragment key={i.id}>{i.node}</Fragment>
+      ))}
+      {editMode && (
+        <button
+          type="button"
+          onClick={() => setOpen(true)}
+          className="fixed bottom-[calc(env(safe-area-inset-bottom)+6.5rem)] left-3 z-40 rounded-full bg-[var(--brand,#111)] px-4 py-2.5 text-sm font-medium text-white shadow-lg md:bottom-6 md:left-6"
+        >
+          ☰ {ui(lang, "sections")}
+        </button>
+      )}
+      {editMode && (
+        <Sheet open={open} onClose={() => setOpen(false)} title={ui(lang, "sections")}>
+          <div className="space-y-3 pb-2">
+            <p className="text-sm opacity-70">{ui(lang, "sectionsHint")}</p>
+            {draft.list.map((item, i) => (
+              <div key={item.id} className={"flex items-center gap-2 rounded-2xl border border-black/10 p-2 dark:border-white/15 " + (draft.hidden.has(item.id) ? "opacity-50" : "")}>
+                <span className="min-w-0 flex-1 truncate text-sm font-medium">{item.label}</span>
+                {item.fixed ? (
+                  <span className="text-xs opacity-60">{ui(lang, "fixedS")}</span>
+                ) : (
+                  <>
+                    <button type="button" className={ghost} aria-label={ui(lang, "up")} disabled={i === 0 || draft.list[i - 1].fixed} onClick={() => move(i, -1)}>↑</button>
+                    <button type="button" className={ghost} aria-label={ui(lang, "down")} disabled={i === draft.list.length - 1} onClick={() => move(i, 1)}>↓</button>
+                    <button type="button" className={ghost + " min-w-24"} onClick={() => toggle(item.id)}>
+                      {draft.hidden.has(item.id) ? ui(lang, "hiddenS") : ui(lang, "shown")}
+                    </button>
+                  </>
+                )}
+              </div>
+            ))}
+            <div className="flex justify-end gap-2 pt-2">
+              <button type="button" className="rounded-xl border px-4 py-2 text-sm" onClick={() => setOpen(false)}>{ui(lang, "cancel")}</button>
+              <button
+                type="button"
+                className="rounded-xl bg-[var(--brand,#111)] px-4 py-2 text-sm font-medium text-white"
+                onClick={async () => {
+                  await save(k, { order: draft.list.filter((i) => !i.fixed).map((i) => i.id), hidden: [...draft.hidden] }, { translated: false });
+                  setOpen(false);
+                }}
+              >
+                {ui(lang, "save")}
+              </button>
+            </div>
+          </div>
+        </Sheet>
       )}
     </>
   );

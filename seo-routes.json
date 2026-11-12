@@ -1,5 +1,5 @@
 {
-  "base": "https://etredanslalumiere.be",
+  "base": "",
   "routes": [
     {
       "path": "/",
