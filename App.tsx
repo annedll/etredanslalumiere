@@ -12,7 +12,7 @@ import { ContentProvider } from "./lib/content";
 import { SiteShell, NotFound } from "./lib/shell";
 import { AuthPage, ResetPasswordPage, RequireAuth } from "./lib/auth";
 import { ReviewForm } from "./lib/engage";
-import { useApp, applyBrandColor } from "./lib/data";
+import { useApp } from "./lib/data";
 import { DEFAULT_SETTINGS } from "./lib/defaults";
 import { Footer, Logo, TopBanners, MAIN, EXTRA, manageLabel } from "./components/Layout";
 import { HomeModern } from "./pages/Home";
@@ -62,7 +62,7 @@ body{overflow-x:clip;background:var(--brand-bg,#fffdf6);-webkit-tap-highlight-co
  radial-gradient(40rem 30rem at 85% 85%, rgba(160,220,215,.22), transparent 60%),
  var(--brand-bg,#fffdf6)}
 .dark .aquarelle{background:#0a0a0a}
-.font-script{font-family:'Great Vibes',cursive;font-weight:400;letter-spacing:0}
+.font-script{font-family:var(--font-title,'Great Vibes',cursive);font-weight:400;letter-spacing:0}
 button,nav,a{-webkit-user-select:none;user-select:none}
 @keyframes drift{0%,100%{transform:translate(0,0) scale(1)}50%{transform:translate(18px,-14px) scale(1.06)}}
 @keyframes floatSoft{0%,100%{transform:translate(-50%,0)}50%{transform:translate(-50%,6px)}}
@@ -93,7 +93,6 @@ function Legal({ kind }: { kind: "mentions" | "confidentialite" | "cgv" | "cgu" 
 function Site() {
   const { t, lang } = useI18n() as any;
   const app = useApp();
-  useEffect(() => applyBrandColor(app.settings.brand_color), [app.settings.brand_color]);
   useEffect(() => {
     if (document.getElementById("gf-script")) return;
     const l = document.createElement("link");
