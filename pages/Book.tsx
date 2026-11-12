@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useParams, useNavigate, useSearchParams, Link } from "react-router-dom";
-import { Phone, CheckCircle2, Loader2, CalendarDays } from "lucide-react";
+import { Phone, CheckCircle2, Loader2, CalendarDays, MapPin } from "lucide-react";
 import { z } from "zod";
 import { useSeo } from "../lib/seo";
 import { useI18n } from "../lib/i18n";
@@ -8,7 +8,7 @@ import { notify, scheduleReminder } from "../lib/notify";
 import { scheduleReviewRequest, AddToCalendar } from "../lib/engage";
 import { startCheckout, confirmPayment } from "../lib/payments";
 import { supabase, isConfigured } from "../lib/supabase";
-import { useApp, Editable, useOfferings, useSessions, useQuery, money, fmtDate, isDemoId } from "../lib/data";
+import { useApp, Editable, useOfferings, useSessions, useQuery, money, fmtDate, isDemoId, addressLine } from "../lib/data";
 import { DEFAULT_SLOTS } from "../lib/defaults";
 import { Button, ButtonLink, Card, Container, EmptyState, Field, Input, Select, Textarea, Checkbox, Tabs, Skeleton, Badge, cn, H1 } from "../components/ui";
 import { PayTerms } from "../components/Offers";
@@ -64,7 +64,7 @@ export function BookPage() {
     const base = { name, email: p.data.email, phone: p.data.phone, service, reference: id, url: "/compte" };
     if (tab === "slot") {
       const start = new Date(slot.starts_at), end = new Date(slot.ends_at);
-      notify("booking.new", { ...base, date: start.toISOString(), end: end.toISOString(), location: `${app.get("biz.address")}, ${app.get("biz.postal")} ${app.get("biz.city")}` }, supabase);
+      notify("booking.new", { ...base, date: start.toISOString(), end: end.toISOString(), location: slot.location || addressLine(app.settings, app.get) }, supabase);
       scheduleReminder(start, base, supabase);
       scheduleReviewRequest(end, base, supabase);
     } else notify("contact.new", { name, email: p.data.email, phone: p.data.phone, message: `${service}\n${p.data.message || ""}` }, supabase);
@@ -75,7 +75,7 @@ export function BookPage() {
       <CheckCircle2 className="h-14 w-14 mx-auto text-[var(--brand)]" />
       <H1 className="text-3xl font-bold tracking-tight text-neutral-900 dark:text-neutral-100">{done.type === "slot" ? t("book.ok") : t("book.okCallback")}</H1>
       {done.slot && <p className="text-neutral-700 dark:text-neutral-300">{done.service} · {fmtDate(done.slot.starts_at, lang)}</p>}
-      {done.slot && <div className="flex justify-center"><AddToCalendar title={done.service} start={new Date(done.slot.starts_at)} end={new Date(done.slot.ends_at)} location={`${app.get("biz.address")}, ${app.get("biz.postal")} ${app.get("biz.city")}`} /></div>}
+      {done.slot && <div className="flex justify-center"><AddToCalendar title={done.service} start={new Date(done.slot.starts_at)} end={new Date(done.slot.ends_at)} location={done.slot.location || addressLine(app.settings, app.get)} /></div>}
       <p className="text-sm text-neutral-600 dark:text-neutral-400">{t("book.payOnsite")}</p>
       <ButtonLink to="/">{t("nav.home")}</ButtonLink>
     </Container>
@@ -101,6 +101,7 @@ export function BookPage() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">{slots.data.map((s) => (
                   <button key={s.id} onClick={() => setSlot(s)} className={cn("min-h-12 rounded-xl border px-3 py-2 text-left text-[15px] transition-colors active:scale-95", slot?.id === s.id ? "border-[var(--brand)] bg-[var(--brand)]/10 text-[var(--brand)]" : "border-neutral-300 dark:border-neutral-700 text-neutral-800 dark:text-neutral-200")}>
                     <CalendarDays className="inline h-4 w-4 mr-1" />{fmtDate(s.starts_at, lang)}
+                    {s.location && <span className="mt-0.5 flex items-center gap-1 text-xs opacity-75"><MapPin className="h-3.5 w-3.5 shrink-0" />{s.location}</span>}
                   </button>
                 ))}</div>
               ) : <EmptyState title={t("book.noSlots")} action={<Button variant="secondary" onClick={() => setTab("callback")}>{t("book.tabCallback")}</Button>} />}

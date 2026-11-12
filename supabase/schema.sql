@@ -121,6 +121,8 @@ create table if not exists public.availability_slots (
   id uuid primary key default gen_random_uuid(), starts_at timestamptz not null, ends_at timestamptz not null,
   mode text default 'cabinet', is_booked boolean default false, created_at timestamptz default now()
 );
+-- Place of the slot (empty = the cabinet's address).
+alter table public.availability_slots add column if not exists location text;
 alter table public.availability_slots enable row level security;
 drop policy if exists slot_read on public.availability_slots;
 create policy slot_read on public.availability_slots for select using (true);

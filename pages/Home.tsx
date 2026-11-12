@@ -146,7 +146,7 @@ export function HomeModern() {
         <Section tone="tint" bg="home.reviews.bg">
           <Container className="space-y-8">
             <Reveal><Editable settingKey="home.reviewsTitle" as="h2" className="text-3xl sm:text-4xl font-bold tracking-tight text-neutral-900 dark:text-neutral-100 text-center" /></Reveal>
-            <Reveal><Reviews supabase={supabase} /></Reveal>
+            <Reveal><Reviews supabase={supabase} title="" /></Reveal>
           </Container>
         </Section>
       )) || null },

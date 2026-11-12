@@ -99,7 +99,7 @@ export function Footer() {
   return (
     <footer className="relative mt-24 overflow-hidden bg-gradient-to-b from-white/60 via-[var(--brand-accent)]/25 to-[var(--brand)]/10 dark:from-neutral-950 dark:via-neutral-950 dark:to-neutral-900 pb-[calc(5rem+var(--safe-bottom))] md:pb-8">
       <div aria-hidden className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[var(--brand)]/30 to-transparent" />
-      <Container className="relative py-14 grid grid-cols-1 md:grid-cols-3 gap-10">
+      <Container className="relative py-14 grid grid-cols-1 gap-10 sm:grid-cols-2 lg:grid-cols-[1.25fr_1fr_0.9fr_1.15fr]">
         <div className="space-y-3 min-w-0">
           <Logo />
           <p className="text-sm text-neutral-600 dark:text-neutral-400 italic">« {app.get("biz.slogan")} »</p>
@@ -112,23 +112,22 @@ export function Footer() {
             {app.get("biz.bce") && <p>{t("footer.bce")} : {app.get("biz.bce")}</p>}
           </address>
         </div>
-        <div className="space-y-3">
+        <div className="space-y-3 min-w-0 lg:order-2">
           <p className="font-semibold text-neutral-900 dark:text-neutral-100">{t("footer.follow")}</p>
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-col items-start gap-2">
             {social.data.map((s: any) => (
               <a key={s.id} href={s.url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 min-h-11 rounded-full border border-white/80 dark:border-neutral-800 bg-white/70 dark:bg-neutral-900 px-4 text-sm text-neutral-800 dark:text-neutral-200 hover:border-[var(--brand)] transition-colors">
                 <LinkIcon className="h-4 w-4" />{s.network}
               </a>
             ))}
           </div>
-          <div className="grid grid-cols-2 gap-1 pt-2 text-sm">
-            {[["/soins-energetiques", "nav.sw"], ["/qui-suis-je", "nav.about"], ["/soins", "nav.care"], ["/formations", "nav.trainings"], ["/ateliers", "nav.workshops"], ["/agenda", "nav.agenda"], ["/blog", "nav.blog"], ["/temoignages", "nav.testimonials"], ["/e-books", "nav.ebooks"], ["/contact", "nav.contact"], ["/rendez-vous", "nav.book"]].map(([to, k]) => (
-              <Link key={to} to={to} className="py-1.5 text-neutral-600 dark:text-neutral-400 hover:text-[var(--brand)] transition-colors">{t(k)}</Link>
-            ))}
-          </div>
         </div>
-        <div className="space-y-3 min-w-0">
-          <p className="font-semibold text-neutral-900 dark:text-neutral-100">{t("footer.newsletter")}</p>
+        <nav aria-label="Plan du site" className="grid grid-cols-2 gap-x-4 gap-y-0.5 text-sm lg:order-1 lg:grid-cols-1 xl:grid-cols-2">
+          {[["/soins-energetiques", "nav.sw"], ["/qui-suis-je", "nav.about"], ["/soins", "nav.care"], ["/formations", "nav.trainings"], ["/ateliers", "nav.workshops"], ["/agenda", "nav.agenda"], ["/blog", "nav.blog"], ["/temoignages", "nav.testimonials"], ["/e-books", "nav.ebooks"], ["/contact", "nav.contact"], ["/rendez-vous", "nav.book"]].map(([to, k]) => (
+            <Link key={to} to={to} className="py-1.5 text-neutral-600 dark:text-neutral-400 hover:text-[var(--brand)] transition-colors">{t(k)}</Link>
+          ))}
+          </nav>
+        <div className="space-y-3 min-w-0 lg:order-3">
           {isConfigured && <NewsletterSignup supabase={supabase} />}
           <p className="text-xs text-neutral-500 dark:text-neutral-400">{app.get("health.warning")}</p>
         </div>

@@ -127,7 +127,7 @@ export function HomePage() {
           {sessions.loading ? <Skeleton className="h-32" /> : <div className="grid gap-4">{sessions.data.slice(0, 3).map((s) => <SessionCard key={s.id} s={s} />)}</div>}
         </section>
 
-        {isConfigured && <section className="space-y-6"><Editable settingKey="home.reviewsTitle" as="h2" className={h2} /><Reviews supabase={supabase} /></section>}
+        {isConfigured && <section className="space-y-6"><Editable settingKey="home.reviewsTitle" as="h2" className={h2} /><Reviews supabase={supabase} title="" /></section>}
 
         <section className="space-y-6">
           <Editable settingKey="home.faqTitle" as="h2" className={h2} />
