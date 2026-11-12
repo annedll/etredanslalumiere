@@ -43,7 +43,7 @@ export const DEFAULT_SETTINGS: Record<string, any> = {
   "faq.5.q": "Les soins énergétiques remplacent-ils un traitement médical ?",
   "faq.5.a": "Non. Les soins énergétiques sont complémentaires et ne remplacent pas un avis, un diagnostic ou un traitement médical. Continuez à suivre les conseils de votre médecin.",
   "faq.6.q": "Comment fonctionnent les méditations hebdomadaires ?",
-  "faq.6.a": "Chaque semaine, une méditation guidée à thème d'une heure (11 €), avec olfactif et oracle. La 11e séance est offerte : votre carnet de fidélité est suivi dans votre espace client.",
+  "faq.6.a": "Chaque semaine, une méditation guidée à thème d'une heure (11 €), avec olfactif et oracle.",
   "about.title": "Qui suis-je ?",
   "about.body": "Je m'appelle Anne Kételair. Thérapeute énergéticienne, coach bien-être et enseignante, je reçois à Bailleul (Estaimpuis) les personnes qui souhaitent se ressourcer, apaiser leur stress ou avancer sur leur chemin de développement personnel et spirituel.\n\nMon accompagnement repose sur l'écoute, la bienveillance et l'empathie. J'utilise le soin énergétique, le décodage biologique, la numérologie de la Métamorphose, les mantras, les huiles essentielles et l'oracle.\n\nJ'enseigne le Reiki Usui jusqu'au degré de Maître-enseignant, le Lahochi / 13e Octave, le Triangle Doré d'Isis et le Shamballa, et j'anime des méditations guidées et des chants sacrés.",
   "about.image": IMG.about,
@@ -120,9 +120,6 @@ export const SETTING_GROUPS: { title: string; fields: SettingField[] }[] = [
   { title: "Réservation, paiement et avertissements", fields: [
     { key: "booking.mode", label: "Mode de réservation (« slots » = créneaux du site, « calendly » = lien externe)" },
     { key: "booking.calendly_url", label: "Lien Calendly (facultatif)" },
-    { key: "deposit.enabled", label: "Acompte en ligne pour les formations", type: "bool" },
-    { key: "deposit.amount", label: "Montant de l'acompte (€)", type: "number" },
-    { key: "meditation.card_price", label: "Prix du carnet de 10 méditations (€)", type: "number" },
     { key: "cancel.policy", label: "Politique d'annulation", type: "textarea" },
     { key: "health.warning", label: "Avertissement santé", type: "textarea" },
   ] },
@@ -154,7 +151,7 @@ export const DEFAULT_OFFERINGS: Offering[] = [
   o(21, "atelier", "enfant-interieur", "Journée sur l'Enfant Intérieur", "Méditations, exercices et constellations, en duo avec Catherine Vandenbroucke.", "Une journée pour rencontrer votre enfant intérieur : méditations, exercices et constellations, animée en duo avec Catherine Vandenbroucke.", "1 journée", ["cabinet"], IMG.care, [["1 journée", 12000]]),
   o(22, "atelier", "systeme-energetique", "Initiation au système énergétique", "Comprendre les bases du système énergétique.", "Un atelier pour découvrir les bases du système énergétique du corps.", "Atelier", ["cabinet"], IMG.medit, [["Atelier", 12000]]),
   o(23, "atelier", "art-therapie", "Art-thérapie, connaissance de soi", "3 heures pour mieux se connaître par la création.", "Un atelier d'art-thérapie de 3 heures pour explorer la connaissance de soi par la création, sans aucun prérequis artistique.", "3h", ["cabinet"], IMG.about, [["3 heures", 4500]]),
-  o(30, "meditation", "meditations-hebdomadaires", "Méditations hebdomadaires", "Méditation guidée à thème, olfactif et oracle, chaque semaine.", "Chaque semaine, une heure de méditation guidée à thème, accompagnée d'huiles essentielles et d'un tirage d'oracle. La 11e séance est offerte grâce au carnet de fidélité.", "1h", ["cabinet"], IMG.medit, [["1 séance", 1100]]),
+  o(30, "meditation", "meditations-hebdomadaires", "Méditations hebdomadaires", "Méditation guidée à thème, olfactif et oracle, chaque semaine.", "Chaque semaine, une heure de méditation guidée à thème, accompagnée d'huiles essentielles et d'un tirage d'oracle.", "1h", ["cabinet"], IMG.medit, [["1 séance", 1100]]),
 ];
 
 const at = (days: number, h: number) => { const d = new Date(); d.setDate(d.getDate() + days); d.setHours(h, 0, 0, 0); return d.toISOString(); };
@@ -179,7 +176,7 @@ export const DEFAULT_POSTS = [
     body: "Le 1er degré de Reiki Usui est la porte d'entrée de la pratique. Il se déroule sur deux journées, au cabinet de Bailleul.\n\nPendant l'initiation, vous apprenez à poser les mains sur vous-même et sur vos proches, à reconnaître les sensations et à installer une pratique quotidienne.\n\nUn syllabus et un certificat vous sont remis. Vous pouvez ensuite poursuivre avec le 2e degré, à votre rythme." },
   { id: "d-p2", slug: "meditation-se-recentrer", title: "Méditation : un rendez-vous hebdomadaire pour se recentrer", category: "meditation", cover_url: IMG.hero, og_image_url: "", published_at: at(-3, 9), is_published: true,
     excerpt: "Une heure par semaine pour poser ses valises, respirer et retrouver un peu de clarté.",
-    body: "La méditation guidée à thème est un moment simple : on s'installe, on respire, on se laisse guider.\n\nChaque séance est accompagnée d'un olfactif et d'un tirage d'oracle, pour repartir avec un mot ou une intention.\n\nLe carnet de fidélité vous offre la 11e séance." },
+    body: "La méditation guidée à thème est un moment simple : on s'installe, on respire, on se laisse guider.\n\nChaque séance est accompagnée d'un olfactif et d'un tirage d'oracle, pour repartir avec un mot ou une intention." },
 ];
 
 export const DEFAULT_EBOOKS = [

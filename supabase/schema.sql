@@ -56,6 +56,8 @@ create table if not exists public.offerings (
   is_published boolean default true, sort_order int default 0, created_at timestamptz default now()
 );
 alter table public.offerings enable row level security;
+-- Online deposit of each offer (empty = no deposit: full price only).
+alter table public.offerings add column if not exists deposit_cents int;
 drop policy if exists off_read on public.offerings;
 create policy off_read on public.offerings for select using (is_published or public.is_admin());
 drop policy if exists off_admin on public.offerings;
@@ -303,12 +305,15 @@ create or replace function public.create_registration(p_session_id uuid, p_depos
 declare s record; v_amount int; v_id uuid;
 begin
   if auth.uid() is null then raise exception 'login required'; end if;
-  select se.*, p.amount_cents as price, o.kind into s from public.sessions se left join public.offering_prices p on p.id = se.price_id join public.offerings o on o.id = se.offering_id where se.id = p_session_id for update of se;
+  select se.*, p.amount_cents as price, o.kind, o.deposit_cents into s from public.sessions se left join public.offering_prices p on p.id = se.price_id join public.offerings o on o.id = se.offering_id where se.id = p_session_id for update of se;
   if s.id is null or s.status = 'cancelled' or s.starts_at < now() then raise exception 'not found'; end if;
   if s.status = 'full' or s.seats_taken >= s.capacity then raise exception 'full'; end if;
   v_amount := coalesce(s.price, 0);
-  if p_deposit and s.kind = 'formation' and public.setting_num('deposit.enabled', 0) is not null and (select value #>> '{}' from public.app_settings where key = 'deposit.enabled') = 'true' then
-    v_amount := least(v_amount, (public.setting_num('deposit.amount', 50) * 100)::int);
+  -- The deposit set on the offer (Réglages → Offres & tarifs), never more than the price.
+  if p_deposit and coalesce(s.deposit_cents, 0) > 0 then
+    v_amount := least(v_amount, s.deposit_cents);
+  else
+    p_deposit := false;
   end if;
   if v_amount <= 0 then raise exception 'price missing'; end if;
   insert into public.registrations (session_id, user_id, amount_cents, is_deposit) values (p_session_id, auth.uid(), v_amount, coalesce(p_deposit, false)) returning id into v_id;
@@ -847,3 +852,31 @@ create or replace function public.export_my_data() returns jsonb language sql st
 $$;
 revoke all on function public.export_my_data() from public;
 grant execute on function public.export_my_data() to authenticated;
+
+-- ---------------------------------------------------------------- 2026-11 : deposits per offer, places, no more meditation card
+-- One time: the former single deposit (formations) becomes the deposit of each formation.
+do $$ begin
+  if not exists (select 1 from public.app_settings where key = 'deposit.migrated') then
+    if (select value #>> '{}' from public.app_settings where key = 'deposit.enabled') = 'true' then
+      update public.offerings set deposit_cents = (public.setting_num('deposit.amount', 50) * 100)::int where kind = 'formation' and deposit_cents is null;
+    end if;
+    insert into public.app_settings (key, value) values ('deposit.migrated', '"true"'::jsonb) on conflict (key) do nothing;
+  end if;
+end $$;
+
+-- Places (cabinet, salle, extérieur…), chosen for each session of the agenda.
+create table if not exists public.places (
+  id uuid primary key default gen_random_uuid(),
+  name text not null, address text not null default '',
+  is_active boolean default true, sort_order int default 0, created_at timestamptz default now()
+);
+alter table public.places enable row level security;
+drop policy if exists places_read on public.places;
+create policy places_read on public.places for select using (is_active or public.is_admin());
+drop policy if exists places_admin on public.places;
+create policy places_admin on public.places for all using (public.is_admin()) with check (public.is_admin());
+-- The meditation card is over: texts that mentioned it.
+update public.offerings set body = replace(body, ' La 11e séance est offerte grâce au carnet de fidélité.', '') where body like '%carnet de fidélité%';
+update public.posts set body = replace(body, E'\n\nLe carnet de fidélité vous offre la 11e séance.', '') where body like '%carnet de fidélité%';
+update public.app_settings set value = to_jsonb('Chaque semaine, une méditation guidée à thème d''une heure (11 €), avec olfactif et oracle.'::text)
+where key = 'faq.6.a' and value #>> '{}' like '%carnet de fidélité%';
