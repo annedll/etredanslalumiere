@@ -1,6 +1,6 @@
 // Injected by Usin (site frame: floating header on computers and phones, "More" and admin menus, footer, cookies,
 // errors, 404). Every app keeps its own look: brand colors, font, logo and the pages it puts inside. Do not edit.
-import { Component, Suspense, useEffect, useState, type ReactNode } from "react";
+import { Component, Suspense, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { Link, NavLink, useLocation, useNavigate } from "react-router-dom";
 import { ChevronDown, LayoutGrid, Menu, Pencil, Settings, Shield, User, X } from "lucide-react";
 import { brand } from "./brand";
@@ -193,18 +193,37 @@ function Header({
     return () => window.removeEventListener("scroll", on);
   }, []);
   useEffect(() => setMenu(false), [pathname]);
-  const inBar = nav.slice(0, maxInBar);
-  const more = nav.slice(maxInBar);
+  // The bar keeps only the entries that fit on one line (the rest goes to « Plus »): never a button on two lines.
+  const row = useRef<HTMLDivElement>(null);
+  const [fit, setFit] = useState(maxInBar);
+  const [, setWidth] = useState(0);
+  useEffect(() => {
+    const on = () => {
+      setFit(maxInBar);
+      setWidth(window.innerWidth);
+    };
+    window.addEventListener("resize", on);
+    // Web fonts make the labels wider once loaded: measured again then.
+    document.fonts?.ready.then(() => setWidth(window.innerWidth + 0.1)).catch(() => undefined);
+    return () => window.removeEventListener("resize", on);
+  }, [maxInBar]);
+  // After every render: one entry less in the bar while the line overflows (the rest goes to « Plus »).
+  useLayoutEffect(() => {
+    const el = row.current;
+    if (el && el.getClientRects().length && fit > 1 && el.scrollWidth > el.clientWidth + 1) setFit(fit - 1);
+  });
+  const inBar = nav.slice(0, fit);
+  const more = nav.slice(fit);
   const pill = cn(PILL, "transition-all duration-200", scrolled ? "bg-[var(--brand-bg,#fff)]/90 dark:bg-neutral-900/90" : "");
   return (
     <>
       {/* Computers: logo, navigation and actions float on the same line, same height, same style. */}
       <header className="fixed inset-x-0 top-4 z-40 hidden px-4 md:block">
-        <div className="mx-auto flex max-w-7xl items-center justify-between gap-3">
-          <div className={cn(pill, "flex items-center pl-1.5 pr-4")}>
+        <div ref={row} className="mx-auto flex max-w-7xl items-center justify-between gap-3">
+          <div className={cn(pill, "flex shrink-0 items-center pl-1.5 pr-4")}>
             <Logo showName custom={logo} />
           </div>
-          <nav aria-label={tr("menu")} className={cn(pill, "flex items-center gap-1 px-1.5")}>
+          <nav aria-label={tr("menu")} className={cn(pill, "flex shrink-0 items-center gap-1 px-1.5")}>
             {inBar.map((i) => (
               <NavLink
                 key={i.to}
@@ -217,7 +236,7 @@ function Header({
             ))}
             <MoreMenu items={more} />
           </nav>
-          <div className="flex items-center gap-2">
+          <div className="flex shrink-0 items-center gap-2">
             <div className={cn(pill, "flex items-center gap-1 px-1.5")}>
               <LanguageSwitcher />
               {supabase && user && <NotificationBell supabase={supabase} />}
@@ -225,7 +244,7 @@ function Header({
               <AccountButton accountPath={accountPath} signInPath={signInPath} />
             </div>
             {primary && (
-              <ButtonLink to={primary.to} className="h-12 px-6 shadow-lg shadow-[var(--brand)]/25">
+              <ButtonLink to={primary.to} className="h-12 shrink-0 whitespace-nowrap px-6 shadow-lg shadow-[var(--brand)]/25">
                 {primary.label}
               </ButtonLink>
             )}
@@ -233,7 +252,7 @@ function Header({
         </div>
       </header>
       {/* Phones: one compact floating bar (logo, language, account, menu). */}
-      <header className="fixed inset-x-3 top-[calc(env(safe-area-inset-top)+0.5rem)] z-40 md:hidden">
+      <header className="fixed inset-x-3 top-[calc(var(--safe-top,env(safe-area-inset-top))+0.5rem)] z-40 md:hidden">
         <div className={cn(pill, "flex items-center justify-between gap-1 pl-1.5 pr-1.5")}>
           <div className="min-w-0 flex-1">
             <Logo showName custom={logoCompact ?? logo} />
@@ -271,7 +290,7 @@ function EditBar() {
   const { editMode, setEditMode } = useContent();
   if (!editMode) return null;
   return (
-    <div className="fixed inset-x-3 top-[calc(env(safe-area-inset-top)+4.25rem)] z-30 mx-auto flex max-w-3xl items-center justify-between gap-3 rounded-full bg-[var(--brand)] px-4 py-2 text-sm text-white shadow-lg md:top-[5.25rem]">
+    <div className="fixed inset-x-3 top-[calc(var(--safe-top,env(safe-area-inset-top))+4.25rem)] z-30 mx-auto flex max-w-3xl items-center justify-between gap-3 rounded-full bg-[var(--brand)] px-4 py-2 text-sm text-white shadow-lg md:top-[5.25rem]">
       <span className="min-w-0 truncate">✎ {tr("editing")}</span>
       <button type="button" onClick={() => setEditMode(false)} className="flex shrink-0 items-center gap-1 rounded-full bg-white/20 px-3 py-1.5 font-medium">
         <X className="size-4" /> {tr("stopEdit")}
@@ -544,7 +563,7 @@ export function SiteShell({
     <div className="flex min-h-[100dvh] flex-col">
       <Header nav={nav} primary={primary} maxInBar={maxInBar} adminLinks={admin} accountPath={accountPath} signInPath={signInPath} logo={logo} logoCompact={logoCompact} />
       <EditBar />
-      <main className={cn("flex-1", !underHeader && "pt-[calc(env(safe-area-inset-top)+4.5rem)] md:pt-24")}>
+      <main className={cn("flex-1", !underHeader && "pt-[calc(var(--safe-top,env(safe-area-inset-top))+4.5rem)] md:pt-24")}>
         {banner}
         <Boundary key={pathname}>
           <Suspense fallback={<PageSkeleton />}>{children}</Suspense>

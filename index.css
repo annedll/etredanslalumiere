@@ -18,7 +18,7 @@ body {
 }
 @media (display-mode: standalone) {
   :root {
-    --safe-top: calc(env(safe-area-inset-top) + 12px);
+    --safe-top: calc(env(safe-area-inset-top) + 20px);
   }
 }
 

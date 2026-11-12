@@ -9,15 +9,15 @@
     },
     {
       "path": "/agenda",
-      "title": "Votre avis sur les séances d'Anne Kételair à Estaimpuis · Être dans la lumière",
-      "description": "Partagez votre expérience après une consultation énergétique, une initiation Reiki, un atelier ou une méditation au cabinet de Bailleul (Estaimpuis) : votre note aide d'autres personnes.",
-      "source": "/App.tsx#AgendaPage"
+      "title": "Agenda des formations Reiki, ateliers et méditations · Être dans la lumière",
+      "description": "Prochaines dates des initiations Reiki, Lahochi, Isis, ateliers pendule et méditations guidées à Bailleul (Estaimpuis). Inscription en ligne, places limitées.",
+      "source": "/pages/Public.tsx#AgendaPage"
     },
     {
       "path": "/ateliers",
-      "title": "Votre avis sur les séances d'Anne Kételair à Estaimpuis · Être dans la lumière",
-      "description": "Partagez votre expérience après une consultation énergétique, une initiation Reiki, un atelier ou une méditation au cabinet de Bailleul (Estaimpuis) : votre note aide d'autres personnes.",
-      "source": "/App.tsx#AteliersPage"
+      "title": "Ateliers pendule, art-thérapie et méditation à Bailleul · Être dans la lumière",
+      "description": "Ateliers de pendule et radiesthésie, journée enfant intérieur, art-thérapie et méditations guidées hebdomadaires à 11 € près d'Estaimpuis, Mouscron et Lille.",
+      "source": "/pages/Public.tsx#AteliersPage"
     },
     {
       "path": "/avis",
@@ -27,57 +27,57 @@
     },
     {
       "path": "/blog",
-      "title": "Votre avis sur les séances d'Anne Kételair à Estaimpuis · Être dans la lumière",
-      "description": "Partagez votre expérience après une consultation énergétique, une initiation Reiki, un atelier ou une méditation au cabinet de Bailleul (Estaimpuis) : votre note aide d'autres personnes.",
-      "source": "/App.tsx#BlogPage"
+      "title": "Blog : soins énergétiques, Reiki, numérologie, méditation · Être dans la lumière",
+      "description": "Articles d'Anne Kételair sur les soins énergétiques, le Reiki Usui, la numérologie de la Métamorphose et la méditation, pour mieux comprendre et cheminer.",
+      "source": "/pages/Public.tsx#BlogPage"
     },
     {
       "path": "/contact",
-      "title": "Votre avis sur les séances d'Anne Kételair à Estaimpuis · Être dans la lumière",
-      "description": "Partagez votre expérience après une consultation énergétique, une initiation Reiki, un atelier ou une méditation au cabinet de Bailleul (Estaimpuis) : votre note aide d'autres personnes.",
-      "source": "/App.tsx#ContactPage"
+      "title": "Contact et accès au cabinet de Bailleul (Estaimpuis) · Être dans la lumière",
+      "description": "Contactez Anne Kételair au +32 495 933 704 ou par email. Cabinet Place Abbé César Renard 31, 7730 Bailleul (Estaimpuis), près de Mouscron, Tournai et Lille.",
+      "source": "/pages/Public.tsx#ContactPage"
     },
     {
       "path": "/e-books",
-      "title": "Votre avis sur les séances d'Anne Kételair à Estaimpuis · Être dans la lumière",
-      "description": "Partagez votre expérience après une consultation énergétique, une initiation Reiki, un atelier ou une méditation au cabinet de Bailleul (Estaimpuis) : votre note aide d'autres personnes.",
-      "source": "/App.tsx#EbooksPage"
+      "title": "E-books méditation, numérologie et bien-être à télécharger · Être dans la lumière",
+      "description": "Guides numériques d'Anne Kételair sur la méditation, la numérologie et les soins énergétiques, disponibles en téléchargement immédiat après un paiement sécurisé.",
+      "source": "/pages/Public.tsx#EbooksPage"
     },
     {
       "path": "/formations",
-      "title": "Votre avis sur les séances d'Anne Kételair à Estaimpuis · Être dans la lumière",
-      "description": "Partagez votre expérience après une consultation énergétique, une initiation Reiki, un atelier ou une méditation au cabinet de Bailleul (Estaimpuis) : votre note aide d'autres personnes.",
-      "source": "/App.tsx#FormationsPage"
+      "title": "Formations Reiki Usui, Lahochi et Isis près de Mouscron · Être dans la lumière",
+      "description": "Initiations au Reiki Usui en 4 degrés (dès 195 €), Lahochi / 13e Octave, Triangle Doré d'Isis et Shamballa à Bailleul, avec syllabus et certificat remis.",
+      "source": "/pages/Public.tsx#FormationsPage"
     },
     {
       "path": "/qui-suis-je",
-      "title": "Votre avis sur les séances d'Anne Kételair à Estaimpuis · Être dans la lumière",
-      "description": "Partagez votre expérience après une consultation énergétique, une initiation Reiki, un atelier ou une méditation au cabinet de Bailleul (Estaimpuis) : votre note aide d'autres personnes.",
-      "source": "/App.tsx#AboutPage"
+      "title": "Qui suis-je ? Anne Kételair, thérapeute énergéticienne · Être dans la lumière",
+      "description": "Anne Kételair, thérapeute énergéticienne, coach bien-être et enseignante Reiki à Bailleul (Estaimpuis) : son approche, ses outils et les systèmes qu'elle transmet.",
+      "source": "/pages/Public.tsx#AboutPage"
     },
     {
       "path": "/rendez-vous",
-      "title": "Votre avis sur les séances d'Anne Kételair à Estaimpuis · Être dans la lumière",
-      "description": "Partagez votre expérience après une consultation énergétique, une initiation Reiki, un atelier ou une méditation au cabinet de Bailleul (Estaimpuis) : votre note aide d'autres personnes.",
-      "source": "/App.tsx#BookPage"
+      "title": "Prendre rendez-vous pour un soin énergétique à Bailleul · Être dans la lumière",
+      "description": "Réservez en ligne un créneau de soin énergétique, de consultation ou de numérologie avec Anne Kételair, ou demandez à être rappelée. Paiement sur place ou par virement.",
+      "source": "/pages/Book.tsx#BookPage"
     },
     {
       "path": "/soins",
-      "title": "Votre avis sur les séances d'Anne Kételair à Estaimpuis · Être dans la lumière",
-      "description": "Partagez votre expérience après une consultation énergétique, une initiation Reiki, un atelier ou une méditation au cabinet de Bailleul (Estaimpuis) : votre note aide d'autres personnes.",
-      "source": "/App.tsx#SoinsPage"
+      "title": "Soins énergétiques et numérologie à Bailleul (Estaimpuis) · Être dans la lumière",
+      "description": "Consultation avec soin énergétique 80 €, soin seul 60 €, accompagnement, généalogie et numérologie de la Métamorphose, au cabinet de Bailleul, à distance ou en visio.",
+      "source": "/pages/Public.tsx#SoinsPage"
     },
     {
       "path": "/soins-energetiques",
-      "title": "Votre avis sur les séances d'Anne Kételair à Estaimpuis · Être dans la lumière",
-      "description": "Partagez votre expérience après une consultation énergétique, une initiation Reiki, un atelier ou une méditation au cabinet de Bailleul (Estaimpuis) : votre note aide d'autres personnes.",
-      "source": "/App.tsx#SwPage"
+      "title": "Soins énergétiques et accompagnement à Bailleul (Estaimpuis) · Être dans la lumière",
+      "description": "Découvrez l'accompagnement d'Anne Kételair à Bailleul (Estaimpuis) : soins énergétiques, Reiki et méditation, au cabinet, à distance ou en visio, près de Mouscron et Lille.",
+      "source": "/pages/SwPage.tsx#SwPage"
     },
     {
       "path": "/temoignages",
-      "title": "Votre avis sur les séances d'Anne Kételair à Estaimpuis · Être dans la lumière",
-      "description": "Partagez votre expérience après une consultation énergétique, une initiation Reiki, un atelier ou une méditation au cabinet de Bailleul (Estaimpuis) : votre note aide d'autres personnes.",
-      "source": "/App.tsx#TestimonialsPage"
+      "title": "Témoignages sur les soins et formations d'Anne Kételair · Être dans la lumière",
+      "description": "Avis et retours de personnes accompagnées en soin énergétique, numérologie, Reiki ou méditation à Bailleul (Estaimpuis), publiés avec leur consentement.",
+      "source": "/pages/Public.tsx#TestimonialsPage"
     }
   ]
 }
