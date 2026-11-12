@@ -90,7 +90,7 @@ export function useOfferings() {
   return { ...q, data: q.data.map(sortPrices) as Offering[] };
 }
 export function useSessions() {
-  return useQuery<any[]>(() => supabase.from("sessions").select("*, offering:offerings(id,title,slug,kind), price:offering_prices(id,label,amount_cents)").gte("starts_at", new Date().toISOString()).neq("status", "cancelled").order("starts_at"), DEFAULT_SESSIONS);
+  return useQuery<any[]>(() => supabase.from("sessions").select("*, offering:offerings(id,title,slug,kind,deposit_cents), price:offering_prices(id,label,amount_cents)").gte("starts_at", new Date().toISOString()).neq("status", "cancelled").order("starts_at"), DEFAULT_SESSIONS);
 }
 
 export const KIND_BASE: Record<string, string> = { soin: "/soins", numerologie: "/soins", formation: "/formations", atelier: "/ateliers", meditation: "/ateliers" };

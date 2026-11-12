@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import { Reveal as CReveal } from "../../lib/content";
+import { Reveal as CReveal, SectionBackground } from "../../lib/content";
 import { toast as kitToast } from "../../lib/ui";
 import { X, Loader2 } from "lucide-react";
 
@@ -190,7 +190,8 @@ export function Blobs({ className }: { className?: string }) {
 }
 
 /** Section au fond alterné. */
-export function Section({ tone = "plain", className, children, id }: { tone?: "plain" | "tint" | "white"; className?: string; children: React.ReactNode; id?: string }) {
+/** bg: settings key of an optional background image, chosen with the pencil (nothing until one is chosen). */
+export function Section({ tone = "plain", className, children, id, bg: bgKey }: { tone?: "plain" | "tint" | "white"; className?: string; children: React.ReactNode; id?: string; bg?: string }) {
   const bg = { plain: "", tint: "bg-gradient-to-b from-[var(--brand)]/[0.05] via-[var(--brand-accent)]/20 to-transparent dark:from-neutral-900 dark:via-neutral-900 dark:to-neutral-950", white: "bg-white/70 dark:bg-neutral-900/60" }[tone];
-  return <section id={id} className={cn("relative py-16 sm:py-24", bg, className)}>{children}</section>;
+  return <section id={id} className={cn("relative py-16 sm:py-24", bg, className)}>{bgKey && <SectionBackground k={bgKey} />}{children}</section>;
 }

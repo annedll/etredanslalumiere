@@ -7,6 +7,7 @@ import { brand } from "../lib/brand";
 import { Reviews, useReviews } from "../lib/engage";
 import { supabase, isConfigured } from "../lib/supabase";
 import { useApp, Editable, EditableImage, EditableList, useOfferings, useSessions, useQuery, fmtDate } from "../lib/data";
+import { SectionBackground, imageFrameRadius } from "../lib/content";
 import { DEFAULT_POSTS } from "../lib/defaults";
 import { ButtonLink, Card, Container, Reveal, Blobs, Section, Skeleton, H1, Badge } from "../components/ui";
 import { OfferCard, SessionCard } from "../components/Offers";
@@ -37,11 +38,14 @@ export function HomeModern() {
   const posts = useQuery<any[]>(() => supabase.from("posts").select("*").eq("is_published", true).lte("published_at", new Date().toISOString()).order("published_at", { ascending: false }).limit(3), DEFAULT_POSTS);
   const highlight = ["consultation-soin-energetique", "numerologie-metamorphose", "reiki-usui", "meditations-hebdomadaires", "soin-energetique", "pendule-radiesthesie"];
   const shown = [...offers.data].sort((a, b) => { const ia = highlight.indexOf(a.slug), ib = highlight.indexOf(b.slug); return (ia < 0 ? 99 : ia) - (ib < 0 ? 99 : ib); }).slice(0, 6);
+  // The halo around the photo takes the frame chosen for it (cercle, arrondi, droit…).
+  const heroFrame = imageFrameRadius(g("home.hero.image.frame"));
   const fullAddress = `${g("biz.address")}, ${g("biz.postal")} ${g("biz.city")}, ${g("biz.country")}`;
   return (
     <>
       {/* Héros */}
       <section className="relative overflow-hidden min-h-[calc(100dvh-4rem)] flex items-center bg-gradient-to-br from-[var(--brand)]/[0.12] via-yellow-50 to-[var(--brand-accent)]/50 dark:from-neutral-950 dark:via-neutral-950 dark:to-neutral-900">
+        <SectionBackground k="home.hero.bg" />
         <Blobs />
         <Container className="relative grid grid-cols-1 lg:grid-cols-[1.15fr_1fr] gap-10 lg:gap-16 items-center py-14 sm:py-20">
           <div className="space-y-6 text-center lg:text-left anim-fade">
@@ -56,7 +60,7 @@ export function HomeModern() {
           </div>
           <div className="relative mx-auto w-full max-w-sm sm:max-w-md anim-zoom">
             <div aria-hidden className="absolute -inset-6 rounded-full bg-gradient-to-tr from-[var(--brand)]/30 via-white/40 to-[var(--brand-accent)]/70 blur-2xl dark:opacity-40" />
-            <div className="relative p-3 rounded-[46%_54%_52%_48%/48%_46%_54%_52%] bg-white/60 dark:bg-neutral-900/60 shadow-[0_30px_80px_-30px_rgba(90,45,125,0.5)]">
+            <div style={heroFrame ? { borderRadius: heroFrame } : undefined} className="relative p-3 rounded-[46%_54%_52%_48%/48%_46%_54%_52%] bg-white/60 dark:bg-neutral-900/60 shadow-[0_30px_80px_-30px_rgba(90,45,125,0.5)]">
               <EditableImage settingKey="home.hero.image" alt={`${g("biz.practitioner")}, soins énergétiques à ${g("biz.city")}`} aspect={1} eager className="w-full rounded-[46%_54%_52%_48%/48%_46%_54%_52%]" />
             </div>
           </div>
@@ -65,7 +69,7 @@ export function HomeModern() {
       </section>
 
       {/* Bienfaits */}
-      <Section tone="white" id="bienfaits">
+      <Section tone="white" id="bienfaits" bg="home.benefits.bg">
         <Container className="space-y-10">
           <Reveal className="text-center space-y-3 max-w-2xl mx-auto"><Editable settingKey="home.benefits.title" as="h2" className="font-script text-4xl sm:text-5xl text-[var(--brand)] dark:text-neutral-100" /></Reveal>
           <EditableList settingKey="home.benefits" render={(items) => (
@@ -83,7 +87,7 @@ export function HomeModern() {
       </Section>
 
       {/* Les soins énergétiques */}
-      <Section tone="tint">
+      <Section tone="tint" bg="home.energy.bg">
         <Container className="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-16 items-center">
           <Reveal className="space-y-5">
             <Editable settingKey="home.intro.title" as="h2" className="text-3xl sm:text-4xl font-bold tracking-tight text-neutral-900 dark:text-neutral-100" />
@@ -102,7 +106,7 @@ export function HomeModern() {
       </Section>
 
       {/* Offres */}
-      <Section>
+      <Section bg="home.offers.bg">
         <Container className="space-y-10">
           <Reveal className="flex flex-wrap items-end justify-between gap-4">
             <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-neutral-900 dark:text-neutral-100">{t("home.offersTitle")}</h2>
@@ -115,7 +119,7 @@ export function HomeModern() {
       </Section>
 
       {/* Agenda */}
-      <Section tone="white">
+      <Section tone="white" bg="home.agenda.bg">
         <Container className="space-y-8">
           <Reveal className="flex flex-wrap items-end justify-between gap-4">
             <h2 className="font-script text-4xl sm:text-5xl text-[var(--brand)] dark:text-neutral-100">{t("home.agendaTitle")}</h2>
@@ -127,7 +131,7 @@ export function HomeModern() {
 
       {/* Avis */}
       {isConfigured && (
-        <Section tone="tint">
+        <Section tone="tint" bg="home.reviews.bg">
           <Container className="space-y-8">
             <Reveal><h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-neutral-900 dark:text-neutral-100 text-center">{t("home.reviewsTitle")}</h2></Reveal>
             <Reveal><Reviews supabase={supabase} /></Reveal>
@@ -136,7 +140,7 @@ export function HomeModern() {
       )}
 
       {/* Blog */}
-      <Section>
+      <Section bg="home.blog.bg">
         <Container className="space-y-8">
           <Reveal className="flex flex-wrap items-end justify-between gap-4">
             <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-neutral-900 dark:text-neutral-100">{t("home.postsTitle")}</h2>
@@ -162,7 +166,7 @@ export function HomeModern() {
       </Section>
 
       {/* Zone */}
-      <Section tone="white">
+      <Section tone="white" bg="home.zone.bg">
         <Container className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
           <Reveal className="space-y-4">
             <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-neutral-900 dark:text-neutral-100">{t("home.zoneTitle")}</h2>
@@ -182,7 +186,7 @@ export function HomeModern() {
       </Section>
 
       {/* FAQ */}
-      <Section tone="tint">
+      <Section tone="tint" bg="home.faq.bg">
         <Container className="max-w-3xl space-y-8">
           <Reveal><h2 className="font-script text-4xl sm:text-5xl text-center text-[var(--brand)] dark:text-neutral-100">{t("home.faqTitle")}</h2></Reveal>
           <div className="space-y-3">
