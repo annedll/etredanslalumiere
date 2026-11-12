@@ -8,6 +8,7 @@ import { ImageEditor, uploadImage } from "../lib/image-editor";
 import { supabase, isConfigured } from "../lib/supabase";
 import { useApp, ListEditor, money, fmtDate, addressLine } from "../lib/data";
 import { SETTING_GROUPS } from "../lib/defaults";
+import { AdminConsole, AdminsManager, CrudTable, VisitStats, type Column } from "../lib/admin";
 import { Badge, Button, ButtonLink, Card, Container, Dialog, EmptyState, Field, Input, Select, Switch, Textarea, Skeleton, cn, buttonClass, toast } from "../components/ui";
 import { LEGAL_KINDS, phoneHref } from "../components/Layout";
 
@@ -60,61 +61,19 @@ function show(f: F, v: any) {
   return String(v);
 }
 
-function Crud({ table, title, fields, cols, select = "*", order = "created_at", asc = false, defaults = {}, actions, label, noCreate }: { table: string; title: string; fields: F[]; cols?: string[]; select?: string; order?: string; asc?: boolean; defaults?: any; actions?: (r: any, reload: () => void) => React.ReactNode; label?: (r: any) => string; noCreate?: boolean }) {
-  const [rows, setRows] = useState<any[] | null>(null);
-  const [edit, setEdit] = useState<any>(null);
-  const [busy, setBusy] = useState(false);
-  const [err, setErr] = useState("");
-  const [q, setQ] = useState("");
-  const load = async () => { const { data, error } = await supabase.from(table).select(select).order(order, { ascending: asc }).limit(500); setErr(error ? "Chargement impossible, réessayez dans un instant." : ""); setRows(data || []); };
-  useEffect(() => { load(); }, [table]);
-  const shown = cols ? fields.filter((f) => cols.includes(f.k)) : fields.slice(0, 3);
-  const filtered = (rows || []).filter((r) => !q || JSON.stringify(r).toLowerCase().includes(q.toLowerCase()));
-  const save = async () => {
-    setBusy(true); setErr("");
-    const payload: any = {}; fields.forEach((f) => (payload[f.k] = edit[f.k] ?? null));
-    const { error } = edit.id ? await supabase.from(table).update(payload).eq("id", edit.id) : await supabase.from(table).insert(payload);
-    setBusy(false); if (error) { setErr(SAVE_ERR); return; } setEdit(null); toast("Enregistré."); load();
-  };
-  const del = async (r: any) => { if (!confirm("Supprimer définitivement cet élément ?")) return; const { error } = await supabase.from(table).delete().eq("id", r.id); if (error) toast("Suppression impossible, réessayez.", "error"); else toast("Élément supprimé."); load(); };
-  return (
-    <div className="space-y-4">
-      <div className="flex flex-wrap items-center gap-3 justify-between">
-        <h2 className="text-xl font-semibold text-neutral-900 dark:text-neutral-100">{title}</h2>
-        <div className="flex flex-wrap gap-2 w-full sm:w-auto">
-          {!noCreate && <Button onClick={() => setEdit({ ...defaults })}><Plus className="h-4 w-4" />Ajouter</Button>}
-          <Input placeholder="Rechercher…" value={q} onChange={(e) => setQ(e.target.value)} className="w-full sm:!w-48 order-last sm:order-none" />
-          <Button variant="outline" onClick={() => csv(filtered, table + ".csv")}><Download className="h-4 w-4" />Exporter</Button>
-        </div>
-      </div>
-      {err && !edit && <p className="text-sm text-red-600">{err}</p>}
-      {!rows ? <Skeleton className="h-40" /> : !filtered.length ? <EmptyState title="Aucun élément pour le moment" text="Ajoutez votre premier élément avec le bouton ci-dessus." /> : (
-        <div className="grid gap-2">
-          {filtered.map((r) => (
-            <Card key={r.id} onClick={() => !noCreate && setEdit({ ...r })} className={cn("p-4 flex flex-col md:flex-row md:items-center gap-3 transition", !noCreate && "cursor-pointer active:scale-[0.99] hover:shadow-md")}>
-              <div className="flex items-center gap-2 min-w-0 flex-1">
-                <div className="min-w-0 flex-1">
-                  <p className="font-medium text-neutral-900 dark:text-neutral-100 truncate">{label ? label(r) : show(shown[0], r[shown[0].k])}</p>
-                  <p className="text-sm text-neutral-600 dark:text-neutral-400 truncate">{shown.slice(label ? 0 : 1).map((f) => `${f.label} : ${show(f, r[f.k])}`).join(" · ")}</p>
-                </div>
-                {!noCreate && <ChevronRight className="h-5 w-5 shrink-0 text-[var(--brand)] md:hidden" />}
-              </div>
-              <div className="flex flex-wrap items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
-                {actions?.(r, load)}
-                {!noCreate && <Button size="sm" variant="ghost" onClick={() => setEdit({ ...r })}><Pencil className="h-4 w-4" />Modifier</Button>}
-                <Button size="sm" variant="ghost" className="text-red-600 dark:text-red-400" aria-label="Supprimer" onClick={() => del(r)}><Trash2 className="h-4 w-4" />Supprimer</Button>
-                {!noCreate && <ChevronRight className="h-5 w-5 shrink-0 text-[var(--brand)] hidden md:block" />}
-              </div>
-            </Card>
-          ))}
-        </div>
-      )}
-      <Dialog open={!!edit} onClose={() => setEdit(null)} wide title={edit?.id ? "Modifier" : "Ajouter"} footer={<><Button variant="ghost" onClick={() => setEdit(null)}>Annuler</Button><Button loading={busy} onClick={save}>Enregistrer</Button></>}>
-        {edit && fields.map((f) => <Field key={f.k} label={f.label} hint={f.hint}><FieldInput f={f} v={edit[f.k]} set={(v) => setEdit({ ...edit, [f.k]: v })} /></Field>)}
-        {err && <p className="text-sm text-red-600">{err}</p>}
-      </Dialog>
-    </div>
-  );
+/** Tableau de gestion d'une table : celui d'Usin (recherche, fenêtre d'édition, export, actions par ligne). */
+const MODES: [string, string][] = [["cabinet", "Au cabinet"], ["distance", "À distance"], ["visio", "En visio"]];
+const TYPE_MAP: Record<string, Column["type"]> = { textarea: "textarea", number: "number", money: "money", bool: "boolean", datetime: "datetime", select: "select", image: "image", modes: "multi" };
+function Crud({ table, title, fields, cols, select = "*", order = "created_at", asc = false, defaults = {}, actions, label, noCreate }: { table: string; title: string; fields: F[]; cols?: string[]; select?: string; order?: string; asc?: boolean; defaults?: any; actions?: (r: any, reload: () => void) => React.ReactNode; label?: (r: any) => React.ReactNode; noCreate?: boolean }) {
+  const columns: Column[] = fields.map((f) => ({
+    key: f.k,
+    label: f.label,
+    hint: f.hint,
+    type: f.type ? TYPE_MAP[f.type] ?? "text" : "text",
+    options: (f.type === "modes" ? MODES : f.options)?.map(([value, l]) => ({ value, label: l })),
+    list: cols ? cols.includes(f.k) : undefined,
+  }));
+  return <CrudTable table={table} title={title} columns={columns} select={select} orderBy={order} ascending={asc} defaults={defaults} actions={actions} label={label} noCreate={noCreate} />;
 }
 
 const KINDS: [string, string][] = [["soin", "Soin"], ["numerologie", "Numérologie"], ["formation", "Formation"], ["atelier", "Atelier"], ["meditation", "Méditation"]];
@@ -387,59 +346,41 @@ const SECTIONS = [
 ] as const;
 
 export function AdminPage() {
-  useSeo({ title: "Administration", noindex: true } as any);
   const app = useApp();
-  const [sec, setSec] = useState("dash");
-  const [picker, setPicker] = useState(false);
   if (!app.isAdmin) return <Container className="py-14"><EmptyState icon={<Shield />} title="Accès réservé à l'administratrice" text="Connectez-vous avec le compte administrateur." /></Container>;
   if (!isConfigured) return <Container className="py-14"><EmptyState icon={<Shield />} title="Base de données non connectée" text="L'administration sera disponible dès que la base de données sera configurée." /></Container>;
-  const cur = SECTIONS.find(([id]) => id === sec)!;
-  const CurIcon = cur[2];
-  const itemCls = (on: boolean) => cn("flex items-center gap-2 min-h-11 px-3 rounded-xl text-sm whitespace-nowrap transition-colors w-full text-left", on ? "bg-[var(--brand)]/10 text-[var(--brand)] font-medium" : "text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800");
-  return (
-    <Container className="py-8 grid grid-cols-1 md:grid-cols-[220px_1fr] gap-6">
-      <aside className="md:sticky md:top-24 self-start">
-        <h1 className="text-2xl font-bold tracking-tight text-[var(--brand)] dark:text-neutral-100 mb-4">Administration</h1>
-        <button onClick={() => setPicker(true)} className="md:hidden w-full flex items-center justify-between gap-2 min-h-12 px-4 rounded-2xl border border-[var(--brand)]/40 bg-white dark:bg-neutral-900 text-neutral-900 dark:text-neutral-100 active:scale-[0.99] transition">
-          <span className="flex items-center gap-2 min-w-0"><CurIcon className="h-4 w-4 text-[var(--brand)] shrink-0" /><span className="truncate">Section : {cur[1]}</span></span>
-          <ChevronDown className="h-4 w-4 shrink-0 text-[var(--brand)]" />
-        </button>
-        <nav className="hidden md:flex flex-col gap-1">{SECTIONS.map(([id, l, I]) => <button key={id} onClick={() => setSec(id)} className={itemCls(sec === id)}><I className="h-4 w-4" />{l}</button>)}</nav>
-        <Dialog open={picker} onClose={() => setPicker(false)} title="Choisir une section">
-          <div className="grid gap-1">{SECTIONS.map(([id, l, I]) => <button key={id} onClick={() => { setSec(id); setPicker(false); }} className={itemCls(sec === id)}><I className="h-5 w-5" />{l}</button>)}</div>
-        </Dialog>
-      </aside>
-      <main className="min-w-0 anim-fade" key={sec}>
-        {sec === "dash" && <Dashboard />}
-        {sec === "content" && <Content />}
-        {sec === "offers" && <Offers />}
-        {sec === "sessions" && <Sessions />}
-        {sec === "slots" && <Slots />}
-        {sec === "apts" && <Appointments />}
-        {sec === "regs" && <div className="space-y-10">
+  const elements: Record<string, React.ReactNode> = {
+    dash: <Dashboard />,
+    content: <Content />,
+    offers: <Offers />,
+    sessions: <Sessions />,
+    slots: <Slots />,
+    apts: <Appointments />,
+    regs: <div className="space-y-10">
           <Crud table="registrations" title="Inscriptions" noCreate select="*, session:sessions(starts_at, offering:offerings(title)), profile:profiles(email)" label={(r) => `${r.session?.offering?.title || ""} · ${r.profile?.email || ""}`} cols={["status", "amount_cents"]} fields={[{ k: "status", label: "Statut", type: "select", options: [["pending", "En attente"], ["paid", "Payée"], ["cancelled", "Annulée"], ["refunded", "Remboursée"]] }, { k: "amount_cents", label: "Montant", type: "money" }]} />
           <Crud table="orders" title="Commandes" noCreate select="*, ebook:ebooks(title), profile:profiles(email)" label={(r) => `${r.item_type === "ebook" ? "E-book " + (r.ebook?.title || "") : r.item_type === "meditation_card" ? "Carnet de méditations" : "Pack"} · ${r.profile?.email || ""}`} cols={["status", "amount_cents"]} fields={[{ k: "status", label: "Statut", type: "select", options: [["pending", "En attente"], ["paid", "Payée"], ["refunded", "Remboursée"]] }, { k: "amount_cents", label: "Montant", type: "money" }]} />
-        </div>}
-        {sec === "ebooks" && <Ebooks />}
-        {sec === "posts" && <Crud table="posts" title="Articles du blog" order="published_at" cols={["category", "published_at", "is_published"]} defaults={{ category: "soins", is_published: false, published_at: new Date().toISOString() }}
-          fields={[{ k: "title", label: "Titre" }, { k: "slug", label: "Adresse de la page" }, { k: "category", label: "Catégorie", type: "select", options: [["soins", "Soins énergétiques"], ["numerologie", "Numérologie"], ["reiki", "Reiki"], ["meditation", "Méditation"]] }, { k: "excerpt", label: "Résumé", type: "textarea" }, { k: "body", label: "Texte de l'article (laissez une ligne vide entre deux paragraphes)", type: "textarea" }, { k: "cover_url", label: "Image de couverture", type: "image" }, { k: "og_image_url", label: "Image de partage (1200×630)", type: "image" }, { k: "published_at", label: "Date de publication (planification possible)", type: "datetime" }, { k: "is_published", label: "Publié", type: "bool" }]} />}
-        {sec === "tes" && <Crud table="testimonials" title="Témoignages" cols={["status", "consent_publish"]} label={(r) => `${r.author_name} : ${String(r.content).slice(0, 60)}…`} defaults={{ status: "approved", consent_publish: true }}
+        </div>,
+    ebooks: <Ebooks />,
+    posts: <Crud table="posts" title="Articles du blog" order="published_at" cols={["category", "published_at", "is_published"]} defaults={{ category: "soins", is_published: false, published_at: new Date().toISOString() }}
+          fields={[{ k: "title", label: "Titre" }, { k: "slug", label: "Adresse de la page" }, { k: "category", label: "Catégorie", type: "select", options: [["soins", "Soins énergétiques"], ["numerologie", "Numérologie"], ["reiki", "Reiki"], ["meditation", "Méditation"]] }, { k: "excerpt", label: "Résumé", type: "textarea" }, { k: "body", label: "Texte de l'article (laissez une ligne vide entre deux paragraphes)", type: "textarea" }, { k: "cover_url", label: "Image de couverture", type: "image" }, { k: "og_image_url", label: "Image de partage (1200×630)", type: "image" }, { k: "published_at", label: "Date de publication (planification possible)", type: "datetime" }, { k: "is_published", label: "Publié", type: "bool" }]} />,
+    tes: <Crud table="testimonials" title="Témoignages" cols={["status", "consent_publish"]} label={(r) => `${r.author_name} : ${String(r.content).slice(0, 60)}…`} defaults={{ status: "approved", consent_publish: true }}
           actions={(r, reload) => r.status !== "approved" ? <Button size="sm" onClick={async () => { await supabase.from("testimonials").update({ status: "approved" }).eq("id", r.id); reload(); }}>Publier</Button> : null}
-          fields={[{ k: "author_name", label: "Auteur" }, { k: "content", label: "Témoignage", type: "textarea" }, { k: "consent_publish", label: "Consentement de publication", type: "bool" }, { k: "status", label: "Statut", type: "select", options: [["pending", "En attente"], ["approved", "Publié"]] }]} />}
-        {sec === "reviews" && <ReviewsAdmin supabase={supabase} />}
-        {sec === "cards" && <Cards />}
-        {sec === "wait" && <Waitlist />}
-        {sec === "msgs" && <Crud table="contact_messages" title="Messages de contact" noCreate cols={["email", "handled"]} label={(r) => `${r.name} · ${r.subject || String(r.message).slice(0, 50)}`}
+          fields={[{ k: "author_name", label: "Auteur" }, { k: "content", label: "Témoignage", type: "textarea" }, { k: "consent_publish", label: "Consentement de publication", type: "bool" }, { k: "status", label: "Statut", type: "select", options: [["pending", "En attente"], ["approved", "Publié"]] }]} />,
+    reviews: <ReviewsAdmin supabase={supabase} />,
+    cards: <Cards />,
+    wait: <Waitlist />,
+    msgs: <Crud table="contact_messages" title="Messages de contact" noCreate cols={["email", "handled"]} label={(r) => `${r.name} · ${r.subject || String(r.message).slice(0, 50)}`}
           actions={(r, reload) => <Button size="sm" variant="secondary" onClick={async () => { await supabase.from("contact_messages").update({ handled: !r.handled }).eq("id", r.id); reload(); }}>{r.handled ? "Marquer non traité" : "Marquer traité"}</Button>}
-          fields={[{ k: "name", label: "Nom" }, { k: "email", label: "Email" }, { k: "handled", label: "Traité", type: "bool" }]} />}
-        {sec === "social" && <Crud table="social_links" title="Réseaux sociaux" order="sort_order" asc cols={["network", "url", "is_active"]} defaults={{ is_active: true, sort_order: 1 }} fields={[{ k: "network", label: "Réseau (ex. Facebook)" }, { k: "url", label: "Adresse du profil" }, { k: "sort_order", label: "Ordre", type: "number" }, { k: "is_active", label: "Affiché", type: "bool" }]} />}
-        {sec === "news" && <NewsletterAdmin supabase={supabase} />}
-        {sec === "notif" && <NotificationSettings supabase={supabase} />}
-        {sec === "legal" && <Legal />}
-        {sec === "rgpd" && <div className="space-y-8"><Rgpd />
+          fields={[{ k: "name", label: "Nom" }, { k: "email", label: "Email" }, { k: "handled", label: "Traité", type: "bool" }]} />,
+    social: <Crud table="social_links" title="Réseaux sociaux" order="sort_order" asc cols={["network", "url", "is_active"]} defaults={{ is_active: true, sort_order: 1 }} fields={[{ k: "network", label: "Réseau (ex. Facebook)" }, { k: "url", label: "Adresse du profil" }, { k: "sort_order", label: "Ordre", type: "number" }, { k: "is_active", label: "Affiché", type: "bool" }]} />,
+    news: <NewsletterAdmin supabase={supabase} />,
+    notif: <NotificationSettings supabase={supabase} />,
+    legal: <Legal />,
+    rgpd: <div className="space-y-8"><Rgpd />
           <Card className="p-5"><Switch checked={app.flag("beta_mode")} onChange={(v) => app.save("beta_mode", v ? "true" : "false")} label="Bêta privée : l'inscription exige un code d'invitation" /></Card>
-          <Crud table="beta_invites" title="Codes d'invitation" order="created_at" label={(r) => r.code} cols={["email"]} fields={[{ k: "code", label: "Code" }, { k: "email", label: "Email (facultatif)" }]} /></div>}
-      </main>
-    </Container>
-  );
+          <Crud table="beta_invites" title="Codes d'invitation" order="created_at" label={(r) => r.code} cols={["email"]} fields={[{ k: "code", label: "Code" }, { k: "email", label: "Email (facultatif)" }]} /></div>,
+    admins: <AdminsManager />,
+  };
+  const sections = [...SECTIONS, ["admins", "Administrateurs", Shield] as const].map(([id, label, Icon]) => ({ id, label, icon: <Icon />, element: elements[id] }));
+  return <AdminConsole title="Réglages du site" sections={sections} actions={<ButtonLink to="/gestion" variant="outline">Gestion</ButtonLink>} />;
 }

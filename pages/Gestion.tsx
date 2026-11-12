@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import { AdminConsole, VisitStats } from "../lib/admin";
 import { CalendarDays, PhoneCall, Mail, Quote, Euro, Settings, Phone, Users, ShoppingBag, Newspaper, Star, LayoutDashboard, Ticket, Check } from "lucide-react";
 import { useSeo } from "../lib/seo";
 import { ReviewsAdmin, NewsletterAdmin } from "../lib/engage";
@@ -210,33 +211,23 @@ function Moderation() {
 }
 
 export function GestionPage() {
-  useSeo({ title: "Gestion", noindex: true } as any);
   const app = useApp();
-  const [tab, setTab] = useState("dash");
-  if (!app.isAdmin) return <Container className="py-14"><EmptyState icon={<Settings />} title="Espace réservé à l'administratrice" text="Connectez-vous avec le compte administrateur." action={<ButtonLink to="/compte">Se connecter</ButtonLink>} /></Container>;
-  const tabs = [
-    { id: "dash", label: "Tableau de bord", icon: LayoutDashboard }, { id: "agenda", label: "Agenda", icon: CalendarDays }, { id: "clients", label: "Clients", icon: Users },
-    { id: "messages", label: "Messages", icon: Mail }, { id: "orders", label: "Commandes", icon: ShoppingBag }, { id: "news", label: "Newsletter", icon: Newspaper }, { id: "reviews", label: "Avis", icon: Star },
+  if (!app.isAdmin) return <Container className="py-14"><EmptyState icon={<Settings />} title="Espace réservé à l'administratrice" text="Connectez-vous avec le compte administrateur." action={<ButtonLink to="/connexion">Se connecter</ButtonLink>} /></Container>;
+  if (!isConfigured) return <Container className="py-14"><EmptyState icon={<Settings />} title="Base de données non connectée" text="La gestion sera disponible dès que la base de données sera configurée." /></Container>;
+  return <GestionConsole />;
+}
+
+function GestionConsole() {
+  const navigate = useNavigate();
+  const go = (id: string) => navigate("/gestion?s=" + id, { replace: true });
+  const sections = [
+    { id: "dash", label: "Tableau de bord", icon: <LayoutDashboard />, element: <div className="space-y-6"><VisitStats /><Dashboard go={go} /></div> },
+    { id: "agenda", label: "Agenda", icon: <CalendarDays />, element: <Agenda /> },
+    { id: "clients", label: "Clients", icon: <Users />, element: <Clients /> },
+    { id: "messages", label: "Messages", icon: <Mail />, element: <Messages /> },
+    { id: "orders", label: "Commandes", icon: <ShoppingBag />, element: <Orders /> },
+    { id: "news", label: "Newsletter", icon: <Newspaper />, element: <NewsletterAdmin supabase={supabase} /> },
+    { id: "reviews", label: "Avis", icon: <Star />, element: <Moderation /> },
   ];
-  return (
-    <Container className="py-8 sm:py-10 space-y-6 pb-24 md:pb-10">
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div className="min-w-0"><h1 className="text-3xl sm:text-4xl font-bold tracking-tight text-neutral-900 dark:text-neutral-100">Gestion</h1><p className="text-neutral-600 dark:text-neutral-400">{new Intl.DateTimeFormat("fr", { weekday: "long", day: "numeric", month: "long" }).format(new Date())}</p></div>
-        <ButtonLink to="/admin" variant="outline"><Settings className="h-4 w-4" />Réglages du site</ButtonLink>
-      </div>
-      <Tabs value={tab} onChange={setTab} tabs={tabs.map((x) => ({ id: x.id, label: x.label }))} />
-      {!isConfigured ? <EmptyState icon={<Settings />} title="Base de données non connectée" text="La gestion sera disponible dès que la base de données sera configurée." /> : (
-        <div key={tab} className="anim-fade">
-          {tab === "dash" && <Dashboard go={setTab} />}
-          {tab === "agenda" && <Agenda />}
-          {tab === "clients" && <Clients />}
-          {tab === "messages" && <Messages />}
-          {tab === "orders" && <Orders />}
-          {tab === "news" && <NewsletterAdmin supabase={supabase} />}
-          {tab === "reviews" && <Moderation />}
-        </div>
-      )}
-      <p className="text-sm text-neutral-500 dark:text-neutral-400">Contenus, pages légales, notifications, administrateurs et données personnelles : <Link to="/admin" className="text-[var(--brand)] underline">Réglages du site</Link>.</p>
-    </Container>
-  );
+  return <AdminConsole title="Gestion" sections={sections} actions={<ButtonLink to="/admin" variant="outline"><Settings className="h-4 w-4" />Réglages du site</ButtonLink>} />;
 }
