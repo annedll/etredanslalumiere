@@ -371,7 +371,7 @@ export function TestimonialsPage() {
   );
 }
 
-const useEbooks = () => useDbList("ebooks", () => supabase.from("ebooks").select("id,slug,title,description,cover_url,price_cents").eq("is_published", true).order("title"), DEFAULT_EBOOKS);
+const useEbooks = () => useDbList("ebooks", () => supabase.from("ebooks").select("id,slug,title,description,cover_url,price_cents,i18n").eq("is_published", true).order("title"), DEFAULT_EBOOKS);
 export function EbooksPage() {
   useSeo({ title: "E-books méditation, numérologie et bien-être à télécharger", description: "Guides numériques d'Anne Kételair sur la méditation, la numérologie et les soins énergétiques, disponibles en téléchargement immédiat après un paiement sécurisé." });
   const { t, lang } = useI18n() as any;

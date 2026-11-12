@@ -887,3 +887,9 @@ where key = 'faq.6.a' and value #>> '{}' like '%carnet de fidélité%';
 -- ===== Ajout du 2026-11-12 14:42 =====
 -- Aucune modification de la base de données pour cette mise à jour.
 select 1;
+
+-- Translations made by Usin (offers, prices, articles, e-books): { en: { title… }, nl: { … } }, shown in the visitor's language.
+alter table public.offerings add column if not exists i18n jsonb;
+alter table public.offering_prices add column if not exists i18n jsonb;
+alter table public.posts add column if not exists i18n jsonb;
+alter table public.ebooks add column if not exists i18n jsonb;

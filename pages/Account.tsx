@@ -52,8 +52,8 @@ export function AccountPage() {
   const load = async () => {
     if (!uid || !isConfigured) { setD({ apt: [], reg: [], ord: [] }); return; }
     const [apt, reg, ord] = await Promise.all([
-      supabase.from("appointments").select("*, offering:offerings(title), slot:availability_slots(starts_at,ends_at)").eq("user_id", uid).order("created_at", { ascending: false }),
-      supabase.from("registrations").select("*, session:sessions(starts_at,ends_at,location,offering:offerings(title))").eq("user_id", uid).order("created_at", { ascending: false }),
+      supabase.from("appointments").select("*, offering:offerings(title,i18n), slot:availability_slots(starts_at,ends_at)").eq("user_id", uid).order("created_at", { ascending: false }),
+      supabase.from("registrations").select("*, session:sessions(starts_at,ends_at,location,offering:offerings(title,i18n))").eq("user_id", uid).order("created_at", { ascending: false }),
       supabase.from("orders").select("*, ebook:ebooks(title,file_path)").eq("user_id", uid).order("created_at", { ascending: false }),
     ]);
     setD({ apt: apt.data || [], reg: reg.data || [], ord: ord.data || [] });
