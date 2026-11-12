@@ -832,3 +832,18 @@ select 1;
 -- ===== Ajout du 2026-11-11 21:43 =====
 -- Aucun changement de base de données nécessaire.
 select 1;
+
+-- Socle Usin : gestion des administrateurs depuis l'app et téléchargement des données (RGPD).
+drop policy if exists admins_write on public.app_admins;
+create policy admins_write on public.app_admins for all using (public.is_admin()) with check (public.is_admin());
+create or replace function public.export_my_data() returns jsonb language sql stable security definer set search_path = public as $$
+  select jsonb_build_object(
+    'profil', (select to_jsonb(p) from public.profiles p where p.id = auth.uid()),
+    'rendez_vous', coalesce((select jsonb_agg(to_jsonb(a)) from public.appointments a where a.user_id = auth.uid()), '[]'::jsonb),
+    'inscriptions', coalesce((select jsonb_agg(to_jsonb(r)) from public.registrations r where r.user_id = auth.uid()), '[]'::jsonb),
+    'commandes', coalesce((select jsonb_agg(to_jsonb(o)) from public.orders o where o.user_id = auth.uid()), '[]'::jsonb),
+    'carnet_meditation', (select to_jsonb(m) from public.meditation_cards m where m.user_id = auth.uid())
+  );
+$$;
+revoke all on function public.export_my_data() from public;
+grant execute on function public.export_my_data() to authenticated;

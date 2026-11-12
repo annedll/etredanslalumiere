@@ -1,5 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
+import { Reveal as CReveal } from "../../lib/content";
+import { toast as kitToast } from "../../lib/ui";
 import { X, Loader2 } from "lucide-react";
 
 export const cn = (...c: any[]) => c.filter(Boolean).join(" ");
@@ -36,15 +38,9 @@ export function ButtonLink({ to, variant = "primary", size = "md", className, ch
   return <Link to={to} className={buttonClass(variant, size, className)} {...p}>{children}</Link>;
 }
 
-/** Petit message temporaire en bas de l'écran (remplace alert()). */
+/** Petit message temporaire en bas de l'écran (remplace alert()) : celui d'Usin. */
 export function toast(message: string, tone: "ok" | "error" = "ok") {
-  if (typeof document === "undefined") return;
-  const el = document.createElement("div");
-  el.setAttribute("role", "status");
-  el.textContent = message;
-  el.className = cn("fixed left-1/2 -translate-x-1/2 bottom-[calc(5.5rem+var(--safe-bottom))] md:bottom-6 z-[100] max-w-[calc(100vw-2rem)] rounded-full px-5 py-3 text-sm font-medium shadow-2xl anim-fade", tone === "ok" ? "bg-neutral-900 text-white dark:bg-white dark:text-neutral-900" : "bg-red-600 text-white");
-  document.body.appendChild(el);
-  setTimeout(() => el.remove(), 3500);
+  kitToast(message, tone === "ok" ? "success" : "error");
 }
 
 const field = "w-full rounded-2xl border border-neutral-300/80 dark:border-neutral-700 bg-white dark:bg-neutral-900 text-neutral-900 dark:text-neutral-100 px-4 text-base placeholder:text-neutral-400 transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--brand)] focus:border-transparent";
@@ -177,20 +173,11 @@ export function PageTitle({ title, subtitle, children }: { title: React.ReactNod
 }
 
 /** Apparition douce au défilement. */
-export function Reveal({ children, className, delay = 0 }: { children: React.ReactNode; className?: string; delay?: number }) {
-  const ref = useRef<HTMLDivElement>(null);
-  const [on, setOn] = useState(false);
-  useEffect(() => {
-    const el = ref.current;
-    if (!el || typeof IntersectionObserver === "undefined") { setOn(true); return; }
-    const io = new IntersectionObserver(([e]) => { if (e.isIntersecting) { setOn(true); io.disconnect(); } }, { rootMargin: "0px 0px -8% 0px" });
-    io.observe(el);
-    return () => io.disconnect();
-  }, []);
-  return <div ref={ref} className={cn("reveal", on && "in", className)} style={{ transitionDelay: delay + "ms" }}>{children}</div>;
+/** Apparition douce d'une section (moteur Usin : rapide, jamais de contenu caché au chargement). */
+export function Reveal({ children, className }: { children: React.ReactNode; className?: string; delay?: number }) {
+  return <CReveal className={className}>{children}</CReveal>;
 }
 
-/** Halos de lumière aquarelle (décoratifs). */
 export function Blobs({ className }: { className?: string }) {
   return (
     <div aria-hidden className={cn("pointer-events-none absolute inset-0 overflow-hidden", className)}>

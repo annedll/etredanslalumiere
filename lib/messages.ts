@@ -1,5 +1,6 @@
 export const messages = {
   fr: {
+    "nav.sw": "Soins énergétiques", "nav.desc.sw": "Consultation, soin à distance et tarifs : par où commencer.",
     "nav.home": "Accueil", "nav.care": "Soins", "nav.trainings": "Formations", "nav.workshops": "Ateliers", "nav.agenda": "Agenda", "nav.blog": "Blog", "nav.contact": "Contact",
     "nav.about": "Qui suis-je ?", "nav.testimonials": "Témoignages", "nav.ebooks": "E-books", "nav.more": "Plus", "nav.call": "Appeler Anne", "nav.viewAs": "Voir en tant que",
     "nav.reviews": "Avis",
@@ -51,6 +52,7 @@ export const messages = {
     "pay.loading": "Vérification du paiement…", "pay.ok": "Paiement confirmé, merci !", "pay.ko": "Le paiement n'a pas pu être confirmé.", "pay.account": "Voir mon espace",
   },
   en: {
+    "nav.sw": "Energy healing", "nav.desc.sw": "Consultation, remote healing and prices: where to start.",
     "nav.home": "Home", "nav.care": "Treatments", "nav.trainings": "Trainings", "nav.workshops": "Workshops", "nav.agenda": "Calendar", "nav.blog": "Blog", "nav.contact": "Contact",
     "nav.about": "About me", "nav.testimonials": "Testimonials", "nav.ebooks": "E-books", "nav.more": "More", "nav.call": "Call Anne", "nav.viewAs": "View as",
     "nav.reviews": "Reviews",
@@ -102,6 +104,7 @@ export const messages = {
     "pay.loading": "Checking payment…", "pay.ok": "Payment confirmed, thank you!", "pay.ko": "The payment could not be confirmed.", "pay.account": "Go to my space",
   },
   nl: {
+    "nav.sw": "Energetische zorg", "nav.desc.sw": "Consultatie, zorg op afstand en tarieven: waar beginnen.",
     "nav.home": "Home", "nav.care": "Behandelingen", "nav.trainings": "Opleidingen", "nav.workshops": "Workshops", "nav.agenda": "Agenda", "nav.blog": "Blog", "nav.contact": "Contact",
     "nav.about": "Over mij", "nav.testimonials": "Getuigenissen", "nav.ebooks": "E-books", "nav.more": "Meer", "nav.call": "Anne bellen", "nav.viewAs": "Bekijken als",
     "nav.reviews": "Beoordelingen",
