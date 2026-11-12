@@ -6,6 +6,7 @@ import { brand } from "./brand";
 import { useI18n, t as translate, languages } from "./i18n";
 import { ImageEditor, uploadImage, imageSizeClass } from "./image-editor";
 import { Sheet } from "./mobile";
+import { env } from "./env";
 
 type Settings = Record<string, unknown>;
 export type ViewAs = "admin" | "client" | "visitor";
@@ -178,6 +179,33 @@ export function ContentProvider({ supabase, defaults = {}, children }: { supabas
     if (!supabase) return;
     const { error } = await supabase.from("app_settings").upsert({ key: target, value });
     if (error) throw new Error(error.message);
+    if (target === key) autoTranslate(key);
+  };
+  // A text written in the main language is translated by Usin into the other languages of the app, on its own, a moment after saving.
+  const pending = useRef<Set<string>>(new Set());
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const autoTranslate = (key: string) => {
+    const base = env.paymentsUrl ? env.paymentsUrl.replace("/api/pay/", "/api/app-notify/") : "";
+    if (!base || languages.length < 2 || !supabase) return;
+    pending.current.add(key);
+    if (timer.current) clearTimeout(timer.current);
+    timer.current = setTimeout(async () => {
+      const keys = [...pending.current];
+      pending.current.clear();
+      try {
+        const { data } = await supabase.auth.getSession();
+        const accessToken = data.session?.access_token;
+        if (!accessToken) return;
+        await fetch(`${base}/translate`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ accessToken, keys }),
+          keepalive: true,
+        });
+      } catch {
+        // Translated next time.
+      }
+    }, 2000);
   };
   const remove = async (key: string) => {
     setSettings((s) => {

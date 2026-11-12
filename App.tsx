@@ -70,7 +70,7 @@ details summary::-webkit-details-marker{display:none}
 `;
 
 function ReviewsPage() {
-  useSeo({ title: "Laisser une note et un avis à Anne Kételair, Estaimpuis", description: "Notez votre séance avec Anne Kételair : consultation énergétique, initiation Reiki, atelier ou méditation au cabinet d'Estaimpuis. Votre retour aide d'autres personnes." });
+  useSeo({ title: "Votre avis sur les séances d'Anne Kételair à Estaimpuis", description: "Partagez votre expérience après une consultation énergétique, une initiation Reiki, un atelier ou une méditation au cabinet de Bailleul (Estaimpuis) : votre note aide d'autres personnes." });
   return (
     <Container className="py-10 sm:py-14 max-w-xl space-y-4">
       <div className="flex items-center gap-3">
@@ -114,7 +114,7 @@ function Site() {
       <style>{CSS}</style>
       <SiteShell
         nav={nav}
-        maxInBar={4}
+        maxInBar={6}
         primary={{ to: "/rendez-vous", label: t("nav.book") }}
         tabs={tabs}
         logo={<Logo />}

@@ -17,7 +17,7 @@ const T: Record<string, Record<string, string>> = {
     checkMail: "Compte créé ✓ Ouvrez l'email de confirmation pour l'activer, puis connectez-vous.", welcome: "Bienvenue 👋",
     bad: "Email ou mot de passe incorrect.", exists: "Un compte existe déjà avec cet email : connectez-vous.", unconfirmed: "Confirmez d'abord votre email (lien reçu par email).",
     short: "8 caractères minimum.", error: "Une erreur est survenue, réessayez.", resetTitle: "Nouveau mot de passe", resetAsk: "Recevoir un lien par email",
-    resetSent: "Si un compte existe, un lien vient d'être envoyé par email.", newPwd: "Nouveau mot de passe", savePwd: "Enregistrer le mot de passe", pwdSaved: "Mot de passe modifié ✓",
+    resetSent: "Si un compte existe, un lien vient d'être envoyé par email.", magic: "Recevoir un lien de connexion par email", magicGo: "Envoyer le lien", magicSent: "Lien envoyé ✓ Ouvrez l'email reçu pour vous connecter (pensez aux indésirables).", newPwd: "Nouveau mot de passe", savePwd: "Enregistrer le mot de passe", pwdSaved: "Mot de passe modifié ✓",
     account: "Mon compte", privacy: "Mes données", export: "Télécharger mes données", del: "Supprimer mon compte", delAsk: "Supprimer définitivement votre compte et vos données ?",
     deleted: "Compte supprimé.", nodb: "La connexion sera disponible dès que la base de données de l'app sera créée.", signout: "Se déconnecter", changePwd: "Changer de mot de passe", back: "Retour à la connexion",
   },
@@ -28,7 +28,7 @@ const T: Record<string, Record<string, string>> = {
     checkMail: "Account created ✓ Open the confirmation email to activate it, then sign in.", welcome: "Welcome 👋",
     bad: "Wrong email or password.", exists: "An account already exists with this email: sign in.", unconfirmed: "Please confirm your email first (link sent by email).",
     short: "At least 8 characters.", error: "Something went wrong, please try again.", resetTitle: "New password", resetAsk: "Get a link by email",
-    resetSent: "If an account exists, a link has just been sent by email.", newPwd: "New password", savePwd: "Save password", pwdSaved: "Password changed ✓",
+    resetSent: "If an account exists, a link has just been sent by email.", magic: "Get a sign-in link by email", magicGo: "Send the link", magicSent: "Link sent ✓ Open the email to sign in (check your spam folder).", newPwd: "New password", savePwd: "Save password", pwdSaved: "Password changed ✓",
     account: "My account", privacy: "My data", export: "Download my data", del: "Delete my account", delAsk: "Permanently delete your account and data?",
     deleted: "Account deleted.", nodb: "Sign-in will be available once the app's database is created.", signout: "Sign out", changePwd: "Change password", back: "Back to sign in",
   },
@@ -39,7 +39,7 @@ const T: Record<string, Record<string, string>> = {
     checkMail: "Account aangemaakt ✓ Open de bevestigingsmail om het te activeren en log daarna in.", welcome: "Welkom 👋",
     bad: "Verkeerd e-mailadres of wachtwoord.", exists: "Er bestaat al een account met dit e-mailadres: log in.", unconfirmed: "Bevestig eerst je e-mailadres (link per e-mail).",
     short: "Minstens 8 tekens.", error: "Er ging iets mis, probeer opnieuw.", resetTitle: "Nieuw wachtwoord", resetAsk: "Link per e-mail ontvangen",
-    resetSent: "Als er een account bestaat, is er zonet een link verstuurd.", newPwd: "Nieuw wachtwoord", savePwd: "Wachtwoord opslaan", pwdSaved: "Wachtwoord gewijzigd ✓",
+    resetSent: "Als er een account bestaat, is er zonet een link verstuurd.", magic: "Inloglink per e-mail ontvangen", magicGo: "Link versturen", magicSent: "Link verstuurd ✓ Open de e-mail om in te loggen (kijk ook bij spam).", newPwd: "Nieuw wachtwoord", savePwd: "Wachtwoord opslaan", pwdSaved: "Wachtwoord gewijzigd ✓",
     account: "Mijn account", privacy: "Mijn gegevens", export: "Mijn gegevens downloaden", del: "Mijn account verwijderen", delAsk: "Je account en gegevens definitief verwijderen?",
     deleted: "Account verwijderd.", nodb: "Inloggen is beschikbaar zodra de database van de app is aangemaakt.", signout: "Uitloggen", changePwd: "Wachtwoord wijzigen", back: "Terug naar inloggen",
   },
@@ -86,7 +86,7 @@ export function AuthForm({ initial = "signin", home = { admin: "/gestion", user:
   const { supabase } = useContent();
   const navigate = useNavigate();
   const next = new URLSearchParams(useLocation().search).get("next");
-  const [mode, setMode] = useState<"signin" | "signup" | "forgot">(initial);
+  const [mode, setMode] = useState<"signin" | "signup" | "forgot" | "magic">(initial);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [terms, setTerms] = useState(false);
@@ -106,6 +106,12 @@ export function AuthForm({ initial = "signin", home = { admin: "/gestion", user:
     const mail = email.trim().toLowerCase();
     setBusy(true);
     try {
+      if (mode === "magic") {
+        const { error: err } = await supabase.auth.signInWithOtp({ email: mail, options: { shouldCreateUser: false, emailRedirectTo: window.location.origin + (next ?? home.user) } });
+        if (err && !/signups not allowed|not found/i.test(err.message)) throw err;
+        setInfo(tr("magicSent"));
+        return;
+      }
       if (mode === "forgot") {
         await supabase.auth.resetPasswordForEmail(mail, { redirectTo: window.location.origin + "/reset-password" });
         setInfo(tr("resetSent"));
@@ -139,7 +145,7 @@ export function AuthForm({ initial = "signin", home = { admin: "/gestion", user:
 
   return (
     <div className="space-y-5">
-      {mode !== "forgot" && (
+      {(mode === "signin" || mode === "signup") && (
         <Tabs
           value={mode}
           onChange={(v) => {
@@ -154,7 +160,7 @@ export function AuthForm({ initial = "signin", home = { admin: "/gestion", user:
           className="w-full [&>button]:flex-1"
         />
       )}
-      {google && mode !== "forgot" && (
+      {google && (mode === "signin" || mode === "signup") && (
         <>
           <Button
             variant="outline"
@@ -179,7 +185,7 @@ export function AuthForm({ initial = "signin", home = { admin: "/gestion", user:
         <Field label={tr("email")}>
           <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="email" required />
         </Field>
-        {mode !== "forgot" && (
+        {(mode === "signin" || mode === "signup") && (
           <Field label={tr("password")} hint={mode === "signup" ? tr("short") : undefined}>
             <PasswordInput value={password} onChange={setPassword} autoComplete={mode === "signup" ? "new-password" : "current-password"} />
           </Field>
@@ -202,19 +208,24 @@ export function AuthForm({ initial = "signin", home = { admin: "/gestion", user:
         {error && <p className="rounded-2xl bg-red-500/10 px-4 py-3 text-sm text-red-700 dark:text-red-300">{error}</p>}
         {info && <p className="rounded-2xl bg-emerald-500/10 px-4 py-3 text-sm text-emerald-800 dark:text-emerald-300">{info}</p>}
         <Button type="submit" className="w-full" size="lg" loading={busy}>
-          {mode === "signup" ? tr("create") : mode === "forgot" ? tr("resetAsk") : tr("go")}
+          {mode === "signup" ? tr("create") : mode === "forgot" ? tr("resetAsk") : mode === "magic" ? tr("magicGo") : tr("go")}
         </Button>
       </form>
       <div className="text-center">
-        {mode === "forgot" ? (
+        {mode === "forgot" || mode === "magic" ? (
           <button type="button" className="min-h-11 text-sm text-[var(--brand)]" onClick={() => setMode("signin")}>
             {tr("back")}
           </button>
         ) : (
           mode === "signin" && (
-            <button type="button" className="min-h-11 text-sm text-[var(--brand)]" onClick={() => setMode("forgot")}>
-              {tr("forgot")}
-            </button>
+            <div className="flex flex-col items-center">
+              <button type="button" className="min-h-11 text-sm text-[var(--brand)]" onClick={() => setMode("magic")}>
+                {tr("magic")}
+              </button>
+              <button type="button" className="min-h-11 text-sm text-neutral-600 dark:text-neutral-400" onClick={() => setMode("forgot")}>
+                {tr("forgot")}
+              </button>
+            </div>
           )
         )}
       </div>

@@ -53,7 +53,8 @@ const ICON_BTN = "grid size-10 shrink-0 place-items-center rounded-full text-neu
 
 const isActive = (pathname: string, to: string) => (to === "/" ? pathname === "/" : pathname === to || pathname.startsWith(to + "/"));
 
-function Logo({ showName = true }: { showName?: boolean }) {
+function Logo({ showName = true, custom }: { showName?: boolean; custom?: ReactNode }) {
+  if (custom) return <>{custom}</>;
   return (
     <Link to="/" className="flex min-w-0 items-center gap-2.5" aria-label={brand.name}>
       <img src={brand.logo} alt="" width={36} height={36} className="size-9 shrink-0 rounded-full" />
@@ -168,6 +169,8 @@ function Header({
   adminLinks,
   accountPath,
   signInPath,
+  logo,
+  logoCompact,
 }: {
   nav: NavItem[];
   primary?: NavItem;
@@ -175,6 +178,8 @@ function Header({
   adminLinks: NavItem[];
   accountPath: string;
   signInPath: string;
+  logo?: ReactNode;
+  logoCompact?: ReactNode;
 }) {
   const tr = useT();
   const { pathname } = useLocation();
@@ -197,7 +202,7 @@ function Header({
       <header className="fixed inset-x-0 top-4 z-40 hidden px-4 md:block">
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-3">
           <div className={cn(pill, "flex items-center pl-1.5 pr-4")}>
-            <Logo showName />
+            <Logo showName custom={logo} />
           </div>
           <nav aria-label={tr("menu")} className={cn(pill, "flex items-center gap-1 px-1.5")}>
             {inBar.map((i) => (
@@ -231,7 +236,7 @@ function Header({
       <header className="fixed inset-x-3 top-[calc(env(safe-area-inset-top)+0.5rem)] z-40 md:hidden">
         <div className={cn(pill, "flex items-center justify-between gap-1 pl-1.5 pr-1.5")}>
           <div className="min-w-0 flex-1">
-            <Logo showName />
+            <Logo showName custom={logoCompact ?? logo} />
           </div>
           <LanguageSwitcher />
           {supabase && user && <NotificationBell supabase={supabase} />}
@@ -489,6 +494,10 @@ export function SiteShell({
   signInPath = "/connexion",
   overlayHero = false,
   preload = [],
+  logo,
+  logoCompact,
+  footer,
+  banner,
   children,
 }: {
   nav: NavItem[];
@@ -506,6 +515,13 @@ export function SiteShell({
   signInPath?: string;
   overlayHero?: boolean;
   preload?: (() => Promise<unknown>)[];
+  /** The app's own logo (e.g. name in a script font) in the header; logoCompact for phones. */
+  logo?: ReactNode;
+  logoCompact?: ReactNode;
+  /** The app's own footer, replacing the default one (keep the legal links and « Gérer les cookies »: window.dispatchEvent(new Event("usin:cookies"))). */
+  footer?: ReactNode;
+  /** A strip shown under the header (announcement…). */
+  banner?: ReactNode;
   children: ReactNode;
 }) {
   const tr = useT();
@@ -526,14 +542,15 @@ export function SiteShell({
   const underHeader = overlayHero && pathname === "/";
   return (
     <div className="flex min-h-[100dvh] flex-col">
-      <Header nav={nav} primary={primary} maxInBar={maxInBar} adminLinks={admin} accountPath={accountPath} signInPath={signInPath} />
+      <Header nav={nav} primary={primary} maxInBar={maxInBar} adminLinks={admin} accountPath={accountPath} signInPath={signInPath} logo={logo} logoCompact={logoCompact} />
       <EditBar />
       <main className={cn("flex-1", !underHeader && "pt-[calc(env(safe-area-inset-top)+4.5rem)] md:pt-24")}>
+        {banner}
         <Boundary key={pathname}>
           <Suspense fallback={<PageSkeleton />}>{children}</Suspense>
         </Boundary>
       </main>
-      <Footer columns={footerColumns} social={social} legalPages={legalPages} newsletter={newsletter} credit={credit} extra={footerExtra} />
+      {footer ?? <Footer columns={footerColumns} social={social} legalPages={legalPages} newsletter={newsletter} credit={credit} extra={footerExtra} />}
       <CookieBanner privacyPath={LEGAL_PAGES.confidentialite.path} />
       {tabs.length >= 3 && <TabBar items={tabs.slice(0, 5)} />}
       <UiRoot />

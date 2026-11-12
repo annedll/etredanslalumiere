@@ -14,20 +14,7 @@ export function applyBrandColor(c?: any) {
   else r.style.removeProperty("--brand");
 }
 
-/** Images rapides : pour une photo Unsplash, renvoie src + srcSet (480/800/1200/1600) et sizes. */
-export function imgProps(src: string, sizes = "(min-width: 1024px) 40vw, 90vw"): { src: string; srcSet?: string; sizes?: string } {
-  if (!src || !/images\.unsplash\.com/.test(src)) return { src };
-  const at = (w: number) => {
-    try {
-      const u = new URL(src);
-      u.searchParams.set("w", String(w)); u.searchParams.set("q", "70"); u.searchParams.set("auto", "format");
-      return u.toString();
-    } catch { return src; }
-  };
-  return { src: at(1200), srcSet: [480, 800, 1200, 1600].map((w) => `${at(w)} ${w}w`).join(", "), sizes };
-}
-
-export { withTimeout, getConsent, setConsent, type Consent } from "./content";
+export { imgProps, withTimeout, getConsent, setConsent, type Consent } from "./content";
 
 /** Coordonnées issues du kit de marque (informations légales) : elles priment toujours. */
 const LEGAL: any = (brand as any).legal || {};

@@ -110,12 +110,12 @@ export function SectionTitle({ title, hint, children }: { title: string; hint?: 
 
 // ------------------------------------------------------------------ data tables
 
-export type ColumnType = "text" | "textarea" | "number" | "money" | "date" | "datetime" | "boolean" | "select" | "image" | "slug" | "email" | "url" | "tags";
+export type ColumnType = "text" | "textarea" | "number" | "money" | "date" | "datetime" | "boolean" | "select" | "multi" | "image" | "slug" | "email" | "url" | "tags";
 export type Column = {
   key: string;
   label: string;
   type?: ColumnType;
-  /** select: the choices. */
+  /** select / multi (several choices, stored as a list): the choices. */
   options?: { value: string; label: string }[];
   required?: boolean;
   /** Shown in the list (default: the first three columns). */
@@ -155,6 +155,8 @@ function display(col: Column, value: any, lang: string, tr: (k: string) => strin
       return <img src={String(value)} alt="" loading="lazy" className="size-12 rounded-xl object-cover" />;
     case "tags":
       return Array.isArray(value) ? value.join(", ") : String(value);
+    case "multi":
+      return (Array.isArray(value) ? value : [value]).map((v) => col.options?.find((o) => o.value === v)?.label ?? String(v)).join(", ");
     default:
       return <span className="line-clamp-2">{String(value)}</span>;
   }
@@ -168,8 +170,10 @@ const toInput = (col: Column, v: any) => {
   if (col.type === "tags") return Array.isArray(v) ? v.join(", ") : String(v);
   return v;
 };
+const isEmptyValue = (v: any) => v === "" || v === null || v === undefined || (Array.isArray(v) && !v.length);
 const fromInput = (col: Column, v: any) => {
   if (col.type === "boolean") return Boolean(v);
+  if (col.type === "multi") return Array.isArray(v) ? v : [];
   if (v === "" || v === undefined) return null;
   if (col.type === "money") return Math.round(Number(String(v).replace(",", ".")) * 100);
   if (col.type === "number") return Number(String(v).replace(",", "."));
@@ -235,6 +239,24 @@ function RowForm({ columns, row, onChange }: { columns: Column[]; row: Row; onCh
                     </option>
                   ))}
                 </Select>
+              ) : c.type === "multi" ? (
+                <div className="flex flex-wrap gap-2">
+                  {c.options?.map((o) => {
+                    const list: string[] = Array.isArray(v) ? v : [];
+                    const on = list.includes(o.value);
+                    return (
+                      <button
+                        key={o.value}
+                        type="button"
+                        aria-pressed={on}
+                        onClick={() => set(on ? list.filter((x) => x !== o.value) : [...list, o.value])}
+                        className={cn("min-h-10 rounded-full border px-4 text-sm font-medium transition", on ? "border-transparent bg-[var(--brand)] text-white" : "border-neutral-300 text-neutral-700 dark:border-neutral-700 dark:text-neutral-300")}
+                      >
+                        {o.label}
+                      </button>
+                    );
+                  })}
+                </div>
               ) : c.type === "image" ? (
                 <ImageField value={v ?? ""} onChange={set} />
               ) : (
@@ -269,6 +291,10 @@ export function CrudTable({
   select = "*",
   defaults = {},
   filter,
+  label,
+  actions,
+  noCreate,
+  limit = 500,
 }: {
   table: string;
   title: string;
@@ -280,6 +306,13 @@ export function CrudTable({
   defaults?: Row;
   /** Narrows the rows, e.g. (q) => q.eq("kind", "atelier"). */
   filter?: (q: any) => any;
+  /** Main line of each row (default: the first column), e.g. (r) => r.offering?.title + " · " + r.email. */
+  label?: (row: Row) => ReactNode;
+  /** Buttons of each row (business actions): (row, reload) => <Button …/>. */
+  actions?: (row: Row, reload: () => void) => ReactNode;
+  /** Rows created elsewhere (bookings, messages…): no « Add » button, the window only edits. */
+  noCreate?: boolean;
+  limit?: number;
 }) {
   const tr = useT();
   const { supabase, lang } = useContent();
@@ -287,7 +320,7 @@ export function CrudTable({
   const { data, loading, error } = useData<Row[]>(key, () => {
     let q: any = supabase!.from(table).select(select);
     if (filter) q = filter(q);
-    return q.order(orderBy, { ascending });
+    return q.order(orderBy, { ascending }).limit(limit);
   });
   const [query, setQuery] = useState("");
   const [editing, setEditing] = useState<Row | null>(null);
@@ -305,7 +338,7 @@ export function CrudTable({
   };
   const save = async () => {
     if (!supabase || !editing) return;
-    const missing = columns.find((c) => c.required && !c.readOnly && (editing[c.key] === "" || editing[c.key] === null || editing[c.key] === undefined));
+    const missing = columns.find((c) => c.required && !c.readOnly && isEmptyValue(editing[c.key]));
     if (missing) return toast(missing.label + " : " + tr("required"), "error");
     const payload: Row = {};
     for (const c of columns) if (!c.readOnly) payload[c.key] = fromInput(c, editing[c.key]);
@@ -344,7 +377,7 @@ export function CrudTable({
   return (
     <div>
       <SectionTitle title={title} hint={hint}>
-        <Button onClick={() => open()}>+ {tr("add")}</Button>
+        {!noCreate && <Button onClick={() => open()}>+ {tr("add")}</Button>}
         <Button variant="outline" onClick={exportCsv} disabled={!rows.length}>
           {tr("export")}
         </Button>
@@ -358,17 +391,23 @@ export function CrudTable({
           ))}
         </div>
       ) : !rows.length ? (
-        <EmptyState title={tr("empty")} text={tr("emptyHint")} action={<Button onClick={() => open()}>+ {tr("add")}</Button>} />
+        <EmptyState title={tr("empty")} text={noCreate ? undefined : tr("emptyHint")} action={noCreate ? undefined : <Button onClick={() => open()}>+ {tr("add")}</Button>} />
       ) : (
         <div className="space-y-3">
           {rows.map((r) => (
             <Card key={r.id} className="flex flex-wrap items-center gap-x-6 gap-y-2 p-4" onClick={() => open(r)}>
+              {label && <div className="min-w-0 flex-1 basis-full font-medium text-neutral-900 sm:basis-auto dark:text-neutral-100">{label(r)}</div>}
               {listCols.map((c, i) => (
-                <div key={c.key} className={cn("min-w-0", i === 0 ? "flex-1 basis-full font-medium text-neutral-900 sm:basis-auto dark:text-neutral-100" : "text-sm text-neutral-600 dark:text-neutral-400")}>
-                  {i > 0 && <span className="mr-1 text-xs text-neutral-400 sm:hidden">{c.label} :</span>}
+                <div key={c.key} className={cn("min-w-0", i === 0 && !label ? "flex-1 basis-full font-medium text-neutral-900 sm:basis-auto dark:text-neutral-100" : "text-sm text-neutral-600 dark:text-neutral-400")}>
+                  {(i > 0 || label) && <span className="mr-1 text-xs text-neutral-400">{c.label} :</span>}
                   {display(c, r[c.key], lang, tr)}
                 </div>
               ))}
+              {actions && (
+                <div className="flex flex-wrap items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
+                  {actions(r, refresh)}
+                </div>
+              )}
               <Button
                 variant="ghost"
                 size="sm"

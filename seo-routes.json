@@ -1,5 +1,5 @@
 {
-  "base": "",
+  "base": "https://etredanslalumiere.be",
   "routes": [
     {
       "path": "/",
@@ -9,74 +9,74 @@
     },
     {
       "path": "/agenda",
-      "title": "Laisser une note et un avis à Anne Kételair, Estaimpuis · Être dans la lumière",
-      "description": "Notez votre séance avec Anne Kételair : consultation énergétique, initiation Reiki, atelier ou méditation au cabinet d'Estaimpuis. Votre retour aide d'autres personnes.",
+      "title": "Votre avis sur les séances d'Anne Kételair à Estaimpuis · Être dans la lumière",
+      "description": "Partagez votre expérience après une consultation énergétique, une initiation Reiki, un atelier ou une méditation au cabinet de Bailleul (Estaimpuis) : votre note aide d'autres personnes.",
       "source": "/App.tsx#AgendaPage"
     },
     {
       "path": "/ateliers",
-      "title": "Laisser une note et un avis à Anne Kételair, Estaimpuis · Être dans la lumière",
-      "description": "Notez votre séance avec Anne Kételair : consultation énergétique, initiation Reiki, atelier ou méditation au cabinet d'Estaimpuis. Votre retour aide d'autres personnes.",
+      "title": "Votre avis sur les séances d'Anne Kételair à Estaimpuis · Être dans la lumière",
+      "description": "Partagez votre expérience après une consultation énergétique, une initiation Reiki, un atelier ou une méditation au cabinet de Bailleul (Estaimpuis) : votre note aide d'autres personnes.",
       "source": "/App.tsx#AteliersPage"
     },
     {
       "path": "/avis",
-      "title": "Laisser une note et un avis à Anne Kételair, Estaimpuis · Être dans la lumière",
-      "description": "Notez votre séance avec Anne Kételair : consultation énergétique, initiation Reiki, atelier ou méditation au cabinet d'Estaimpuis. Votre retour aide d'autres personnes.",
+      "title": "Votre avis sur les séances d'Anne Kételair à Estaimpuis · Être dans la lumière",
+      "description": "Partagez votre expérience après une consultation énergétique, une initiation Reiki, un atelier ou une méditation au cabinet de Bailleul (Estaimpuis) : votre note aide d'autres personnes.",
       "source": "/App.tsx#ReviewsPage"
     },
     {
       "path": "/blog",
-      "title": "Laisser une note et un avis à Anne Kételair, Estaimpuis · Être dans la lumière",
-      "description": "Notez votre séance avec Anne Kételair : consultation énergétique, initiation Reiki, atelier ou méditation au cabinet d'Estaimpuis. Votre retour aide d'autres personnes.",
+      "title": "Votre avis sur les séances d'Anne Kételair à Estaimpuis · Être dans la lumière",
+      "description": "Partagez votre expérience après une consultation énergétique, une initiation Reiki, un atelier ou une méditation au cabinet de Bailleul (Estaimpuis) : votre note aide d'autres personnes.",
       "source": "/App.tsx#BlogPage"
     },
     {
       "path": "/contact",
-      "title": "Laisser une note et un avis à Anne Kételair, Estaimpuis · Être dans la lumière",
-      "description": "Notez votre séance avec Anne Kételair : consultation énergétique, initiation Reiki, atelier ou méditation au cabinet d'Estaimpuis. Votre retour aide d'autres personnes.",
+      "title": "Votre avis sur les séances d'Anne Kételair à Estaimpuis · Être dans la lumière",
+      "description": "Partagez votre expérience après une consultation énergétique, une initiation Reiki, un atelier ou une méditation au cabinet de Bailleul (Estaimpuis) : votre note aide d'autres personnes.",
       "source": "/App.tsx#ContactPage"
     },
     {
       "path": "/e-books",
-      "title": "Laisser une note et un avis à Anne Kételair, Estaimpuis · Être dans la lumière",
-      "description": "Notez votre séance avec Anne Kételair : consultation énergétique, initiation Reiki, atelier ou méditation au cabinet d'Estaimpuis. Votre retour aide d'autres personnes.",
+      "title": "Votre avis sur les séances d'Anne Kételair à Estaimpuis · Être dans la lumière",
+      "description": "Partagez votre expérience après une consultation énergétique, une initiation Reiki, un atelier ou une méditation au cabinet de Bailleul (Estaimpuis) : votre note aide d'autres personnes.",
       "source": "/App.tsx#EbooksPage"
     },
     {
       "path": "/formations",
-      "title": "Laisser une note et un avis à Anne Kételair, Estaimpuis · Être dans la lumière",
-      "description": "Notez votre séance avec Anne Kételair : consultation énergétique, initiation Reiki, atelier ou méditation au cabinet d'Estaimpuis. Votre retour aide d'autres personnes.",
+      "title": "Votre avis sur les séances d'Anne Kételair à Estaimpuis · Être dans la lumière",
+      "description": "Partagez votre expérience après une consultation énergétique, une initiation Reiki, un atelier ou une méditation au cabinet de Bailleul (Estaimpuis) : votre note aide d'autres personnes.",
       "source": "/App.tsx#FormationsPage"
     },
     {
       "path": "/qui-suis-je",
-      "title": "Laisser une note et un avis à Anne Kételair, Estaimpuis · Être dans la lumière",
-      "description": "Notez votre séance avec Anne Kételair : consultation énergétique, initiation Reiki, atelier ou méditation au cabinet d'Estaimpuis. Votre retour aide d'autres personnes.",
+      "title": "Votre avis sur les séances d'Anne Kételair à Estaimpuis · Être dans la lumière",
+      "description": "Partagez votre expérience après une consultation énergétique, une initiation Reiki, un atelier ou une méditation au cabinet de Bailleul (Estaimpuis) : votre note aide d'autres personnes.",
       "source": "/App.tsx#AboutPage"
     },
     {
       "path": "/rendez-vous",
-      "title": "Laisser une note et un avis à Anne Kételair, Estaimpuis · Être dans la lumière",
-      "description": "Notez votre séance avec Anne Kételair : consultation énergétique, initiation Reiki, atelier ou méditation au cabinet d'Estaimpuis. Votre retour aide d'autres personnes.",
+      "title": "Votre avis sur les séances d'Anne Kételair à Estaimpuis · Être dans la lumière",
+      "description": "Partagez votre expérience après une consultation énergétique, une initiation Reiki, un atelier ou une méditation au cabinet de Bailleul (Estaimpuis) : votre note aide d'autres personnes.",
       "source": "/App.tsx#BookPage"
     },
     {
       "path": "/soins",
-      "title": "Laisser une note et un avis à Anne Kételair, Estaimpuis · Être dans la lumière",
-      "description": "Notez votre séance avec Anne Kételair : consultation énergétique, initiation Reiki, atelier ou méditation au cabinet d'Estaimpuis. Votre retour aide d'autres personnes.",
+      "title": "Votre avis sur les séances d'Anne Kételair à Estaimpuis · Être dans la lumière",
+      "description": "Partagez votre expérience après une consultation énergétique, une initiation Reiki, un atelier ou une méditation au cabinet de Bailleul (Estaimpuis) : votre note aide d'autres personnes.",
       "source": "/App.tsx#SoinsPage"
     },
     {
       "path": "/soins-energetiques",
-      "title": "Laisser une note et un avis à Anne Kételair, Estaimpuis · Être dans la lumière",
-      "description": "Notez votre séance avec Anne Kételair : consultation énergétique, initiation Reiki, atelier ou méditation au cabinet d'Estaimpuis. Votre retour aide d'autres personnes.",
+      "title": "Votre avis sur les séances d'Anne Kételair à Estaimpuis · Être dans la lumière",
+      "description": "Partagez votre expérience après une consultation énergétique, une initiation Reiki, un atelier ou une méditation au cabinet de Bailleul (Estaimpuis) : votre note aide d'autres personnes.",
       "source": "/App.tsx#SwPage"
     },
     {
       "path": "/temoignages",
-      "title": "Laisser une note et un avis à Anne Kételair, Estaimpuis · Être dans la lumière",
-      "description": "Notez votre séance avec Anne Kételair : consultation énergétique, initiation Reiki, atelier ou méditation au cabinet d'Estaimpuis. Votre retour aide d'autres personnes.",
+      "title": "Votre avis sur les séances d'Anne Kételair à Estaimpuis · Être dans la lumière",
+      "description": "Partagez votre expérience après une consultation énergétique, une initiation Reiki, un atelier ou une méditation au cabinet de Bailleul (Estaimpuis) : votre note aide d'autres personnes.",
       "source": "/App.tsx#TestimonialsPage"
     }
   ]
