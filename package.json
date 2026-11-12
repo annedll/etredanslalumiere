@@ -1,0 +1,39 @@
+{
+  "name": "tre-dans-la-lumi-re",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build && node prerender.mjs",
+    "preview": "vite preview",
+    "cap:sync": "npm run build && npx cap sync",
+    "cap:ios": "npx cap open ios",
+    "cap:android": "npx cap open android"
+  },
+  "dependencies": {
+    "react": "^19",
+    "react-dom": "^19",
+    "lucide-react": "*",
+    "@supabase/supabase-js": "^2",
+    "zod": "^3",
+    "@stripe/stripe-js": "*",
+    "react-router-dom": "^6",
+    "clsx": "*",
+    "tailwind-merge": "*",
+    "@capacitor/core": "^7",
+    "@capacitor/app": "^7"
+  },
+  "devDependencies": {
+    "vite": "^7",
+    "@vitejs/plugin-react": "^5",
+    "typescript": "^5",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "tailwindcss": "^4",
+    "@tailwindcss/vite": "^4",
+    "@capacitor/cli": "^7",
+    "@capacitor/ios": "^7",
+    "@capacitor/android": "^7"
+  }
+}

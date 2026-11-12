@@ -1,0 +1,30 @@
+@import "tailwindcss";
+
+/* No rubber-band bounce on the page (root only: on <body>, which overflow-x: hidden turns into a scroll container,
+   it would stop the mouse wheel from scrolling the page). */
+html {
+  overscroll-behavior: none;
+}
+html,
+body {
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Phone safe areas (notch, home bar). Installed on iOS 26+, the status bar blurs a band slightly taller than the
+   safe area: --safe-top keeps a margin. Use pt-[var(--safe-top)] / pb-[var(--safe-bottom)] on fixed bars. */
+:root {
+  --safe-top: env(safe-area-inset-top);
+  --safe-bottom: env(safe-area-inset-bottom);
+}
+@media (display-mode: standalone) {
+  :root {
+    --safe-top: calc(env(safe-area-inset-top) + 12px);
+  }
+}
+
+/* iPhone zooms into any field under 16 px when it gets the focus: never on touch screens. */
+@media (pointer: coarse) {
+  input, select, textarea {
+    font-size: 16px !important;
+  }
+}

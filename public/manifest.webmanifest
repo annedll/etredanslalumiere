@@ -1,0 +1,17 @@
+{
+  "name": "Être dans la lumière",
+  "short_name": "Être dans la",
+  "description": "Anne Kételair, thérapeute énergéticienne à Bailleul : soins énergétiques, Reiki, numérologie et méditations, au cabinet ou à distance. Réservez en ligne.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#4f46e5",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}
