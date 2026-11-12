@@ -881,3 +881,7 @@ update public.offerings set body = replace(body, ' La 11e séance est offerte gr
 update public.posts set body = replace(body, E'\n\nLe carnet de fidélité vous offre la 11e séance.', '') where body like '%carnet de fidélité%';
 update public.app_settings set value = to_jsonb('Chaque semaine, une méditation guidée à thème d''une heure (11 €), avec olfactif et oracle.'::text)
 where key = 'faq.6.a' and value #>> '{}' like '%carnet de fidélité%';
+
+-- ===== Ajout du 2026-11-12 14:42 =====
+-- Aucune modification de la base de données pour cette mise à jour.
+select 1;

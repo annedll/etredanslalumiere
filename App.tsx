@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { Home, Sparkles, CalendarDays, CalendarPlus, User, LayoutDashboard } from "lucide-react";
 import { registerMessages, useI18n } from "./lib/i18n";
 import { messages } from "./lib/messages";
+import { contentMessages } from "./lib/messages-content";
 import { LegalPage, LEGAL_PAGES } from "./lib/legal";
 import { brand } from "./lib/brand";
 import { useSeo } from "./lib/seo";
@@ -17,7 +18,9 @@ import { Footer, Logo, TopBanners, MAIN, EXTRA, manageLabel } from "./components
 import { HomeModern } from "./pages/Home";
 import { Container } from "./components/ui";
 
-registerMessages(messages as any);
+const merged: Record<string, Record<string, string>> = {};
+for (const l of Object.keys(messages as any)) merged[l] = { ...(messages as any)[l], ...(contentMessages[l] || {}) };
+registerMessages(merged as any);
 
 const chunks = {
   pub: () => import("./pages/Public"),
@@ -70,12 +73,13 @@ details summary::-webkit-details-marker{display:none}
 `;
 
 function ReviewsPage() {
+  const { t } = useI18n();
   useSeo({ title: "Votre avis sur les séances d'Anne Kételair à Estaimpuis", description: "Partagez votre expérience après une consultation énergétique, une initiation Reiki, un atelier ou une méditation au cabinet de Bailleul (Estaimpuis) : votre note aide d'autres personnes." });
   return (
     <Container className="py-10 sm:py-14 max-w-xl space-y-4">
       <div className="flex items-center gap-3">
         <img src={brand.logo} alt={brand.name} width={40} height={40} className="h-10 w-10 rounded-full shrink-0" />
-        <h1 className="text-3xl font-bold tracking-tight text-[var(--brand)]">Votre avis</h1>
+        <h1 className="text-3xl font-bold tracking-tight text-[var(--brand)]">{t("rev.title")}</h1>
       </div>
       {isConfigured && <ReviewForm supabase={supabase} />}
     </Container>

@@ -1,10 +1,9 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { LogOut, Download, Trash2, Mail, CalendarDays, Ticket, BookOpen, AlertTriangle } from "lucide-react";
+import { LogOut, Download, CalendarDays, Ticket, BookOpen } from "lucide-react";
 import { z } from "zod";
 import { useSeo } from "../lib/seo";
 import { useI18n } from "../lib/i18n";
-import { googleAvailable, signInWithGoogle } from "../lib/google";
 import { notify } from "../lib/notify";
 import { AddToCalendar } from "../lib/engage";
 import { supabase, isConfigured } from "../lib/supabase";
@@ -12,16 +11,7 @@ import { useApp, money, fmtDate } from "../lib/data";
 import { AccountPrivacy } from "../lib/auth";
 import { Button, Card, Container, EmptyState, Field, Input, Tabs, Badge, Skeleton, H1, toast } from "../components/ui";
 
-const email = z.string().trim().email().max(200);
 const profileSchema = z.object({ first_name: z.string().trim().max(80), last_name: z.string().trim().max(80), phone: z.string().trim().max(30).regex(/^[\d+().\s-]*$/) });
-function errMsg(e: any, t: any) {
-  const m = String(e?.message || "");
-  if (/invalid login/i.test(m)) return t("acc.errCreds");
-  if (/password/i.test(m) && /6|8|short|least/i.test(m)) return t("acc.errShort");
-  if (/email/i.test(m) && /invalid/i.test(m)) return t("val.email");
-  return t("common.error");
-}
-
 
 function ProfileForm({ uid, t }: { uid: string; t: any }) {
   const [p, setP] = useState({ first_name: "", last_name: "", phone: "" });
@@ -33,7 +23,7 @@ function ProfileForm({ uid, t }: { uid: string; t: any }) {
     setBusy(true);
     const { error } = isConfigured ? await supabase.from("profiles").update(r.data).eq("id", uid) : { error: null } as any;
     setBusy(false);
-    if (error) toast("Enregistrement impossible, réessayez.", "error"); else toast("Informations enregistrées.");
+    if (error) toast(t("acc.saveErr"), "error"); else toast(t("acc.saved"));
   };
   return (
     <div className="space-y-4">
@@ -110,7 +100,6 @@ export function AccountPage() {
             <Card className="p-6 space-y-5">
               <h2 className="text-lg font-semibold text-neutral-900 dark:text-neutral-100">{t("acc.profile")}</h2>
               {uid && <ProfileForm uid={uid} t={t} />}
-
             </Card>
             <AccountPrivacy />
           </>
