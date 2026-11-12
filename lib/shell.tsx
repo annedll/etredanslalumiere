@@ -503,7 +503,7 @@ export function NotFound() {
  *   preload={[() => import("./pages/Blog"), …]}>
  *   <Routes>…</Routes>
  * </SiteShell>
- * overlayHero: the home page's first section goes under the floating header (it then adds its own top padding).
+ * overlayHero: the home page's first section goes under the floating header (its background only: the shell keeps its content below the bars).
  */
 export function SiteShell({
   nav,
@@ -573,9 +573,11 @@ export function SiteShell({
   useEffect(() => {
     const el = bannerRef.current;
     if (!el) return setBannerH(0);
-    const ro = new ResizeObserver(() => setBannerH(el.offsetHeight));
+    // Height of the banner itself (the safe-area padding above it is already in the bars' own top).
+    const measure = () => setBannerH(el.offsetHeight - (parseFloat(getComputedStyle(el).paddingTop) || 0));
+    const ro = new ResizeObserver(measure);
     ro.observe(el);
-    setBannerH(el.offsetHeight);
+    measure();
     return () => ro.disconnect();
   }, [banner]);
   return (
@@ -587,7 +589,15 @@ export function SiteShell({
       )}
       <Header offset={bannerH} nav={nav} primary={primary} maxInBar={maxInBar} adminLinks={admin} accountPath={accountPath} signInPath={signInPath} logo={logo} logoCompact={logoCompact} />
       <EditBar />
-      <main className={cn("flex-1", !underHeader && "pt-[calc(var(--safe-top,env(safe-area-inset-top))+4.5rem)] md:pt-24")}>
+      <main
+        className={cn(
+          "flex-1",
+          underHeader
+            ? // The first section keeps its background under the bars, its content always starts below them.
+              "[&>:first-child]:pt-[calc(var(--safe-top,env(safe-area-inset-top))+4.5rem)] md:[&>:first-child]:pt-24"
+            : "pt-[calc(var(--safe-top,env(safe-area-inset-top))+4.5rem)] md:pt-24",
+        )}
+      >
         <Boundary key={pathname}>
           <Suspense fallback={<PageSkeleton />}>{children}</Suspense>
         </Boundary>
