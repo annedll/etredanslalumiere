@@ -1,11 +1,11 @@
 // Injected by Usin (content engine: texts, images and lists editable with the pencil, data cache, visits). Do not edit.
-import { createContext, Fragment, useContext, useEffect, useRef, useState, type ReactNode } from "react";
+import { createContext, Fragment, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useLocation } from "react-router-dom";
 import { createPortal } from "react-dom";
 import type { SupabaseClient, Session } from "@supabase/supabase-js";
 import { brand } from "./brand";
 import { useI18n, t as translate, languages } from "./i18n";
-import { ImageEditor, uploadImage, imageSizeClass, imageFrameRadius } from "./image-editor";
+import { ImageEditor, uploadImage, imageSizeClass, imageFrameRadius, type StockPhoto } from "./image-editor";
 export { imageFrameRadius } from "./image-editor";
 import { Sheet } from "./mobile";
 import { env } from "./env";
@@ -20,11 +20,11 @@ const VIEW_AS = "usin:view-as";
 const TIMEOUT = 8000;
 
 const UI: Record<string, Record<string, string>> = {
-  fr: { save: "Enregistrer", cancel: "Annuler", image: "Changer l'image", list: "Modifier la liste", add: "Ajouter", remove: "Retirer", up: "Monter", down: "Descendre", empty: "Texte à écrire", bg: "Fond de la section", bgPick: "Choisir une image", bgStrength: "Intensité", bgNone: "Retirer le fond", bgHint: "Plus l'intensité est basse, plus l'image est pâle et le texte reste lisible.", sections: "Sections de la page", shown: "Affichée", hiddenS: "Masquée", fixedS: "Toujours en haut", sectionsHint: "Masquez une section ou changez l'ordre : rien n'est supprimé, tout peut être réaffiché." },
-  en: { save: "Save", cancel: "Cancel", image: "Change image", list: "Edit list", add: "Add", remove: "Remove", up: "Move up", down: "Move down", empty: "Text to write", bg: "Section background", bgPick: "Choose an image", bgStrength: "Intensity", bgNone: "Remove the background", bgHint: "The lower the intensity, the paler the image and the easier the text is to read.", sections: "Page sections", shown: "Shown", hiddenS: "Hidden", fixedS: "Always on top", sectionsHint: "Hide a section or change the order: nothing is deleted, everything can be shown again." },
-  nl: { save: "Opslaan", cancel: "Annuleren", image: "Afbeelding wijzigen", list: "Lijst bewerken", add: "Toevoegen", remove: "Verwijderen", up: "Omhoog", down: "Omlaag", empty: "Tekst te schrijven", bg: "Achtergrond van de sectie", bgPick: "Kies een afbeelding", bgStrength: "Intensiteit", bgNone: "Achtergrond verwijderen", bgHint: "Hoe lager de intensiteit, hoe bleker de afbeelding en hoe leesbaarder de tekst.", sections: "Secties van de pagina", shown: "Zichtbaar", hiddenS: "Verborgen", fixedS: "Altijd bovenaan", sectionsHint: "Verberg een sectie of wijzig de volgorde: niets wordt verwijderd, alles kan weer getoond worden." },
-  de: { save: "Speichern", cancel: "Abbrechen", image: "Bild ändern", list: "Liste bearbeiten", add: "Hinzufügen", remove: "Entfernen", up: "Nach oben", down: "Nach unten", empty: "Text schreiben", bg: "Hintergrund des Abschnitts", bgPick: "Bild wählen", bgStrength: "Intensität", bgNone: "Hintergrund entfernen", bgHint: "Je geringer die Intensität, desto blasser das Bild und desto besser lesbar der Text.", sections: "Abschnitte der Seite", shown: "Sichtbar", hiddenS: "Ausgeblendet", fixedS: "Immer oben", sectionsHint: "Blenden Sie einen Abschnitt aus oder ändern Sie die Reihenfolge: nichts wird gelöscht, alles kann wieder angezeigt werden." },
-  es: { save: "Guardar", cancel: "Cancelar", image: "Cambiar imagen", list: "Editar lista", add: "Añadir", remove: "Quitar", up: "Subir", down: "Bajar", empty: "Texto por escribir", bg: "Fondo de la sección", bgPick: "Elegir una imagen", bgStrength: "Intensidad", bgNone: "Quitar el fondo", bgHint: "Cuanto más baja la intensidad, más pálida la imagen y más legible el texto.", sections: "Secciones de la página", shown: "Visible", hiddenS: "Oculta", fixedS: "Siempre arriba", sectionsHint: "Oculte una sección o cambie el orden: nada se borra, todo puede volver a mostrarse." },
+  fr: { save: "Enregistrer", cancel: "Annuler", image: "Changer l'image", list: "Modifier la liste", add: "Ajouter", remove: "Retirer", up: "Monter", down: "Descendre", empty: "Texte à écrire", bg: "Fond de la section", bgPick: "Choisir une image", bgStrength: "Intensité", bgNone: "Retirer le fond", bgHint: "Plus l'intensité est basse, plus l'image est pâle et le texte reste lisible.", sections: "Sections de la page", shown: "Affichée", hiddenS: "Masquée", fixedS: "Toujours en haut", sectionsHint: "Masquez une section ou changez l'ordre : rien n'est supprimé, tout peut être réaffiché.", style: "Style du site", colorMain: "Couleur principale", colorAccent: "Couleur d'accent", fontTitle: "Police des titres décoratifs", fontText: "Police du texte", reset: "Revenir au style d'origine" },
+  en: { save: "Save", cancel: "Cancel", image: "Change image", list: "Edit list", add: "Add", remove: "Remove", up: "Move up", down: "Move down", empty: "Text to write", bg: "Section background", bgPick: "Choose an image", bgStrength: "Intensity", bgNone: "Remove the background", bgHint: "The lower the intensity, the paler the image and the easier the text is to read.", sections: "Page sections", shown: "Shown", hiddenS: "Hidden", fixedS: "Always on top", sectionsHint: "Hide a section or change the order: nothing is deleted, everything can be shown again.", style: "Site style", colorMain: "Main color", colorAccent: "Accent color", fontTitle: "Decorative titles font", fontText: "Text font", reset: "Back to the original style" },
+  nl: { save: "Opslaan", cancel: "Annuleren", image: "Afbeelding wijzigen", list: "Lijst bewerken", add: "Toevoegen", remove: "Verwijderen", up: "Omhoog", down: "Omlaag", empty: "Tekst te schrijven", bg: "Achtergrond van de sectie", bgPick: "Kies een afbeelding", bgStrength: "Intensiteit", bgNone: "Achtergrond verwijderen", bgHint: "Hoe lager de intensiteit, hoe bleker de afbeelding en hoe leesbaarder de tekst.", sections: "Secties van de pagina", shown: "Zichtbaar", hiddenS: "Verborgen", fixedS: "Altijd bovenaan", sectionsHint: "Verberg een sectie of wijzig de volgorde: niets wordt verwijderd, alles kan weer getoond worden.", style: "Stijl van de site", colorMain: "Hoofdkleur", colorAccent: "Accentkleur", fontTitle: "Lettertype decoratieve titels", fontText: "Lettertype tekst", reset: "Terug naar de oorspronkelijke stijl" },
+  de: { save: "Speichern", cancel: "Abbrechen", image: "Bild ändern", list: "Liste bearbeiten", add: "Hinzufügen", remove: "Entfernen", up: "Nach oben", down: "Nach unten", empty: "Text schreiben", bg: "Hintergrund des Abschnitts", bgPick: "Bild wählen", bgStrength: "Intensität", bgNone: "Hintergrund entfernen", bgHint: "Je geringer die Intensität, desto blasser das Bild und desto besser lesbar der Text.", sections: "Abschnitte der Seite", shown: "Sichtbar", hiddenS: "Ausgeblendet", fixedS: "Immer oben", sectionsHint: "Blenden Sie einen Abschnitt aus oder ändern Sie die Reihenfolge: nichts wird gelöscht, alles kann wieder angezeigt werden.", style: "Stil der Website", colorMain: "Hauptfarbe", colorAccent: "Akzentfarbe", fontTitle: "Schrift der Ziertitel", fontText: "Textschrift", reset: "Zurück zum ursprünglichen Stil" },
+  es: { save: "Guardar", cancel: "Cancelar", image: "Cambiar imagen", list: "Editar lista", add: "Añadir", remove: "Quitar", up: "Subir", down: "Bajar", empty: "Texto por escribir", bg: "Fondo de la sección", bgPick: "Elegir una imagen", bgStrength: "Intensidad", bgNone: "Quitar el fondo", bgHint: "Cuanto más baja la intensidad, más pálida la imagen y más legible el texto.", sections: "Secciones de la página", shown: "Visible", hiddenS: "Oculta", fixedS: "Siempre arriba", sectionsHint: "Oculte una sección o cambie el orden: nada se borra, todo puede volver a mostrarse.", style: "Estilo del sitio", colorMain: "Color principal", colorAccent: "Color de acento", fontTitle: "Fuente de los títulos decorativos", fontText: "Fuente del texto", reset: "Volver al estilo original" },
 };
 const ui = (lang: string, key: string) => (UI[lang] ?? UI.en)[key] ?? UI.en[key];
 
@@ -119,6 +119,8 @@ export function ContentProvider({ supabase, defaults = {}, children }: { supabas
     }
   });
   const [editMode, setEditModeState] = useState(false);
+  // Style chosen by the admin (colors, fonts): applied on top of the design, nothing changes until one is chosen.
+  useEffect(() => applyTheme(settings), [settings["theme.brand"], settings["brand_color"], settings["theme.accent"], settings["theme.titleFont"], settings["theme.textFont"]]);
 
   useEffect(() => {
     if (!supabase) return;
@@ -263,6 +265,110 @@ export function ContentProvider({ supabase, defaults = {}, children }: { supabas
   );
 }
 
+// ------------------------------------------------------------------ style of the site
+
+const PALETTE = ["#4f46e5", "#7c3aed", "#9333ea", "#db2777", "#e11d48", "#ea580c", "#d97706", "#16a34a", "#0d9488", "#0284c7", "#334155", "#111827"];
+const ACCENTS = ["#fde68a", "#fbcfe8", "#ddd6fe", "#bfdbfe", "#a7f3d0", "#fed7aa", "#e5e7eb", "#fef3c7"];
+const TITLE_FONTS = ["Great Vibes", "Dancing Script", "Playfair Display", "Cormorant Garamond", "Lora", "Montserrat", "Poppins", "Nunito"];
+const TEXT_FONTS = ["Inter", "Nunito", "Lato", "Poppins", "Source Sans 3", "Lora", "Merriweather"];
+const HEX = /^#[0-9a-f]{6}$/i;
+
+function loadFont(name: string) {
+  const id = "usin-font-" + name.replace(/\s+/g, "-");
+  if (document.getElementById(id)) return;
+  const link = document.createElement("link");
+  link.id = id;
+  link.rel = "stylesheet";
+  link.href = "https://fonts.googleapis.com/css2?family=" + encodeURIComponent(name).replace(/%20/g, "+") + ":wght@400;600;700&display=swap";
+  document.head.appendChild(link);
+}
+
+/** Colors and fonts chosen with « Style du site »: CSS variables --brand, --brand-accent, --font-title, --font-sans. */
+function applyTheme(settings: Settings) {
+  const root = document.documentElement.style;
+  const pick = (k: string) => (typeof settings[k] === "string" ? (settings[k] as string) : "");
+  const brandColor = pick("theme.brand") || pick("brand_color");
+  if (HEX.test(brandColor)) root.setProperty("--brand", brandColor);
+  else root.removeProperty("--brand");
+  const accent = pick("theme.accent");
+  if (HEX.test(accent)) root.setProperty("--brand-accent", accent);
+  else root.removeProperty("--brand-accent");
+  const title = pick("theme.titleFont");
+  if (TITLE_FONTS.includes(title)) {
+    loadFont(title);
+    root.setProperty("--font-title", `'${title}', ${/Vibes|Script/.test(title) ? "cursive" : "serif"}`);
+  } else root.removeProperty("--font-title");
+  const text = pick("theme.textFont");
+  // The text font wins over the design's own (set on the page, the fields and the buttons).
+  let tag = document.getElementById("usin-text-font");
+  if (TEXT_FONTS.includes(text)) {
+    loadFont(text);
+    root.setProperty("--font-sans", `'${text}', ui-sans-serif, system-ui, sans-serif`);
+    if (!tag) {
+      tag = document.createElement("style");
+      tag.id = "usin-text-font";
+      document.head.appendChild(tag);
+    }
+    tag.textContent = "body,button,input,textarea,select{font-family:var(--font-sans)}";
+  } else {
+    root.removeProperty("--font-sans");
+    tag?.remove();
+  }
+}
+
+/** Panel « Style du site » (edit mode): main and accent colors, fonts, back to the original. */
+export function StylePanel({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const { get, save, remove, lang } = useContent();
+  useEffect(() => {
+    if (open) [...TITLE_FONTS, ...TEXT_FONTS].forEach(loadFont);
+  }, [open]);
+  const current = (k: string) => String(get(k) ?? "");
+  const set = (k: string, v: string) => save(k, v, { translated: false });
+  const swatch = (k: string, c: string) => (
+    <button key={c} type="button" aria-label={c} onClick={() => set(k, c)} className={"size-9 rounded-full border-2 shadow " + (current(k).toLowerCase() === c ? "border-neutral-900 dark:border-white" : "border-white")} style={{ background: c }} />
+  );
+  const fontBtn = (k: string, f: string) => (
+    <button key={f} type="button" onClick={() => set(k, f)} className={"rounded-xl border px-3 py-2 text-left text-base " + (current(k) === f ? "border-[var(--brand)] bg-[var(--brand)]/10" : "border-black/10 dark:border-white/15")} style={{ fontFamily: `'${f}'` }}>
+      {f}
+    </button>
+  );
+  const h = "text-sm font-semibold";
+  return (
+    <Sheet open={open} onClose={onClose} title={ui(lang, "style")}>
+      <div className="space-y-5 pb-2">
+        <div className="space-y-2">
+          <p className={h}>{ui(lang, "colorMain")}</p>
+          <div className="flex flex-wrap items-center gap-2">
+            {PALETTE.map((c) => swatch("theme.brand", c))}
+            <input type="color" aria-label={ui(lang, "colorMain")} value={HEX.test(current("theme.brand")) ? current("theme.brand") : "#4f46e5"} onChange={(e) => set("theme.brand", e.target.value)} className="size-9 cursor-pointer rounded-full border-0 bg-transparent p-0" />
+          </div>
+        </div>
+        <div className="space-y-2">
+          <p className={h}>{ui(lang, "colorAccent")}</p>
+          <div className="flex flex-wrap gap-2">{ACCENTS.map((c) => swatch("theme.accent", c))}</div>
+        </div>
+        <div className="space-y-2">
+          <p className={h}>{ui(lang, "fontTitle")}</p>
+          <div className="grid grid-cols-2 gap-2">{TITLE_FONTS.map((f) => fontBtn("theme.titleFont", f))}</div>
+        </div>
+        <div className="space-y-2">
+          <p className={h}>{ui(lang, "fontText")}</p>
+          <div className="grid grid-cols-2 gap-2">{TEXT_FONTS.map((f) => fontBtn("theme.textFont", f))}</div>
+        </div>
+        <button
+          type="button"
+          className="w-full rounded-xl border px-4 py-2.5 text-sm"
+          onClick={async () => {
+            for (const k of ["theme.brand", "brand_color", "theme.accent", "theme.titleFont", "theme.textFont"]) await remove(k);
+          }}
+        >
+          {ui(lang, "reset")}
+        </button>
+      </div>
+    </Sheet>
+  );
+}
+
 export function useContent(): ContentCtx {
   const ctx = useContext(Ctx);
   if (!ctx) throw new Error("useContent doit être utilisé à l'intérieur de <ContentProvider>.");
@@ -330,7 +436,8 @@ export function useData<T>(
   fetcher: () => PromiseLike<{ data: unknown; error: unknown }>,
   opts: { fallback?: T } = {},
 ): { data: T | undefined; loading: boolean; error: string | null; reload: () => void } {
-  const { supabase } = useContent();
+  const { supabase, lang } = useContent();
+  const main = languages[0] ?? lang;
   const hit = key ? cache.get(key) : undefined;
   const [, setTick] = useState(0);
   const [error, setError] = useState<string | null>(null);
@@ -381,8 +488,30 @@ export function useData<T>(
   }, [key, supabase, version]);
 
   const current = key ? cache.get(key) : undefined;
-  const data = (current ? current.data : !supabase || error ? opts.fallback : undefined) as T | undefined;
+  const raw = current ? current.data : !supabase || error ? opts.fallback : undefined;
+  // Rows translated by Usin (column i18n = { en: { title… } }) are shown in the visitor's language.
+  const data = useMemo(() => (lang !== main ? localize(raw, lang) : raw), [raw, lang, main]) as T | undefined;
   return { data, loading: !current && loading, error, reload: () => key && invalidate(key) };
+}
+
+/** Overlays the translated fields of each row (and of the rows nested in it) for the given language. */
+function localize(value: unknown, lang: string, depth = 0): unknown {
+  if (depth > 4 || !value || typeof value !== "object") return value;
+  if (Array.isArray(value)) return value.map((v) => localize(v, lang, depth + 1));
+  const row = value as Record<string, unknown>;
+  let out: Record<string, unknown> | null = null;
+  for (const [k, v] of Object.entries(row)) {
+    if (v && typeof v === "object" && k !== "i18n") {
+      const l = localize(v, lang, depth + 1);
+      if (l !== v) (out ??= { ...row })[k] = l;
+    }
+  }
+  const tr = (row.i18n as Record<string, Record<string, unknown>> | null | undefined)?.[lang];
+  if (tr && typeof tr === "object") {
+    out ??= { ...row };
+    for (const [k, v] of Object.entries(tr)) if (typeof v === "string" && v.trim()) out[k] = v;
+  }
+  return out ?? value;
 }
 
 /**
@@ -440,9 +569,9 @@ export function Paragraphs({ text, className }: { text: string; className?: stri
  * A text of the site, in the visitor's language, editable in place by an admin in edit mode:
  * <Editable k="home.hero.title" as="h1" className="…" />. multiline: paragraphs.
  */
-export function Editable({ k, as = "span", className, multiline }: { k: string; as?: any; className?: string; multiline?: boolean }) {
+export function Editable({ k, as = "span", className, multiline, fallback }: { k: string; as?: any; className?: string; multiline?: boolean; /** Text shown until the admin writes their own. */ fallback?: string }) {
   const { text, save, editMode, lang } = useContent();
-  const value = text(k);
+  const value = text(k) || fallback || "";
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(value);
   const [busy, setBusy] = useState(false);
@@ -499,6 +628,23 @@ export function Editable({ k, as = "span", className, multiline }: { k: string; 
   );
 }
 
+/** Photo search for the image editor (Unsplash through Usin), for the admins of a published app. */
+function usePhotoSearch() {
+  const { supabase, lang } = useContent();
+  const base = env.paymentsUrl ? env.paymentsUrl.replace("/api/pay/", "/api/app-notify/") : "";
+  if (!base || !supabase) return {};
+  const call = async (path: string, body: Record<string, unknown>) => {
+    const { data } = await supabase.auth.getSession();
+    const res = await fetch(base + path, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...body, accessToken: data.session?.access_token ?? "" }) });
+    if (!res.ok) throw new Error(String(res.status));
+    return res.json();
+  };
+  return {
+    search: async (query: string, page: number) => ((await call("/photos/search", { query, page, lang })) as { photos: StockPhoto[] }).photos,
+    onStock: (download: string) => void call("/photos/use", { download }).catch(() => undefined),
+  };
+}
+
 /** Unsplash photo in a modern format with the right width for each screen. */
 export function imgProps(src: string, sizes = "(min-width: 1024px) 40vw, 90vw"): { src: string; srcSet?: string; sizes?: string } {
   if (!src || !/images\.unsplash\.com/.test(src)) return { src };
@@ -528,6 +674,7 @@ export function EditableImage({ k, alt, aspect = 4 / 3, className, priority, siz
   // Frame chosen by the admin (cercle, arrondi, droit, organique): wins over the design's own corners.
   const frame = text(k + ".frame") || undefined;
   const radius = imageFrameRadius(frame);
+  const photos = usePhotoSearch();
   const ip = imgProps(src, sizes ?? (priority ? "(min-width: 1024px) 50vw, 100vw" : undefined));
   return (
     <div className={"relative " + (editMode ? "cursor-pointer rounded-[1.5rem] " + outline : "")} onClick={() => editMode && setOpen(true)}>
@@ -555,6 +702,7 @@ export function EditableImage({ k, alt, aspect = 4 / 3, className, priority, siz
           size={size as never}
           frame={frame as never}
           src={src || undefined}
+          {...photos}
           onSave={async ({ blob, size: chosen, frame: shape }) => {
             const url = await uploadImage(supabase, blob);
             await save(k, url, { translated: false });
@@ -580,6 +728,7 @@ export function SectionBackground({ k }: { k: string }) {
   const ref = useRef<HTMLDivElement>(null);
   const src = text(k);
   const strength = Math.min(100, Math.max(5, Number(text(k + ".strength")) || 25));
+  const bgPhotos = usePhotoSearch();
   const [draft, setDraft] = useState(strength);
   useEffect(() => setDraft(strength), [strength]);
   // The image stays under the content of the section, whatever its layout.
@@ -636,6 +785,7 @@ export function SectionBackground({ k }: { k: string }) {
           onClose={() => setPicking(false)}
           aspect={16 / 9}
           title={ui(lang, "bg")}
+          {...bgPhotos}
           onSave={async ({ blob }) => {
             const url = await uploadImage(supabase, blob);
             await save(k, url, { translated: false });

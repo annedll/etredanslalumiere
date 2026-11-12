@@ -1,11 +1,12 @@
 // Injected by Usin (management console: layout, dashboard, data tables, texts, legal pages, administrators). Do not edit.
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { Fragment, useEffect, useMemo, useState, type ReactNode } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useContent, useData, invalidate } from "./content";
-import { Badge, Button, Card, Container, Dialog, EmptyState, Field, Input, Select, Skeleton, Stat, Switch, Tabs, Textarea, cn, confirmAction, toast } from "./ui";
+import { AddressInput, Badge, Button, Card, Container, Dialog, EmptyState, Field, Input, Select, Skeleton, Stat, Switch, Tabs, Textarea, cn, confirmAction, toast } from "./ui";
 import { ImageEditor, uploadImage } from "./image-editor";
 import { LEGAL_PAGES, legalDefaultText, type LegalKind } from "./legal";
 import { useSeo } from "./seo";
+import { env } from "./env";
 
 const T: Record<string, Record<string, string>> = {
   fr: {
@@ -49,7 +50,7 @@ function useT() {
 
 // ------------------------------------------------------------------ layout
 
-export type AdminSection = { id: string; label: string; icon?: ReactNode; element: ReactNode; badge?: number };
+export type AdminSection = { id: string; label: string; icon?: ReactNode; element: ReactNode; badge?: number; /** Heading the section is listed under (« Activité », « Clients »…): a long menu stays easy to scan. */ group?: string };
 
 /**
  * A management space: menu of sections (column on computers, scrollable pills on phones) and the chosen section.
@@ -61,7 +62,7 @@ export function AdminConsole({ title, sections: own, actions, seo = true }: { ti
   const navigate = useNavigate();
   const tr = useT();
   // Every management space can write the Google titles of the pages (once, even if the app adds its own).
-  const sections: AdminSection[] = !seo || own.some((s) => s.id === "seo") ? own : [...own, { id: "seo", label: tr("seo"), icon: <SearchIcon />, element: <SeoEditor /> }];
+  const sections: AdminSection[] = !seo || own.some((s) => s.id === "seo") ? own : [...own, { id: "seo", label: tr("seo"), icon: <SearchIcon />, element: <SeoEditor />, group: own[own.length - 1]?.group }];
   useSeo({ title, noindex: true });
   const current = new URLSearchParams(location.search).get("s");
   const active = sections.find((s) => s.id === current) ?? sections[0];
@@ -79,14 +80,17 @@ export function AdminConsole({ title, sections: own, actions, seo = true }: { ti
       </div>
       <div className="grid gap-6 md:grid-cols-[15rem_1fr]">
         <nav aria-label={title} className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 [scrollbar-width:none] md:sticky md:top-24 md:mx-0 md:flex-col md:self-start md:overflow-visible md:px-0">
-          {sections.map((s) => (
+          {sections.map((s, i) => (
+            <Fragment key={s.id}>
+            {s.group && s.group !== sections[i - 1]?.group && (
+              <p className="hidden px-4 pb-1 pt-4 text-xs font-semibold uppercase tracking-wide text-neutral-500 first:pt-0 md:block dark:text-neutral-400">{s.group}</p>
+            )}
             <button
-              key={s.id}
               type="button"
               onClick={() => go(s.id)}
               aria-current={s.id === active?.id ? "page" : undefined}
               className={cn(
-                "flex min-h-11 shrink-0 items-center gap-3 rounded-full px-4 text-sm font-medium transition md:rounded-2xl [&_svg]:size-5",
+                "flex min-h-11 shrink-0 items-center gap-3 rounded-full px-4 text-sm font-medium transition md:min-h-10 md:rounded-2xl [&_svg]:size-5",
                 s.id === active?.id
                   ? "bg-[var(--brand)]/10 text-[var(--brand)] dark:bg-white/10 dark:text-neutral-100"
                   : "text-neutral-600 hover:bg-black/5 dark:text-neutral-400 dark:hover:bg-white/5",
@@ -96,6 +100,7 @@ export function AdminConsole({ title, sections: own, actions, seo = true }: { ti
               <span className="whitespace-nowrap">{s.label}</span>
               {Boolean(s.badge) && <span className="ml-auto rounded-full bg-[var(--brand)] px-2 text-xs leading-5 text-white">{s.badge}</span>}
             </button>
+            </Fragment>
           ))}
         </nav>
         <div className="min-w-0">{active?.element}</div>
@@ -119,7 +124,7 @@ export function SectionTitle({ title, hint, children }: { title: string; hint?: 
 
 // ------------------------------------------------------------------ data tables
 
-export type ColumnType = "text" | "textarea" | "number" | "money" | "date" | "datetime" | "boolean" | "select" | "multi" | "image" | "slug" | "email" | "url" | "tags";
+export type ColumnType = "text" | "textarea" | "number" | "money" | "date" | "datetime" | "boolean" | "select" | "multi" | "image" | "slug" | "email" | "url" | "tags" | "address";
 export type Column = {
   key: string;
   label: string;
@@ -239,6 +244,8 @@ function RowForm({ columns, row, onChange }: { columns: Column[]; row: Row; onCh
             <Field key={c.key} label={c.label + (c.required ? " *" : "")} hint={c.hint}>
               {c.type === "textarea" ? (
                 <Textarea value={v ?? ""} onChange={(e) => set(e.target.value)} />
+              ) : c.type === "address" ? (
+                <AddressInput value={v ?? ""} onChange={(x) => set(x)} />
               ) : c.type === "select" ? (
                 <Select value={v ?? ""} onChange={(e) => set(e.target.value)}>
                   <option value="">—</option>
@@ -364,6 +371,7 @@ export function CrudTable({
     toast(tr("saved"));
     setEditing(null);
     refresh();
+    translateRows(supabase, table);
   };
   const remove = async (row: Row) => {
     if (!supabase || !(await confirmAction(tr("delAsk")))) return;
@@ -861,5 +869,157 @@ export function SeoEditor() {
         );
       })}
     </div>
+  );
+}
+
+/** A row saved in a table with an « i18n » column is translated by Usin into the app's other languages (background). */
+function translateRows(supabase: { auth: { getSession: () => Promise<{ data: { session: { access_token: string } | null } }> } } | null, table: string) {
+  const base = env.paymentsUrl ? env.paymentsUrl.replace("/api/pay/", "/api/app-notify/") : "";
+  if (!base || !supabase) return;
+  supabase.auth
+    .getSession()
+    .then(({ data }) => data.session && fetch(base + "/translate", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ accessToken: data.session.access_token, tables: [table] }), keepalive: true }))
+    .catch(() => undefined);
+}
+
+// ------------------------------------------------------------------ calendar sync
+
+/**
+ * Bookings in the admin's own calendar (iPhone, Mac, Google, Outlook): a private subscription link, refreshed by the
+ * calendar itself (new bookings appear, cancelled ones disappear). Place it at the top of the bookings section.
+ */
+export function CalendarSync() {
+  const { supabase } = useContent();
+  const [links, setLinks] = useState<{ https: string; webcal: string; google: string } | null>(null);
+  const [failed, setFailed] = useState(false);
+  const base = env.paymentsUrl ? env.paymentsUrl.replace("/api/pay/", "/api/app-notify/") : "";
+  useEffect(() => {
+    if (!base || !supabase) return setFailed(true);
+    supabase.auth
+      .getSession()
+      .then(({ data }) => fetch(base + "/calendar/link", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ accessToken: data.session?.access_token ?? "" }) }))
+      .then((r) => (r.ok ? r.json() : Promise.reject()))
+      .then(setLinks)
+      .catch(() => setFailed(true));
+  }, [base, supabase]);
+  if (failed) return null;
+  return (
+    <Card className="space-y-3 p-5">
+      <div className="space-y-1">
+        <p className="font-semibold text-neutral-900 dark:text-neutral-100">📅 Mes rendez-vous dans mon agenda</p>
+        <p className="text-sm text-neutral-600 dark:text-neutral-400">Abonnez votre agenda une seule fois : chaque nouvelle réservation y apparaît toute seule, une annulation l'enlève. Le lien est privé, ne le partagez pas.</p>
+      </div>
+      {links ? (
+        <div className="flex flex-wrap gap-2">
+          <a href={links.webcal} className="inline-flex min-h-11 items-center rounded-full bg-[var(--brand)] px-4 text-sm font-medium text-white">iPhone / Mac</a>
+          <a href={links.google} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-11 items-center rounded-full border border-black/10 px-4 text-sm font-medium dark:border-white/15">Google Agenda</a>
+          <Button
+            variant="ghost"
+            onClick={async () => {
+              await navigator.clipboard.writeText(links.https).catch(() => undefined);
+              toast("Lien copié : collez-le dans Outlook ou un autre agenda (ajouter un calendrier par URL).");
+            }}
+          >
+            Copier le lien
+          </Button>
+        </div>
+      ) : (
+        <Skeleton className="h-11" />
+      )}
+    </Card>
+  );
+}
+
+// ------------------------------------------------------------------ weekly planner
+
+const DAYS = ["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"];
+
+/**
+ * Creates many time slots at once: days of the week, start times, duration, number of weeks. Shows how many slots will
+ * be created before doing it. <WeeklyPlanner onCreate={(slots) => insert(slots.map((s) => ({ starts_at: s.start, ends_at: s.end })))} />
+ */
+export function WeeklyPlanner({ onCreate, extra }: { onCreate: (slots: { start: string; end: string }[]) => Promise<void>; extra?: ReactNode }) {
+  const today = new Date().toISOString().slice(0, 10);
+  const [days, setDays] = useState<number[]>([1, 2, 3, 4]);
+  const [times, setTimes] = useState<string[]>(["09:30", "14:00"]);
+  const [time, setTime] = useState("");
+  const [duration, setDuration] = useState(90);
+  const [from, setFrom] = useState(today);
+  const [weeks, setWeeks] = useState(4);
+  const [busy, setBusy] = useState(false);
+  const slots = useMemo(() => {
+    const out: { start: string; end: string }[] = [];
+    const first = new Date(from + "T00:00");
+    for (let d = 0; d < weeks * 7; d++) {
+      const day = new Date(first);
+      day.setDate(first.getDate() + d);
+      if (!days.includes((day.getDay() + 6) % 7)) continue;
+      for (const t of times) {
+        const [h, m] = t.split(":").map(Number);
+        const start = new Date(day);
+        start.setHours(h, m, 0, 0);
+        if (+start < Date.now()) continue;
+        out.push({ start: start.toISOString(), end: new Date(+start + duration * 60e3).toISOString() });
+      }
+    }
+    return out;
+  }, [days, times, duration, from, weeks]);
+  const chip = (on: boolean) => "min-h-10 rounded-full border px-3 text-sm font-medium transition " + (on ? "border-[var(--brand)] bg-[var(--brand)] text-white" : "border-black/10 dark:border-white/15");
+  return (
+    <Card className="space-y-4 p-5">
+      <p className="font-semibold text-neutral-900 dark:text-neutral-100">Créer plusieurs créneaux d'un coup</p>
+      <div className="space-y-2">
+        <p className="text-sm font-medium">Jours</p>
+        <div className="flex flex-wrap gap-2">
+          {DAYS.map((d, i) => (
+            <button key={d} type="button" className={chip(days.includes(i))} onClick={() => setDays(days.includes(i) ? days.filter((x) => x !== i) : [...days, i].sort())}>
+              {d}
+            </button>
+          ))}
+        </div>
+      </div>
+      <div className="space-y-2">
+        <p className="text-sm font-medium">Heures de début</p>
+        <div className="flex flex-wrap items-center gap-2">
+          {times.map((t) => (
+            <button key={t} type="button" className={chip(true)} title="Retirer" onClick={() => setTimes(times.filter((x) => x !== t))}>
+              {t} ✕
+            </button>
+          ))}
+          <Input type="time" className="h-10 w-32" value={time} onChange={(e) => setTime(e.target.value)} />
+          <Button size="sm" variant="secondary" disabled={!time || times.includes(time)} onClick={() => { setTimes([...times, time].sort()); setTime(""); }}>
+            + Ajouter
+          </Button>
+        </div>
+      </div>
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+        <Field label="Durée (minutes)">
+          <Input type="number" min={10} step={5} value={duration} onChange={(e) => setDuration(Math.max(10, Number(e.target.value) || 60))} />
+        </Field>
+        <Field label="À partir du">
+          <Input type="date" value={from} min={today} onChange={(e) => setFrom(e.target.value || today)} />
+        </Field>
+        <Field label="Pendant (semaines)">
+          <Input type="number" min={1} max={26} value={weeks} onChange={(e) => setWeeks(Math.min(26, Math.max(1, Number(e.target.value) || 1)))} />
+        </Field>
+      </div>
+      {extra}
+      <Button
+        disabled={!slots.length || busy}
+        onClick={async () => {
+          setBusy(true);
+          try {
+            await onCreate(slots);
+            toast(slots.length + " créneaux créés ✓");
+          } catch (e) {
+            toast((e as Error).message, "error");
+          } finally {
+            setBusy(false);
+          }
+        }}
+      >
+        {busy ? "…" : `Créer ${slots.length} créneau${slots.length > 1 ? "x" : ""}`}
+      </Button>
+    </Card>
   );
 }

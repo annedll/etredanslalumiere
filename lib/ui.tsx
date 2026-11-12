@@ -152,6 +152,82 @@ export const Input = forwardRef<HTMLInputElement, InputHTMLAttributes<HTMLInputE
   return <input ref={ref} className={cn(fieldClass, className)} {...rest} />;
 });
 
+export type AddressParts = { line: string; street: string; postcode: string; city: string; country: string };
+
+/**
+ * Address field with suggestions while typing (OpenStreetMap, free): <AddressInput value={v} onChange={setV}
+ * onPick={(a) => …a.street, a.postcode, a.city, a.country} />. Free text stays possible.
+ */
+export function AddressInput({ value, onChange, onPick, className, placeholder, lang = "fr" }: { value: string; onChange: (v: string) => void; onPick?: (a: AddressParts) => void; className?: string; placeholder?: string; lang?: string }) {
+  const [items, setItems] = useState<AddressParts[]>([]);
+  const [open, setOpen] = useState(false);
+  const [typed, setTyped] = useState(false);
+  useEffect(() => {
+    const q = value.trim();
+    if (!typed || q.length < 4) return setItems([]);
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => {
+      fetch("https://photon.komoot.io/api/?limit=5&lang=" + (["fr", "en", "de"].includes(lang) ? lang : "fr") + "&q=" + encodeURIComponent(q), { signal: ctrl.signal })
+        .then((r) => r.json())
+        .then((d: { features?: { properties: Record<string, string> }[] }) => {
+          const seen = new Set<string>();
+          const list = (d.features ?? [])
+            .map(({ properties: p }) => {
+              const street = [p.street ?? (p.type === "house" || p.type === "street" ? p.name : ""), p.housenumber].filter(Boolean).join(" ") || p.name || "";
+              const city = p.city ?? p.town ?? p.village ?? p.locality ?? p.county ?? "";
+              const line = [street, [p.postcode, city].filter(Boolean).join(" "), p.country].filter(Boolean).join(", ");
+              return { line, street, postcode: p.postcode ?? "", city, country: p.country ?? "" };
+            })
+            .filter((a) => a.line && !seen.has(a.line) && seen.add(a.line));
+          setItems(list);
+          setOpen(list.length > 0);
+        })
+        .catch(() => undefined);
+    }, 350);
+    return () => {
+      clearTimeout(timer);
+      ctrl.abort();
+    };
+  }, [value, typed, lang]);
+  return (
+    <div className="relative">
+      <input
+        className={cn(fieldClass, className)}
+        value={value}
+        placeholder={placeholder}
+        autoComplete="street-address"
+        onChange={(e) => {
+          setTyped(true);
+          onChange(e.target.value);
+        }}
+        onFocus={() => items.length && setOpen(true)}
+        onBlur={() => setTimeout(() => setOpen(false), 150)}
+      />
+      {open && (
+        <ul role="listbox" className="absolute inset-x-0 top-full z-50 mt-1 overflow-hidden rounded-2xl border border-black/10 bg-[var(--brand-bg,#fff)] shadow-xl dark:border-white/10 dark:bg-neutral-900">
+          {items.map((a) => (
+            <li key={a.line}>
+              <button
+                type="button"
+                className="block w-full px-4 py-2.5 text-left text-sm hover:bg-black/5 dark:hover:bg-white/10"
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => {
+                  onChange(onPick ? a.street || a.line : a.line);
+                  onPick?.(a);
+                  setTyped(false);
+                  setOpen(false);
+                }}
+              >
+                {a.line}
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
 /** Text area that grows with its content. */
 export const Textarea = forwardRef<HTMLTextAreaElement, TextareaHTMLAttributes<HTMLTextAreaElement>>(function Textarea({ className, ...rest }, ref) {
   return <textarea ref={ref} className={cn(fieldClass, "min-h-28 [field-sizing:content]", className)} {...rest} />;

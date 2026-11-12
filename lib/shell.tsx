@@ -2,10 +2,10 @@
 // errors, 404). Every app keeps its own look: brand colors, font, logo and the pages it puts inside. Do not edit.
 import { Component, Suspense, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { Link, NavLink, useLocation, useNavigate } from "react-router-dom";
-import { ChevronDown, LayoutGrid, Menu, Pencil, Settings, Shield, User, X } from "lucide-react";
+import { ChevronDown, LayoutGrid, LogOut, Menu, Pencil, Settings, Shield, User, X } from "lucide-react";
 import { brand } from "./brand";
 import { LanguageSwitcher, useI18n } from "./i18n";
-import { useContent, useContact, getConsent, setConsent, usePreloadPages } from "./content";
+import { StylePanel, useContent, useContact, getConsent, setConsent, usePreloadPages } from "./content";
 import { Button, ButtonLink, Container, Skeleton, UiRoot, cn, toast } from "./ui";
 import { ViewAsSwitch } from "./admin";
 import { TabBar, Sheet, type TabItem } from "./mobile";
@@ -17,6 +17,7 @@ import { useSeo } from "./seo";
 
 const T: Record<string, Record<string, string>> = {
   fr: {
+    signout: "Se déconnecter",
     more: "Plus", menu: "Menu", account: "Mon compte", signin: "Connexion", admin: "Administration", manage: "Gestion", settings: "Réglages du site",
     edit: "Modifier la page", stopEdit: "Quitter l'édition", editing: "Mode édition : touchez un texte ou une image pour le modifier.", cookies: "Gérer les cookies",
     cookieText: "Nous utilisons des cookies de mesure d'audience anonymes pour améliorer le site.", accept: "Accepter", refuse: "Refuser", privacy: "En savoir plus",
@@ -24,6 +25,7 @@ const T: Record<string, Record<string, string>> = {
     errText: "Un problème passager est survenu. Rechargez la page pour réessayer.", reload: "Recharger", rights: "Tous droits réservés", follow: "Suivre",
   },
   en: {
+    signout: "Sign out",
     more: "More", menu: "Menu", account: "My account", signin: "Sign in", admin: "Administration", manage: "Management", settings: "Site settings",
     edit: "Edit the page", stopEdit: "Stop editing", editing: "Edit mode: tap a text or an image to change it.", cookies: "Manage cookies",
     cookieText: "We use anonymous audience measurement cookies to improve the site.", accept: "Accept", refuse: "Decline", privacy: "Learn more",
@@ -31,6 +33,7 @@ const T: Record<string, Record<string, string>> = {
     errText: "A temporary problem occurred. Reload the page to try again.", reload: "Reload", rights: "All rights reserved", follow: "Follow",
   },
   nl: {
+    signout: "Afmelden",
     more: "Meer", menu: "Menu", account: "Mijn account", signin: "Inloggen", admin: "Beheer", manage: "Beheer", settings: "Instellingen van de site",
     edit: "Pagina bewerken", stopEdit: "Bewerken stoppen", editing: "Bewerkingsmodus: tik op een tekst of afbeelding om ze te wijzigen.", cookies: "Cookies beheren",
     cookieText: "We gebruiken anonieme cookies voor bezoekersstatistieken om de site te verbeteren.", accept: "Aanvaarden", refuse: "Weigeren", privacy: "Meer weten",
@@ -65,7 +68,7 @@ function Logo({ showName = true, custom }: { showName?: boolean; custom?: ReactN
 
 function AdminMenu({ adminLinks }: { adminLinks: NavItem[] }) {
   const tr = useT();
-  const { realAdmin, isAdmin, editMode, setEditMode } = useContent();
+  const { realAdmin, isAdmin, editMode, setEditMode, supabase } = useContent();
   const [open, setOpen] = useState(false);
   const navigate = useNavigate();
   if (!realAdmin) return null;
@@ -107,6 +110,21 @@ function AdminMenu({ adminLinks }: { adminLinks: NavItem[] }) {
             </button>
           )}
           <ViewAsSwitch className="pt-3" />
+          <button
+            type="button"
+            className={row + " mt-2 border-t border-black/5 pt-3 dark:border-white/10"}
+            onClick={async () => {
+              setOpen(false);
+              setEditMode(false);
+              await supabase?.auth.signOut();
+              navigate("/");
+            }}
+          >
+            <span className="grid size-9 place-items-center rounded-full bg-black/5 dark:bg-white/10">
+              <LogOut />
+            </span>
+            {tr("signout")}
+          </button>
         </div>
       </Sheet>
     </>
@@ -295,14 +313,21 @@ function Header({
 
 function EditBar() {
   const tr = useT();
-  const { editMode, setEditMode } = useContent();
+  const { editMode, setEditMode, lang } = useContent();
+  const [style, setStyle] = useState(false);
   if (!editMode) return null;
   return (
-    <div className="fixed inset-x-3 top-[calc(var(--safe-top,env(safe-area-inset-top))+4.25rem)] z-30 mx-auto flex max-w-3xl items-center justify-between gap-3 rounded-full bg-[var(--brand)] px-4 py-2 text-sm text-white shadow-lg md:top-[5.25rem]">
+    <div className="fixed inset-x-3 top-[calc(var(--safe-top,env(safe-area-inset-top))+4.25rem)] z-30 mx-auto flex max-w-3xl items-center justify-between gap-2 rounded-full bg-[var(--brand)] px-4 py-2 text-sm text-white shadow-lg md:top-[5.25rem]">
       <span className="min-w-0 truncate">✎ {tr("editing")}</span>
-      <button type="button" onClick={() => setEditMode(false)} className="flex shrink-0 items-center gap-1 rounded-full bg-white/20 px-3 py-1.5 font-medium">
-        <X className="size-4" /> {tr("stopEdit")}
-      </button>
+      <div className="flex shrink-0 items-center gap-1.5">
+        <button type="button" onClick={() => setStyle(true)} className="rounded-full bg-white/20 px-3 py-1.5 font-medium">
+          🎨 {lang === "fr" ? "Style" : lang === "nl" ? "Stijl" : "Style"}
+        </button>
+        <button type="button" onClick={() => setEditMode(false)} className="flex items-center gap-1 rounded-full bg-white/20 px-3 py-1.5 font-medium">
+          <X className="size-4" /> {tr("stopEdit")}
+        </button>
+      </div>
+      <StylePanel open={style} onClose={() => setStyle(false)} />
     </div>
   );
 }

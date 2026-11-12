@@ -2,6 +2,7 @@
 import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
 
 export type ImageSize = "small" | "medium" | "large" | "full";
+export type StockPhoto = { thumb: string; url: string; download: string; author: string };
 export type ImageFrame = "auto" | "circle" | "rounded" | "square" | "organic";
 export type EditedImage = { blob: Blob; size: ImageSize; frame: ImageFrame; width: number; height: number };
 
@@ -83,6 +84,10 @@ export function ImageEditor(props: {
   frame?: ImageFrame;
   src?: string;
   title?: string;
+  /** Photo search (Unsplash through Usin): shown next to the import when given. */
+  search?: (query: string, page: number) => Promise<StockPhoto[]>;
+  /** A searched photo was used (Unsplash counts it). */
+  onStock?: (download: string) => void;
 }) {
   const { open, onClose, onSave } = props;
   const [img, setImg] = useState<HTMLImageElement | null>(null);
@@ -91,6 +96,10 @@ export function ImageEditor(props: {
   const [pos, setPos] = useState({ x: 0, y: 0 });
   const [size, setSize] = useState<ImageSize>(props.size ?? "full");
   const [frame, setFrame] = useState<ImageFrame>(props.frame ?? "auto");
+  const [query, setQuery] = useState("");
+  const [photos, setPhotos] = useState<StockPhoto[] | null>(null);
+  const [searching, setSearching] = useState(false);
+  const [stock, setStock] = useState<StockPhoto | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const drag = useRef<{ x: number; y: number; px: number; py: number } | null>(null);
@@ -128,6 +137,35 @@ export function ImageEditor(props: {
     image.src = props.src;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, props.src]);
+
+  function loadUrl(url: string) {
+    setError(null);
+    const image = new Image();
+    image.crossOrigin = "anonymous";
+    image.onload = () => {
+      setImg(image);
+      setZoom(1);
+      const s = Math.max(frameW / image.naturalWidth, frameH / image.naturalHeight);
+      setPos({ x: (frameW - image.naturalWidth * s) / 2, y: (frameH - image.naturalHeight * s) / 2 });
+    };
+    image.onerror = () => setError("Cette photo n'a pas pu être chargée, choisissez-en une autre.");
+    image.src = url;
+  }
+
+  async function runSearch(page = 1) {
+    if (!props.search || !query.trim()) return;
+    setSearching(true);
+    setError(null);
+    try {
+      const list = await props.search(query.trim(), page);
+      setPhotos(list);
+      if (!list.length) setError("Aucune photo trouvée : essayez d'autres mots (en anglais, c'est souvent mieux).");
+    } catch {
+      setError("La recherche de photos est indisponible pour le moment.");
+    } finally {
+      setSearching(false);
+    }
+  }
 
   function load(file: File | undefined) {
     if (!file || !file.type.startsWith("image/")) return setError("Choisissez une image (JPG, PNG, WebP…).");
@@ -168,6 +206,8 @@ export function ImageEditor(props: {
       const blob = await new Promise<Blob | null>((r) => canvas.toBlob(r, "image/webp", 0.82));
       if (!blob) throw new Error("Conversion de l'image impossible.");
       await onSave({ blob, size, frame, width: outW, height: outH });
+      if (stock) props.onStock?.(stock.download);
+      setStock(null);
       setImg(null);
       onClose();
     } catch (e) {
@@ -183,6 +223,7 @@ export function ImageEditor(props: {
       <div className="w-full max-w-lg space-y-4 rounded-2xl bg-white p-5 text-slate-900 shadow-2xl" onClick={(e) => e.stopPropagation()}>
         <p className="text-lg font-semibold">{props.title ?? "Modifier l'image"}</p>
         {!img ? (
+          <div className="space-y-3">
           <div
             className="flex h-56 cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-slate-300 text-sm text-slate-500"
             onClick={() => input.current?.click()}
@@ -194,6 +235,41 @@ export function ImageEditor(props: {
           >
             <span className="rounded-lg bg-slate-900 px-4 py-2 font-medium text-white">Importer une image</span>
             <span>ou glissez-la ici</span>
+          </div>
+            {props.search && (
+              <div className="space-y-2">
+                <form
+                  className="flex gap-2"
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    void runSearch(1);
+                  }}
+                >
+                  <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Ou cherchez une photo (ex. méditation, nature…)" className="min-w-0 flex-1 rounded-lg border border-slate-300 px-3 py-2 text-sm" />
+                  <button type="submit" disabled={searching || !query.trim()} className="rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white disabled:opacity-50">
+                    {searching ? "…" : "Chercher"}
+                  </button>
+                </form>
+                {photos && photos.length > 0 && (
+                  <div className="grid max-h-72 grid-cols-3 gap-2 overflow-y-auto">
+                    {photos.map((p) => (
+                      <button
+                        key={p.url}
+                        type="button"
+                        title={"Photo : " + p.author + " (Unsplash)"}
+                        className="aspect-square overflow-hidden rounded-lg bg-slate-100"
+                        onClick={() => {
+                          setStock(p);
+                          loadUrl(p.url + (p.url.includes("?") ? "&" : "?") + "w=1920&q=85&fm=jpg");
+                        }}
+                      >
+                        <img src={p.thumb} alt="" loading="lazy" className="h-full w-full object-cover" />
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         ) : (
           <>
@@ -242,7 +318,7 @@ export function ImageEditor(props: {
         <input ref={input} type="file" accept="image/*" className="hidden" onChange={(e) => load(e.target.files?.[0])} />
         {error && <p className="text-sm text-red-600">{error}</p>}
         <div className="flex justify-between gap-2">
-          <button type="button" onClick={() => (img ? input.current?.click() : onClose())} className="rounded-lg border border-slate-300 px-4 py-2 text-sm">
+          <button type="button" onClick={() => (img ? (setImg(null), setStock(null)) : onClose())} className="rounded-lg border border-slate-300 px-4 py-2 text-sm">
             {img ? "Autre image" : "Annuler"}
           </button>
           {img && (

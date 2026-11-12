@@ -3,6 +3,7 @@ import { useCallback, useEffect, useState } from "react";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { BASE, notifyReady, post, token, type NotifyData } from "./notify";
 import { Sheet } from "./mobile";
+import { Editable } from "./content";
 
 const input =
   "min-h-11 w-full rounded-xl border border-black/15 bg-transparent px-3 py-2 text-base outline-none transition focus:border-[var(--brand,#111)] dark:border-white/20";
@@ -69,14 +70,15 @@ export function Stars({ value, size = "size-5" }: { value: number; size?: string
 }
 
 /** Customer reviews section: average, count and the latest reviews (cards). */
+/** title: default text of the title, editable with the pencil (key reviews.title); "" = no title (the section has its own). */
 export function Reviews({ supabase, title = "Ils nous font confiance", limit = 6 }: { supabase: SupabaseClient; title?: string; limit?: number }) {
   const { items, average, count, loading } = useReviews(supabase);
   if (loading) return <div className="h-40 animate-pulse rounded-2xl bg-black/5 dark:bg-white/10" />;
   if (!count) return null;
   return (
     <section className="space-y-6">
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <h2 className="text-2xl font-bold tracking-tight sm:text-3xl">{title}</h2>
+      <div className={"flex flex-wrap items-end gap-3 " + (title ? "justify-between" : "justify-end")}>
+        {title && <Editable k="reviews.title" fallback={title} as="h2" className="text-2xl font-bold tracking-tight sm:text-3xl" />}
         <p className="flex items-center gap-2 text-sm">
           <Stars value={average} /> <span className="font-semibold">{String(average).replace(".", ",")}/5</span>
           <span className="opacity-60">· {count} avis</span>
@@ -102,6 +104,25 @@ export function ReviewForm({ supabase, reference, onDone }: { supabase?: Supabas
   const [rating, setRating] = useState(0);
   const [comment, setComment] = useState("");
   const [name, setName] = useState("");
+  // Signed in: the name is the account's (never someone else's name on a review).
+  const [fromAccount, setFromAccount] = useState(false);
+  useEffect(() => {
+    if (!supabase) return;
+    supabase.auth.getUser().then(async ({ data }) => {
+      const u = data.user;
+      if (!u) return;
+      const meta = (u.user_metadata ?? {}) as Record<string, unknown>;
+      let first = String(meta.first_name ?? meta.given_name ?? meta.full_name ?? meta.name ?? "").trim();
+      if (!first) {
+        const { data: prof } = await supabase.from("profiles").select("first_name").eq("id", u.id).maybeSingle();
+        first = String((prof as { first_name?: string } | null)?.first_name ?? "").trim();
+      }
+      if (first) {
+        setName(first.split(" ")[0]);
+        setFromAccount(true);
+      }
+    }).catch(() => undefined);
+  }, [supabase]);
   const [state, setState] = useState<"idle" | "sending" | "done">("idle");
   const [error, setError] = useState<string | null>(null);
   const ref = reference ?? (typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("ref") ?? undefined : undefined);
@@ -140,7 +161,7 @@ export function ReviewForm({ supabase, reference, onDone }: { supabase?: Supabas
         ))}
       </div>
       <textarea className={input + " min-h-28"} placeholder="Votre expérience en quelques mots (facultatif)" value={comment} onChange={(e) => setComment(e.target.value)} maxLength={2000} />
-      <input className={input} placeholder="Votre prénom (affiché avec l'avis)" value={name} onChange={(e) => setName(e.target.value)} maxLength={80} autoComplete="given-name" />
+      <input className={input + (fromAccount ? " opacity-70" : "")} placeholder="Votre prénom (affiché avec l'avis)" value={name} readOnly={fromAccount} onChange={(e) => setName(e.target.value)} maxLength={80} autoComplete="given-name" />
       {error && <p className="text-sm text-red-600">{error}</p>}
       <button type="submit" className={primary + " w-full"} disabled={state === "sending"}>
         {state === "sending" ? "Envoi…" : "Publier mon avis"}
