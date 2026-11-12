@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { AdminConsole, VisitStats } from "../lib/admin";
+import { AdminConsole, VisitStats, CalendarSync } from "../lib/admin";
 import { CalendarDays, PhoneCall, Mail, Quote, Euro, Settings, Phone, Users, ShoppingBag, Newspaper, Star, LayoutDashboard, Ticket, Check } from "lucide-react";
 import { useSeo } from "../lib/seo";
 import { ReviewsAdmin, NewsletterAdmin } from "../lib/engage";
@@ -245,7 +245,7 @@ function GestionConsole() {
   const go = (id: string) => navigate("/gestion?s=" + id, { replace: true });
   const sections = [
     { id: "dash", label: "Tableau de bord", icon: <LayoutDashboard />, element: <div className="space-y-6"><VisitStats /><Dashboard go={go} /></div> },
-    { id: "agenda", label: "Agenda", icon: <CalendarDays />, element: <Agenda /> },
+    { id: "agenda", label: "Agenda", icon: <CalendarDays />, element: <div className="space-y-6"><CalendarSync /><Agenda /></div> },
     { id: "clients", label: "Clients", icon: <Users />, element: <Clients /> },
     { id: "messages", label: "Messages", icon: <Mail />, element: <Messages /> },
     { id: "orders", label: "Commandes", icon: <ShoppingBag />, element: <Orders /> },

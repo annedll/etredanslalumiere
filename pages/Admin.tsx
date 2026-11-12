@@ -8,7 +8,7 @@ import { ImageEditor, uploadImage } from "../lib/image-editor";
 import { supabase, isConfigured } from "../lib/supabase";
 import { useApp, ListEditor, money, fmtDate, addressLine } from "../lib/data";
 import { SETTING_GROUPS } from "../lib/defaults";
-import { AdminConsole, AdminsManager, CrudTable, VisitStats, type Column } from "../lib/admin";
+import { AdminConsole, AdminsManager, CrudTable, VisitStats, type Column, WeeklyPlanner } from "../lib/admin";
 import { Badge, Button, ButtonLink, Card, Container, Dialog, EmptyState, Field, Input, Select, Switch, Textarea, Skeleton, cn, buttonClass, toast } from "../components/ui";
 import { AddressInput } from "../lib/ui";
 import { LEGAL_KINDS, phoneHref } from "../components/Layout";
@@ -257,14 +257,24 @@ function Sessions() {
 
 function Slots() {
   const places = usePlaces();
-  const [from, setFrom] = useState(""); const [weeks, setWeeks] = useState(4); const [dur, setDur] = useState(90); const [n, setN] = useState(0); const [loc, setLoc] = useState("");
-  const gen = async () => { if (!from) return; const rows = Array.from({ length: weeks }).map((_, i) => { const s = new Date(+new Date(from) + i * 7 * 864e5); return { starts_at: s.toISOString(), ends_at: new Date(+s + dur * 6e4).toISOString(), mode: "cabinet", is_booked: false , location: loc || null }; }); const { error } = await supabase.from("availability_slots").insert(rows); if (error) toast("Création impossible, réessayez.", "error"); else toast(`${rows.length} créneaux créés.`); setN(n + 1); };
+  const [loc, setLoc] = useState("");
+  const [mode, setMode] = useState("cabinet");
+  const [n, setN] = useState(0);
   return (
     <div className="space-y-6">
-      <Card className="p-5 space-y-3"><h3 className="font-semibold text-neutral-900 dark:text-neutral-100">Créer des créneaux récurrents (chaque semaine)</h3>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3"><Field label="Premier créneau"><Input type="datetime-local" value={from} onChange={(e) => setFrom(e.target.value)} /></Field><Field label="Nombre de semaines"><Input type="number" value={weeks} onChange={(e) => setWeeks(Number(e.target.value) || 1)} /></Field><Field label="Durée (minutes)"><Input type="number" value={dur} onChange={(e) => setDur(Number(e.target.value) || 60)} /></Field></div>
-        <Field label="Lieu"><Select value={loc} onChange={(e) => setLoc(e.target.value)}><option value="">Cabinet (adresse du site)</option>{places.slice(1).map(([v, l]) => <option key={v} value={v}>{l}</option>)}</Select></Field>
-        <Button onClick={gen}>Créer les créneaux</Button></Card>
+      <WeeklyPlanner
+        onCreate={async (slots) => {
+          const { error } = await supabase.from("availability_slots").insert(slots.map((x) => ({ starts_at: x.start, ends_at: x.end, mode, is_booked: false, location: loc || null })));
+          if (error) throw new Error(error.message);
+          setN((v) => v + 1);
+        }}
+        extra={
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <Field label="Lieu"><Select value={loc} onChange={(e) => setLoc(e.target.value)}><option value="">Cabinet (adresse du site)</option>{places.slice(1).map(([v, l]) => <option key={v} value={v}>{l}</option>)}</Select></Field>
+            <Field label="Mode"><Select value={mode} onChange={(e) => setMode(e.target.value)}><option value="cabinet">Au cabinet</option><option value="distance">À distance</option><option value="visio">En visio</option></Select></Field>
+          </div>
+        }
+      />
       <p className="text-sm text-neutral-600 dark:text-neutral-400">Pour bloquer des congés, supprimez les créneaux concernés ou cochez « Réservé ».</p>
       <Crud key={n} table="availability_slots" title="Créneaux de disponibilité" order="starts_at" asc label={(r) => show({ k: "", label: "", type: "datetime" }, r.starts_at)} cols={["mode", "is_booked"]} defaults={{ mode: "cabinet", is_booked: false }}
         fields={[{ k: "starts_at", label: "Début", type: "datetime" }, { k: "ends_at", label: "Fin", type: "datetime" }, { k: "mode", label: "Mode", type: "select", options: [["cabinet", "Au cabinet"], ["distance", "À distance"], ["visio", "En visio"]] }, { k: "location", label: "Lieu (vide = cabinet ; liste dans « Lieux »)", type: "select", options: places }, { k: "is_booked", label: "Réservé / bloqué", type: "bool" }]} />
