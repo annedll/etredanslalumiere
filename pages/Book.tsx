@@ -147,9 +147,11 @@ export function RegisterPage() {
   if (sessions.loading) return <Container className="py-14"><Skeleton className="h-64" /></Container>;
   if (!s) return <Container className="py-14"><EmptyState title={t("reg.notFound")} action={<ButtonLink to="/agenda">{t("nav.agenda")}</ButtonLink>} /></Container>;
   const left = Math.max(0, s.capacity - s.seats_taken);
-  // Deposit set on the offer (Réglages → Offres & tarifs), shown only when lower than the price.
-  const depositCents = Number(s.offering?.deposit_cents) || 0;
-  const deposit = depositCents > 0 && (!s.price || depositCents < s.price.amount_cents);
+  // Deposit: the amount set on the offer (0 = none), else the default percentage of the price; shown when lower than the price.
+  const priceCents = s.price?.amount_cents ?? 0;
+  const pct = Math.min(100, Math.max(0, Number(app.get("deposit.percent")) || 0));
+  const depositCents = s.offering?.deposit_cents != null ? Number(s.offering.deposit_cents) : Math.round((priceCents * pct) / 100);
+  const deposit = depositCents > 0 && priceCents > 0 && depositCents < priceCents;
   const pay = async (dep: boolean) => {
     setErr("");
     if (!app.session) { nav("/compte?next=" + encodeURIComponent(location.pathname)); return; }

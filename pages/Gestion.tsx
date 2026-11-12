@@ -229,5 +229,5 @@ function GestionConsole() {
     { id: "news", label: "Newsletter", icon: <Newspaper />, element: <NewsletterAdmin supabase={supabase} /> },
     { id: "reviews", label: "Avis", icon: <Star />, element: <Moderation /> },
   ];
-  return <AdminConsole title="Gestion" sections={sections} actions={<ButtonLink to="/admin" variant="outline"><Settings className="h-4 w-4" />Réglages du site</ButtonLink>} />;
+  return <AdminConsole title="Gestion" seo={false} sections={sections} actions={<ButtonLink to="/admin" variant="outline"><Settings className="h-4 w-4" />Réglages du site</ButtonLink>} />;
 }

@@ -302,16 +302,17 @@ begin
 end $$;
 
 create or replace function public.create_registration(p_session_id uuid, p_deposit boolean) returns json language plpgsql security definer set search_path = public as $$
-declare s record; v_amount int; v_id uuid;
+declare s record; v_amount int; v_id uuid; v_dep int;
 begin
   if auth.uid() is null then raise exception 'login required'; end if;
   select se.*, p.amount_cents as price, o.kind, o.deposit_cents into s from public.sessions se left join public.offering_prices p on p.id = se.price_id join public.offerings o on o.id = se.offering_id where se.id = p_session_id for update of se;
   if s.id is null or s.status = 'cancelled' or s.starts_at < now() then raise exception 'not found'; end if;
   if s.status = 'full' or s.seats_taken >= s.capacity then raise exception 'full'; end if;
   v_amount := coalesce(s.price, 0);
-  -- The deposit set on the offer (Réglages → Offres & tarifs), never more than the price.
-  if p_deposit and coalesce(s.deposit_cents, 0) > 0 then
-    v_amount := least(v_amount, s.deposit_cents);
+  -- Deposit: the amount set on the offer (0 = none), else the default percentage of the price (Réglages → Informations).
+  v_dep := coalesce(s.deposit_cents, round(v_amount * greatest(0, least(100, public.setting_num('deposit.percent', 0))) / 100.0)::int);
+  if p_deposit and v_dep > 0 and v_dep < v_amount then
+    v_amount := v_dep;
   else
     p_deposit := false;
   end if;

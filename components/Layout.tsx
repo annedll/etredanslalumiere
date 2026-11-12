@@ -50,7 +50,7 @@ export function TopBanners() {
       {app.demo && <div className="bg-amber-50 dark:bg-amber-950/40 text-amber-900 dark:text-amber-200 text-xs text-center py-1.5 px-4">{t("common.demo")}</div>}
       {app.flag("home.announce.enabled") && (
         <div className="bg-[var(--brand-accent)] text-neutral-900 text-sm text-center py-2 px-4">
-          <Link to="/agenda" className="font-medium"><Editable settingKey="home.announce.text" /></Link>
+          <Link to="/agenda" className="font-medium">{app.get("home.announce.text")}</Link>
         </div>
       )}
     </>
@@ -130,7 +130,7 @@ export function Footer() {
         <div className="space-y-3 min-w-0">
           <p className="font-semibold text-neutral-900 dark:text-neutral-100">{t("footer.newsletter")}</p>
           {isConfigured && <NewsletterSignup supabase={supabase} />}
-          <p className="text-xs text-neutral-500 dark:text-neutral-400"><Editable settingKey="health.warning" /></p>
+          <p className="text-xs text-neutral-500 dark:text-neutral-400">{app.get("health.warning")}</p>
         </div>
       </Container>
       <Container className="relative flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-[var(--brand)]/10 dark:border-neutral-800 pt-6 text-sm text-neutral-600 dark:text-neutral-400">

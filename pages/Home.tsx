@@ -119,7 +119,7 @@ export function HomeModern() {
       <Section bg="home.offers.bg">
         <Container className="space-y-10">
           <Reveal className="flex flex-wrap items-end justify-between gap-4">
-            <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-neutral-900 dark:text-neutral-100">{t("home.offersTitle")}</h2>
+            <Editable settingKey="home.offersTitle" as="h2" className="text-3xl sm:text-4xl font-bold tracking-tight text-neutral-900 dark:text-neutral-100" />
             <div className="flex flex-wrap gap-2"><ButtonLink to="/soins" size="sm" variant="secondary">{t("nav.care")}</ButtonLink><ButtonLink to="/formations" size="sm" variant="secondary">{t("nav.trainings")}</ButtonLink><ButtonLink to="/ateliers" size="sm" variant="secondary">{t("nav.workshops")}</ButtonLink></div>
           </Reveal>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -134,7 +134,7 @@ export function HomeModern() {
       <Section tone="white" bg="home.agenda.bg">
         <Container className="space-y-8">
           <Reveal className="flex flex-wrap items-end justify-between gap-4">
-            <h2 className="font-script text-4xl sm:text-5xl text-[var(--brand)] dark:text-neutral-100">{t("home.agendaTitle")}</h2>
+            <Editable settingKey="home.agendaTitle" as="h2" className="font-script text-4xl sm:text-5xl text-[var(--brand)] dark:text-neutral-100" />
             <Link to="/agenda" className="inline-flex items-center gap-2 font-medium text-[var(--brand)]">{t("home.allDates")}<ArrowRight className="h-4 w-4" /></Link>
           </Reveal>
           <div className="grid gap-4">{sessions.loading ? <Skeleton className="h-32" /> : sessions.data.slice(0, 3).map((s, i) => <Reveal key={s.id} delay={i * 80}><SessionCard s={s} /></Reveal>)}</div>
@@ -145,7 +145,7 @@ export function HomeModern() {
         { id: "reviews", label: "Avis", node: (isConfigured && (
         <Section tone="tint" bg="home.reviews.bg">
           <Container className="space-y-8">
-            <Reveal><h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-neutral-900 dark:text-neutral-100 text-center">{t("home.reviewsTitle")}</h2></Reveal>
+            <Reveal><Editable settingKey="home.reviewsTitle" as="h2" className="text-3xl sm:text-4xl font-bold tracking-tight text-neutral-900 dark:text-neutral-100 text-center" /></Reveal>
             <Reveal><Reviews supabase={supabase} /></Reveal>
           </Container>
         </Section>
@@ -155,7 +155,7 @@ export function HomeModern() {
       <Section bg="home.blog.bg">
         <Container className="space-y-8">
           <Reveal className="flex flex-wrap items-end justify-between gap-4">
-            <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-neutral-900 dark:text-neutral-100">{t("home.postsTitle")}</h2>
+            <Editable settingKey="home.postsTitle" as="h2" className="text-3xl sm:text-4xl font-bold tracking-tight text-neutral-900 dark:text-neutral-100" />
             <Link to="/blog" className="inline-flex items-center gap-2 font-medium text-[var(--brand)]">{t("nav.blog")}<ArrowRight className="h-4 w-4" /></Link>
           </Reveal>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -183,7 +183,7 @@ export function HomeModern() {
       <Section tone="white" bg="home.zone.bg">
         <Container className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
           <Reveal className="space-y-4">
-            <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-neutral-900 dark:text-neutral-100">{t("home.zoneTitle")}</h2>
+            <Editable settingKey="home.zoneTitle" as="h2" className="text-3xl sm:text-4xl font-bold tracking-tight text-neutral-900 dark:text-neutral-100" />
             <Editable settingKey="home.zone" as="p" className="text-[17px] leading-relaxed text-neutral-700 dark:text-neutral-300" />
           </Reveal>
           <Reveal delay={100}>
@@ -204,7 +204,7 @@ export function HomeModern() {
           <>
       <Section tone="tint" bg="home.faq.bg">
         <Container className="max-w-3xl space-y-8">
-          <Reveal><h2 className="font-script text-4xl sm:text-5xl text-center text-[var(--brand)] dark:text-neutral-100">{t("home.faqTitle")}</h2></Reveal>
+          <Reveal><Editable settingKey="home.faqTitle" as="h2" className="font-script text-4xl sm:text-5xl text-center text-[var(--brand)] dark:text-neutral-100" /></Reveal>
           <div className="space-y-3">
             {[1, 2, 3, 4, 5, 6].map((i, n) => (
               <Reveal key={i} delay={n * 50}>

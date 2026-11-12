@@ -81,7 +81,7 @@ export function HomePage() {
         <div className="absolute inset-0 -z-10 bg-[radial-gradient(ellipse_at_top_left,#fdf7c3_0%,transparent_50%),radial-gradient(ellipse_at_bottom_right,#c9ecdf_0%,transparent_55%),radial-gradient(ellipse_at_top_right,#e4f2c4_0%,transparent_50%)] dark:opacity-10" />
         <Container className="grid grid-cols-1 lg:grid-cols-2 gap-10 items-center py-12 sm:py-20">
           <div className="space-y-6 anim-fade">
-            <p className="inline-flex items-center gap-2 text-sm text-[var(--brand)] font-medium"><Sun className="h-4 w-4" /><Editable settingKey="biz.slogan" /></p>
+            <p className="inline-flex items-center gap-2 text-sm text-[var(--brand)] font-medium"><Sun className="h-4 w-4" />{app.get("biz.slogan")}</p>
             <Editable settingKey="home.hero.title" as={H1} className="font-script text-5xl sm:text-6xl text-[var(--brand)] leading-[1.1]" />
             <Editable settingKey="home.hero.subtitle" as="p" className={lead} />
             <div className="flex flex-wrap gap-3">
@@ -118,19 +118,19 @@ export function HomePage() {
         </section>
 
         <section className="space-y-6">
-          <div className="flex flex-wrap items-end justify-between gap-3"><h2 className={h2}>{t("home.offersTitle")}</h2><Link to="/soins" className="text-[var(--brand)] font-medium inline-flex items-center gap-1">{t("home.offers")}<ArrowRight className="h-4 w-4" /></Link></div>
+          <div className="flex flex-wrap items-end justify-between gap-3"><Editable settingKey="home.offersTitle" as="h2" className={h2} /><Link to="/soins" className="text-[var(--brand)] font-medium inline-flex items-center gap-1">{t("home.offers")}<ArrowRight className="h-4 w-4" /></Link></div>
           {offers.loading ? <Loading /> : <Grid items={featured.length ? featured : offers.data.slice(0, 6)} />}
         </section>
 
         <section className="space-y-6">
-          <div className="flex flex-wrap items-end justify-between gap-3"><h2 className={h2}>{t("home.agendaTitle")}</h2><Link to="/agenda" className="text-[var(--brand)] font-medium inline-flex items-center gap-1">{t("home.allDates")}<ArrowRight className="h-4 w-4" /></Link></div>
+          <div className="flex flex-wrap items-end justify-between gap-3"><Editable settingKey="home.agendaTitle" as="h2" className={h2} /><Link to="/agenda" className="text-[var(--brand)] font-medium inline-flex items-center gap-1">{t("home.allDates")}<ArrowRight className="h-4 w-4" /></Link></div>
           {sessions.loading ? <Skeleton className="h-32" /> : <div className="grid gap-4">{sessions.data.slice(0, 3).map((s) => <SessionCard key={s.id} s={s} />)}</div>}
         </section>
 
-        {isConfigured && <section className="space-y-6"><h2 className={h2}>{t("home.reviewsTitle")}</h2><Reviews supabase={supabase} /></section>}
+        {isConfigured && <section className="space-y-6"><Editable settingKey="home.reviewsTitle" as="h2" className={h2} /><Reviews supabase={supabase} /></section>}
 
         <section className="space-y-6">
-          <h2 className={h2}>{t("home.faqTitle")}</h2>
+          <Editable settingKey="home.faqTitle" as="h2" className={h2} />
           <div className="grid gap-3">
             {[1, 2, 3, 4, 5, 6].map((i) => (
               <details key={i} className="group rounded-2xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 p-5">
@@ -143,7 +143,7 @@ export function HomePage() {
 
         <section className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
           <div className="space-y-4">
-            <h2 className={h2}>{t("home.zoneTitle")}</h2>
+            <Editable settingKey="home.zoneTitle" as="h2" className={h2} />
             <Editable settingKey="home.zone" as="p" className="text-neutral-700 dark:text-neutral-300 leading-relaxed" />
             <ButtonLink to={"https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(addr + ", Belgique")} variant="outline" target="_blank" rel="noopener noreferrer"><MapPin className="h-4 w-4" />{t("home.route")}</ButtonLink>
           </div>
@@ -235,7 +235,7 @@ export function OfferDetailPage() {
         <p className={lead}>{o.summary}</p>
         {o.image_url && <img src={o.image_url} alt={o.title} width={1200} height={800} className="w-full rounded-[2rem] aspect-[3/2] object-cover" />}
         <Paragraphs text={o.body} className="text-neutral-700 dark:text-neutral-300 leading-relaxed text-[17px]" />
-        {o.kind === "formation" && <p className="rounded-xl bg-[var(--brand-accent)]/40 px-4 py-3 text-neutral-900 dark:text-neutral-100">{app.get("training.certificate")}</p>}
+        {o.kind === "formation" && <Editable settingKey="training.certificate" as="p" className="rounded-xl bg-[var(--brand-accent)]/40 px-4 py-3 text-neutral-900 dark:text-neutral-100" />}
         {(o.kind === "soin" || o.kind === "numerologie") && <><p className="text-neutral-700 dark:text-neutral-300">{app.get("home.distance")}</p><HealthNote /></>}
         {dated && (
           <section className="space-y-4">

@@ -64,7 +64,7 @@ function show(f: F, v: any) {
 /** Tableau de gestion d'une table : celui d'Usin (recherche, fenêtre d'édition, export, actions par ligne). */
 const MODES: [string, string][] = [["cabinet", "Au cabinet"], ["distance", "À distance"], ["visio", "En visio"]];
 const TYPE_MAP: Record<string, Column["type"]> = { textarea: "textarea", number: "number", money: "money", bool: "boolean", datetime: "datetime", select: "select", image: "image", modes: "multi" };
-function Crud({ table, title, fields, cols, select = "*", order = "created_at", asc = false, defaults = {}, actions, label, noCreate }: { table: string; title: string; fields: F[]; cols?: string[]; select?: string; order?: string; asc?: boolean; defaults?: any; actions?: (r: any, reload: () => void) => React.ReactNode; label?: (r: any) => React.ReactNode; noCreate?: boolean }) {
+function Crud({ table, title, fields, cols, select = "*", order = "created_at", asc = false, defaults = {}, actions, label, noCreate, where }: { table: string; title: string; fields: F[]; cols?: string[]; select?: string; order?: string; asc?: boolean; defaults?: any; where?: Record<string, string | number | boolean>; actions?: (r: any, reload: () => void) => React.ReactNode; label?: (r: any) => React.ReactNode; noCreate?: boolean }) {
   const columns: Column[] = fields.map((f) => ({
     key: f.k,
     label: f.label,
@@ -73,7 +73,7 @@ function Crud({ table, title, fields, cols, select = "*", order = "created_at", 
     options: (f.type === "modes" ? MODES : f.options)?.map(([value, l]) => ({ value, label: l })),
     list: cols ? cols.includes(f.k) : undefined,
   }));
-  return <CrudTable table={table} title={title} columns={columns} select={select} orderBy={order} ascending={asc} defaults={defaults} actions={actions} label={label} noCreate={noCreate} />;
+  return <CrudTable table={table} title={title} columns={columns} select={select} orderBy={order} ascending={asc} defaults={defaults} actions={actions} label={label} noCreate={noCreate} where={where} />;
 }
 
 const KINDS: [string, string][] = [["soin", "Soin"], ["numerologie", "Numérologie"], ["formation", "Formation"], ["atelier", "Atelier"], ["meditation", "Méditation"]];
@@ -174,8 +174,8 @@ function Content() {
   };
   return (
     <div className="space-y-4">
-      <h2 className="text-xl font-semibold text-neutral-900 dark:text-neutral-100">Contenu du site</h2>
-      <p className="text-sm text-neutral-600 dark:text-neutral-400">Astuce : vous pouvez aussi cliquer sur « Modifier la page » dans l'en-tête pour changer les textes directement sur le site.</p>
+      <h2 className="text-xl font-semibold text-neutral-900 dark:text-neutral-100">Informations du site</h2>
+      <p className="rounded-xl bg-[var(--brand)]/10 p-4 text-sm text-neutral-800 dark:text-neutral-200">Les textes, images et sections des pages se modifient directement sur le site : icône bouclier → « Modifier la page », puis touchez un texte ou une image. Ici : les informations de l'activité, utilisées partout sur le site.</p>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">{SETTING_GROUPS.map((g) => <Card key={g.title} className="p-5 flex items-center justify-between gap-3"><div className="min-w-0"><p className="font-medium text-neutral-900 dark:text-neutral-100">{g.title}</p><p className="text-sm text-neutral-500">{g.fields.length} éléments</p></div><Button size="sm" variant="secondary" onClick={() => start(g.title)}><Pencil className="h-4 w-4" />Modifier</Button></Card>)}</div>
       <Dialog open={!!group} onClose={() => setOpen(null)} wide title={group?.title || ""} footer={<><Button variant="ghost" onClick={() => setOpen(null)}>Annuler</Button><Button loading={busy} onClick={save}>Enregistrer</Button></>}>
         {group?.fields.map((f) => (
@@ -196,14 +196,25 @@ function Content() {
   );
 }
 
+/** Prices of one offer, opened from its row (an offer and its prices are edited together). */
+function OfferPrices({ offer }: { offer: any }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <>
+      <Button size="sm" variant="secondary" onClick={() => setOpen(true)}>Tarifs</Button>
+      <Dialog open={open} onClose={() => setOpen(false)} wide title={`Tarifs · ${offer.title}`}>
+        <Crud table="offering_prices" title="Tarifs de l'offre" where={{ offering_id: offer.id }} order="sort_order" asc cols={["label", "amount_cents"]} defaults={{ sort_order: 0 }}
+          fields={[{ k: "label", label: "Libellé (ex. 1 séance, 4 séances)" }, { k: "amount_cents", label: "Prix", type: "money" }, { k: "sort_order", label: "Ordre", type: "number" }]} />
+      </Dialog>
+    </>
+  );
+}
+
 function Offers() {
-  const offs = useOptions("offerings", (r) => r.title);
   return (
     <div className="space-y-10">
-      <Crud table="offerings" title="Offres" order="sort_order" asc cols={["title", "kind", "is_published"]} defaults={{ kind: "soin", modes: ["cabinet"], is_published: true, sort_order: 50 }}
-        fields={[{ k: "title", label: "Titre" }, { k: "slug", label: "Adresse de la page (ex. soin-energetique)" }, { k: "kind", label: "Catégorie", type: "select", options: KINDS }, { k: "summary", label: "Résumé", type: "textarea" }, { k: "body", label: "Description complète", type: "textarea" }, { k: "deposit_cents", label: "Acompte en ligne (vide = pas d'acompte, paiement complet uniquement)", type: "money" }, { k: "duration_label", label: "Durée (ex. 1h30)" }, { k: "modes", label: "Modalités", type: "modes" }, { k: "image_url", label: "Image", type: "image" }, { k: "is_bookable_slot", label: "Réservable sur créneau", type: "bool" }, { k: "is_published", label: "Publiée", type: "bool" }, { k: "sort_order", label: "Ordre d'affichage", type: "number" }]} />
-      <Crud table="offering_prices" title="Tarifs" order="sort_order" asc select="*, offering:offerings(title)" label={(r) => `${r.offering?.title} – ${r.label}`} cols={["amount_cents"]} defaults={{ sort_order: 0 }}
-        fields={[{ k: "offering_id", label: "Offre", type: "select", options: offs }, { k: "label", label: "Libellé (ex. 4 séances)" }, { k: "amount_cents", label: "Prix", type: "money" }, { k: "sort_order", label: "Ordre", type: "number" }]} />
+      <Crud table="offerings" title="Offres et leurs tarifs" order="sort_order" asc cols={["title", "kind", "is_published"]} actions={(r) => <OfferPrices offer={r} />} defaults={{ kind: "soin", modes: ["cabinet"], is_published: true, sort_order: 50 }}
+        fields={[{ k: "title", label: "Titre" }, { k: "slug", label: "Adresse de la page (ex. soin-energetique)" }, { k: "kind", label: "Catégorie", type: "select", options: KINDS }, { k: "summary", label: "Résumé", type: "textarea" }, { k: "body", label: "Description complète", type: "textarea" }, { k: "deposit_cents", label: "Acompte de cette offre en € (vide = acompte par défaut des Informations, 0 = pas d'acompte)", type: "money" }, { k: "duration_label", label: "Durée (ex. 1h30)" }, { k: "modes", label: "Modalités", type: "modes" }, { k: "image_url", label: "Image", type: "image" }, { k: "is_bookable_slot", label: "Réservable sur créneau", type: "bool" }, { k: "is_published", label: "Publiée", type: "bool" }, { k: "sort_order", label: "Ordre d'affichage", type: "number" }]} />
     </div>
   );
 }
@@ -347,7 +358,7 @@ function Rgpd() {
 }
 
 const SECTIONS = [
-  ["dash", "Tableau de bord", BarChart3], ["content", "Contenu", FileText], ["offers", "Offres & tarifs", Sparkles], ["sessions", "Agenda", CalendarDays], ["slots", "Disponibilités", Clock],
+  ["dash", "Tableau de bord", BarChart3], ["content", "Informations", FileText], ["offers", "Offres & tarifs", Sparkles], ["sessions", "Agenda", CalendarDays], ["slots", "Disponibilités", Clock],
   ["apts", "Rendez-vous", PhoneCall], ["regs", "Inscriptions & ventes", Ticket], ["ebooks", "E-books", BookOpen], ["posts", "Blog", Newspaper], ["tes", "Témoignages", Quote], ["reviews", "Avis", Star],
   ["places", "Lieux", MapPin], ["wait", "Liste d'attente", Bell], ["msgs", "Messages", Mail], ["social", "Réseaux sociaux", Share2], ["news", "Newsletter", Mail], ["notif", "Notifications", Bell],
   ["legal", "Pages légales", Scale], ["rgpd", "RGPD & bêta", Shield],
