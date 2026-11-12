@@ -10,9 +10,10 @@ import { useApp, ListEditor, money, fmtDate, addressLine } from "../lib/data";
 import { SETTING_GROUPS } from "../lib/defaults";
 import { AdminConsole, AdminsManager, CrudTable, VisitStats, type Column } from "../lib/admin";
 import { Badge, Button, ButtonLink, Card, Container, Dialog, EmptyState, Field, Input, Select, Switch, Textarea, Skeleton, cn, buttonClass, toast } from "../components/ui";
+import { AddressInput } from "../lib/ui";
 import { LEGAL_KINDS, phoneHref } from "../components/Layout";
 
-type F = { k: string; label: string; type?: "text" | "textarea" | "number" | "money" | "bool" | "datetime" | "select" | "image" | "modes"; options?: [string, string][]; hint?: string };
+type F = { k: string; label: string; type?: "text" | "textarea" | "number" | "money" | "bool" | "datetime" | "select" | "image" | "modes" | "address"; options?: [string, string][]; hint?: string };
 
 const SAVE_ERR = "Enregistrement impossible, réessayez.";
 const toLocal = (iso?: string) => { if (!iso) return ""; const d = new Date(iso); d.setMinutes(d.getMinutes() - d.getTimezoneOffset()); return d.toISOString().slice(0, 16); };
@@ -63,7 +64,7 @@ function show(f: F, v: any) {
 
 /** Tableau de gestion d'une table : celui d'Usin (recherche, fenêtre d'édition, export, actions par ligne). */
 const MODES: [string, string][] = [["cabinet", "Au cabinet"], ["distance", "À distance"], ["visio", "En visio"]];
-const TYPE_MAP: Record<string, Column["type"]> = { textarea: "textarea", number: "number", money: "money", bool: "boolean", datetime: "datetime", select: "select", image: "image", modes: "multi" };
+const TYPE_MAP: Record<string, Column["type"]> = { address: "address", textarea: "textarea", number: "number", money: "money", bool: "boolean", datetime: "datetime", select: "select", image: "image", modes: "multi" };
 function Crud({ table, title, fields, cols, select = "*", order = "created_at", asc = false, defaults = {}, actions, label, noCreate, where }: { table: string; title: string; fields: F[]; cols?: string[]; select?: string; order?: string; asc?: boolean; defaults?: any; where?: Record<string, string | number | boolean>; actions?: (r: any, reload: () => void) => React.ReactNode; label?: (r: any) => React.ReactNode; noCreate?: boolean }) {
   const columns: Column[] = fields.map((f) => ({
     key: f.k,
@@ -187,6 +188,7 @@ function Content() {
               : f.type === "number" ? (PRICE_KEYS.includes(f.key)
                 ? <div className="relative"><Input type="number" inputMode="decimal" value={draft[f.key] ?? ""} onChange={(e) => setDraft({ ...draft, [f.key]: e.target.value })} className="pr-10" /><span className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-500">€</span></div>
                 : <Input type="number" inputMode="decimal" value={draft[f.key] ?? ""} onChange={(e) => setDraft({ ...draft, [f.key]: e.target.value })} />)
+              : f.type === "address" ? <AddressInput value={draft[f.key] ?? ""} onChange={(v) => setDraft((d: any) => ({ ...d, [f.key]: v }))} onPick={(a) => setDraft((d: any) => ({ ...d, [f.key]: a.street || a.line, "biz.postal": a.postcode || d["biz.postal"], "biz.city": a.city || d["biz.city"], "biz.country": a.country || d["biz.country"] }))} />
               : f.key === "booking.mode" ? <Select value={draft[f.key] || "slots"} onChange={(e) => setDraft({ ...draft, [f.key]: e.target.value })}><option value="slots">Créneaux du site</option><option value="calendly">Lien Calendly externe</option></Select>
               : <Input value={draft[f.key] ?? ""} onChange={(e) => setDraft({ ...draft, [f.key]: e.target.value })} />}
           </Field>
@@ -230,7 +232,7 @@ function usePlaces(): [string, string][] {
 
 function Places() {
   return <Crud table="places" title="Lieux" order="sort_order" asc cols={["address", "is_active"]} label={(r) => r.name} defaults={{ is_active: true, sort_order: 10 }}
-    fields={[{ k: "name", label: "Nom du lieu (ex. Salle Zen, En plein air)" }, { k: "address", label: "Adresse" }, { k: "is_active", label: "Proposé dans l'agenda", type: "bool" }, { k: "sort_order", label: "Position dans la liste (1 = en premier)", type: "number" }]} />;
+    fields={[{ k: "name", label: "Nom du lieu (ex. Salle Zen, En plein air)" }, { k: "address", label: "Adresse (tapez pour voir les propositions)", type: "address" }, { k: "is_active", label: "Proposé dans l'agenda", type: "bool" }, { k: "sort_order", label: "Position dans la liste (1 = en premier)", type: "number" }]} />;
 }
 
 function Sessions() {

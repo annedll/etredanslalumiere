@@ -81,11 +81,11 @@ export const DEFAULT_SETTINGS: Record<string, any> = {
   "beta_mode": "false",
 };
 
-export type SettingField = { key: string; label: string; type?: "text" | "textarea" | "list" | "bool" | "number" | "image" };
+export type SettingField = { key: string; label: string; type?: "text" | "textarea" | "list" | "bool" | "number" | "image" | "address" };
 export const SETTING_GROUPS: { title: string; fields: SettingField[] }[] = [
   { title: "Identité et coordonnées", fields: [
     { key: "biz.name", label: "Nom commercial" }, { key: "biz.practitioner", label: "Praticienne" }, { key: "biz.titles", label: "Titres" },
-    { key: "biz.slogan", label: "Slogan" }, { key: "biz.domains", label: "Domaines", type: "textarea" }, { key: "biz.address", label: "Rue et numéro" },
+    { key: "biz.slogan", label: "Slogan" }, { key: "biz.domains", label: "Domaines", type: "textarea" }, { key: "biz.address", label: "Rue et numéro (tapez pour voir les propositions)", type: "address" },
     { key: "biz.postal", label: "Code postal" }, { key: "biz.city", label: "Localité" }, { key: "biz.country", label: "Pays" },
     { key: "biz.phone", label: "Téléphone" }, { key: "biz.email", label: "Email" }, { key: "biz.hours", label: "Horaires", type: "textarea" }, { key: "biz.bce", label: "Numéro d'entreprise (BCE)" },
   ] },

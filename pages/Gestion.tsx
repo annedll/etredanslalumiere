@@ -6,7 +6,7 @@ import { useSeo } from "../lib/seo";
 import { ReviewsAdmin, NewsletterAdmin } from "../lib/engage";
 import { supabase, isConfigured } from "../lib/supabase";
 import { useApp, money, fmtDate, withTimeout } from "../lib/data";
-import { Badge, Button, ButtonLink, Card, Container, EmptyState, Select, Skeleton, Tabs, cn } from "../components/ui";
+import { Badge, Button, ButtonLink, Card, Container, EmptyState, Select, Skeleton, Tabs, cn, toast } from "../components/ui";
 import { phoneHref } from "../components/Layout";
 
 const q = async (p: any) => { try { const r: any = await withTimeout(p); return r?.data || []; } catch { return []; } };
@@ -136,7 +136,26 @@ function Agenda() {
 function Clients() {
   const [rows, setRows] = useState<any[] | null>(null);
   const [s, setS] = useState("");
-  useEffect(() => { q(supabase.from("profiles").select("id,first_name,last_name,email,phone,created_at").order("created_at", { ascending: false }).limit(500)).then(setRows); }, []);
+  const [busy, setBusy] = useState("");
+  const load = () => q(supabase.from("profiles").select("id,first_name,last_name,email,phone,created_at").order("created_at", { ascending: false }).limit(500)).then(setRows);
+  useEffect(() => { load(); }, []);
+  // The client receives an email with a link to choose a new password (the admin never sees it).
+  const reset = async (c: any) => {
+    if (!confirm(`Envoyer à ${c.email} un email pour choisir un nouveau mot de passe ?`)) return;
+    setBusy(c.id);
+    const { error } = await supabase.auth.resetPasswordForEmail(c.email, { redirectTo: window.location.origin + "/reset-password" });
+    setBusy("");
+    toast(error ? "L'email n'a pas pu partir : " + error.message : "Email envoyé à " + c.email, error ? "error" : "ok");
+  };
+  const remove = async (c: any) => {
+    if (!confirm(`Supprimer définitivement le compte de ${c.email} et ses données (rendez-vous, messages) ? Cette action est irréversible.`)) return;
+    setBusy(c.id);
+    const { error } = await supabase.rpc("admin_delete_person", { p_email: c.email });
+    setBusy("");
+    if (error) return toast("Suppression impossible : " + error.message, "error");
+    toast("Compte supprimé");
+    load();
+  };
   if (!rows) return <Skeleton className="h-40" />;
   const list = rows.filter((r) => !s || `${r.first_name} ${r.last_name} ${r.email}`.toLowerCase().includes(s.toLowerCase()));
   return (
@@ -146,7 +165,11 @@ function Clients() {
       {list.length ? list.map((c) => (
         <Card key={c.id} className="p-4 flex flex-wrap items-center justify-between gap-3">
           <div className="min-w-0"><p className="font-medium text-neutral-900 dark:text-neutral-100">{c.first_name || c.last_name ? `${c.first_name || ""} ${c.last_name || ""}` : "Sans nom"}</p><p className={cn(muted, "break-all")}>{c.email}</p></div>
-          <Contact phone={c.phone} email={c.email} />
+          <div className="flex flex-wrap items-center gap-2">
+            <Contact phone={c.phone} email={c.email} />
+            <Button size="sm" variant="ghost" loading={busy === c.id} onClick={() => reset(c)}>Réinitialiser le mot de passe</Button>
+            <Button size="sm" variant="ghost" className="text-red-600" disabled={busy === c.id} onClick={() => remove(c)}>Supprimer</Button>
+          </div>
         </Card>
       )) : <EmptyState icon={<Users />} title="Aucun client pour le moment" text="Les personnes qui créent un compte apparaîtront ici." />}
     </div>
