@@ -171,6 +171,7 @@ function Header({
   signInPath,
   logo,
   logoCompact,
+  offset = 0,
 }: {
   nav: NavItem[];
   primary?: NavItem;
@@ -180,14 +181,21 @@ function Header({
   signInPath: string;
   logo?: ReactNode;
   logoCompact?: ReactNode;
+  /** Height of the banner above the page: the floating bars sit under it until it scrolls away. */
+  offset?: number;
 }) {
   const tr = useT();
   const { pathname } = useLocation();
   const { supabase, user } = useContent();
   const [scrolled, setScrolled] = useState(false);
+  const [scrollY, setScrollY] = useState(0);
+  const below = Math.max(0, offset - scrollY);
   const [menu, setMenu] = useState(false);
   useEffect(() => {
-    const on = () => setScrolled(window.scrollY > 12);
+    const on = () => {
+      setScrolled(window.scrollY > 12);
+      setScrollY(window.scrollY);
+    };
     on();
     window.addEventListener("scroll", on, { passive: true });
     return () => window.removeEventListener("scroll", on);
@@ -218,7 +226,7 @@ function Header({
   return (
     <>
       {/* Computers: logo, navigation and actions float on the same line, same height, same style. */}
-      <header className="fixed inset-x-0 top-4 z-40 hidden px-4 md:block">
+      <header className="fixed inset-x-0 top-4 z-40 hidden px-4 md:block" style={below ? { transform: `translateY(${below}px)` } : undefined}>
         <div ref={row} className="mx-auto flex max-w-7xl items-center justify-between gap-3">
           <div className={cn(pill, "flex shrink-0 items-center pl-1.5 pr-4")}>
             <Logo showName custom={logo} />
@@ -252,7 +260,7 @@ function Header({
         </div>
       </header>
       {/* Phones: one compact floating bar (logo, language, account, menu). */}
-      <header className="fixed inset-x-3 top-[calc(var(--safe-top,env(safe-area-inset-top))+0.5rem)] z-40 md:hidden">
+      <header className="fixed inset-x-3 top-[calc(var(--safe-top,env(safe-area-inset-top))+0.5rem)] z-40 md:hidden" style={below ? { transform: `translateY(${below}px)` } : undefined}>
         <div className={cn(pill, "flex items-center justify-between gap-1 pl-1.5 pr-1.5")}>
           <div className="min-w-0 flex-1">
             <Logo showName custom={logoCompact ?? logo} />
@@ -559,12 +567,27 @@ export function SiteShell({
     { to: "/admin", label: tr("settings"), icon: <Settings /> },
   ];
   const underHeader = overlayHero && pathname === "/";
+  // The banner (announcement, demo notice) opens the page above the floating bars, never hidden under them.
+  const bannerRef = useRef<HTMLDivElement>(null);
+  const [bannerH, setBannerH] = useState(0);
+  useEffect(() => {
+    const el = bannerRef.current;
+    if (!el) return setBannerH(0);
+    const ro = new ResizeObserver(() => setBannerH(el.offsetHeight));
+    ro.observe(el);
+    setBannerH(el.offsetHeight);
+    return () => ro.disconnect();
+  }, [banner]);
   return (
     <div className="flex min-h-[100dvh] flex-col">
-      <Header nav={nav} primary={primary} maxInBar={maxInBar} adminLinks={admin} accountPath={accountPath} signInPath={signInPath} logo={logo} logoCompact={logoCompact} />
+      {banner && (
+        <div ref={bannerRef} className="relative z-30 pt-[var(--safe-top,env(safe-area-inset-top))] md:pt-0">
+          {banner}
+        </div>
+      )}
+      <Header offset={bannerH} nav={nav} primary={primary} maxInBar={maxInBar} adminLinks={admin} accountPath={accountPath} signInPath={signInPath} logo={logo} logoCompact={logoCompact} />
       <EditBar />
       <main className={cn("flex-1", !underHeader && "pt-[calc(var(--safe-top,env(safe-area-inset-top))+4.5rem)] md:pt-24")}>
-        {banner}
         <Boundary key={pathname}>
           <Suspense fallback={<PageSkeleton />}>{children}</Suspense>
         </Boundary>
