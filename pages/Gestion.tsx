@@ -186,7 +186,7 @@ function Orders() {
       <section className="space-y-3"><h2 className={title}>Inscriptions aux sessions</h2>
         {d.r.length ? d.r.map((r: any) => <Card key={r.id} className="p-4 flex flex-wrap items-center justify-between gap-2"><div className="min-w-0"><p className="font-medium text-neutral-900 dark:text-neutral-100">{r.session?.offering?.title}</p><p className={cn(muted, "break-all")}>{r.profile?.email} · {r.session?.starts_at ? fmtDate(r.session.starts_at, "fr", { day: "numeric", month: "short" }) : ""}</p></div><div className="flex gap-2"><Badge tone={r.status === "paid" ? "green" : "amber"}>{st(r.status)}</Badge><span className="font-semibold text-[var(--brand)]">{money(r.amount_cents)}</span></div></Card>) : <EmptyState icon={<Ticket />} title="Aucune inscription" />}
       </section>
-      <section className="space-y-3"><h2 className={title}>Commandes (e-books, packs)</h2>
+      <section className="space-y-3"><h2 className={title}>Commandes (e-books, carnets, packs)</h2>
         {d.o.length ? d.o.map((o: any) => <Card key={o.id} className="p-4 flex flex-wrap items-center justify-between gap-2"><div className="min-w-0"><p className="font-medium text-neutral-900 dark:text-neutral-100">{o.item_type === "ebook" ? "E-book " + (o.ebook?.title || "") : o.item_type === "meditation_card" ? "Carnet de méditations" : "Pack de soins"}</p><p className={cn(muted, "break-all")}>{o.profile?.email}</p></div><div className="flex gap-2"><Badge tone={o.status === "paid" ? "green" : "amber"}>{st(o.status)}</Badge><span className="font-semibold text-[var(--brand)]">{money(o.amount_cents)}</span></div></Card>) : <EmptyState icon={<ShoppingBag />} title="Aucune commande" />}
       </section>
     </div>

@@ -1,10 +1,12 @@
 // Injected by Usin (content engine: texts, images and lists editable with the pencil, data cache, visits). Do not edit.
 import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from "react";
 import { useLocation } from "react-router-dom";
+import { createPortal } from "react-dom";
 import type { SupabaseClient, Session } from "@supabase/supabase-js";
 import { brand } from "./brand";
 import { useI18n, t as translate, languages } from "./i18n";
-import { ImageEditor, uploadImage, imageSizeClass } from "./image-editor";
+import { ImageEditor, uploadImage, imageSizeClass, imageFrameRadius } from "./image-editor";
+export { imageFrameRadius } from "./image-editor";
 import { Sheet } from "./mobile";
 import { env } from "./env";
 
@@ -18,11 +20,11 @@ const VIEW_AS = "usin:view-as";
 const TIMEOUT = 8000;
 
 const UI: Record<string, Record<string, string>> = {
-  fr: { save: "Enregistrer", cancel: "Annuler", image: "Changer l'image", list: "Modifier la liste", add: "Ajouter", remove: "Retirer", up: "Monter", down: "Descendre", empty: "Texte à écrire" },
-  en: { save: "Save", cancel: "Cancel", image: "Change image", list: "Edit list", add: "Add", remove: "Remove", up: "Move up", down: "Move down", empty: "Text to write" },
-  nl: { save: "Opslaan", cancel: "Annuleren", image: "Afbeelding wijzigen", list: "Lijst bewerken", add: "Toevoegen", remove: "Verwijderen", up: "Omhoog", down: "Omlaag", empty: "Tekst te schrijven" },
-  de: { save: "Speichern", cancel: "Abbrechen", image: "Bild ändern", list: "Liste bearbeiten", add: "Hinzufügen", remove: "Entfernen", up: "Nach oben", down: "Nach unten", empty: "Text schreiben" },
-  es: { save: "Guardar", cancel: "Cancelar", image: "Cambiar imagen", list: "Editar lista", add: "Añadir", remove: "Quitar", up: "Subir", down: "Bajar", empty: "Texto por escribir" },
+  fr: { save: "Enregistrer", cancel: "Annuler", image: "Changer l'image", list: "Modifier la liste", add: "Ajouter", remove: "Retirer", up: "Monter", down: "Descendre", empty: "Texte à écrire", bg: "Fond de la section", bgPick: "Choisir une image", bgStrength: "Intensité", bgNone: "Retirer le fond", bgHint: "Plus l'intensité est basse, plus l'image est pâle et le texte reste lisible." },
+  en: { save: "Save", cancel: "Cancel", image: "Change image", list: "Edit list", add: "Add", remove: "Remove", up: "Move up", down: "Move down", empty: "Text to write", bg: "Section background", bgPick: "Choose an image", bgStrength: "Intensity", bgNone: "Remove the background", bgHint: "The lower the intensity, the paler the image and the easier the text is to read." },
+  nl: { save: "Opslaan", cancel: "Annuleren", image: "Afbeelding wijzigen", list: "Lijst bewerken", add: "Toevoegen", remove: "Verwijderen", up: "Omhoog", down: "Omlaag", empty: "Tekst te schrijven", bg: "Achtergrond van de sectie", bgPick: "Kies een afbeelding", bgStrength: "Intensiteit", bgNone: "Achtergrond verwijderen", bgHint: "Hoe lager de intensiteit, hoe bleker de afbeelding en hoe leesbaarder de tekst." },
+  de: { save: "Speichern", cancel: "Abbrechen", image: "Bild ändern", list: "Liste bearbeiten", add: "Hinzufügen", remove: "Entfernen", up: "Nach oben", down: "Nach unten", empty: "Text schreiben", bg: "Hintergrund des Abschnitts", bgPick: "Bild wählen", bgStrength: "Intensität", bgNone: "Hintergrund entfernen", bgHint: "Je geringer die Intensität, desto blasser das Bild und desto besser lesbar der Text." },
+  es: { save: "Guardar", cancel: "Cancelar", image: "Cambiar imagen", list: "Editar lista", add: "Añadir", remove: "Quitar", up: "Subir", down: "Bajar", empty: "Texto por escribir", bg: "Fondo de la sección", bgPick: "Elegir una imagen", bgStrength: "Intensidad", bgNone: "Quitar el fondo", bgHint: "Cuanto más baja la intensidad, más pálida la imagen y más legible el texto." },
 };
 const ui = (lang: string, key: string) => (UI[lang] ?? UI.en)[key] ?? UI.en[key];
 
@@ -516,6 +518,9 @@ export function EditableImage({ k, alt, aspect = 4 / 3, className, priority, siz
   const [open, setOpen] = useState(false);
   const src = text(k);
   const size = text(k + ".size") || undefined;
+  // Frame chosen by the admin (cercle, arrondi, droit, organique): wins over the design's own corners.
+  const frame = text(k + ".frame") || undefined;
+  const radius = imageFrameRadius(frame);
   const ip = imgProps(src, sizes ?? (priority ? "(min-width: 1024px) 50vw, 100vw" : undefined));
   return (
     <div className={"relative " + (editMode ? "cursor-pointer rounded-[1.5rem] " + outline : "")} onClick={() => editMode && setOpen(true)}>
@@ -529,6 +534,7 @@ export function EditableImage({ k, alt, aspect = 4 / 3, className, priority, siz
           width={1200}
           height={Math.round(1200 / aspect)}
           className={"h-auto max-w-full " + imageSizeClass(size) + " " + (className ?? "")}
+          style={radius ? { borderRadius: radius } : undefined}
         />
       )}
       {editMode && (
@@ -540,15 +546,99 @@ export function EditableImage({ k, alt, aspect = 4 / 3, className, priority, siz
           onClose={() => setOpen(false)}
           aspect={aspect}
           size={size as never}
-          onSave={async ({ blob, size: chosen }) => {
+          frame={frame as never}
+          src={src || undefined}
+          onSave={async ({ blob, size: chosen, frame: shape }) => {
             const url = await uploadImage(supabase, blob);
             await save(k, url, { translated: false });
             await save(k + ".size", chosen, { translated: false });
+            await save(k + ".frame", shape, { translated: false });
             setOpen(false);
           }}
         />
       )}
     </div>
+  );
+}
+
+/**
+ * Background image of a section, chosen by an admin with the pencil (image + intensity, pale by default so the text
+ * stays readable). Nothing is shown until an image is chosen: the design never changes on its own.
+ * First child of the section: <section className="relative overflow-hidden"><SectionBackground k="home.hero.bg" />…</section>
+ */
+export function SectionBackground({ k }: { k: string }) {
+  const { text, save, remove, editMode, supabase, lang } = useContent();
+  const [open, setOpen] = useState(false);
+  const [picking, setPicking] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  const src = text(k);
+  const strength = Math.min(100, Math.max(5, Number(text(k + ".strength")) || 25));
+  const [draft, setDraft] = useState(strength);
+  useEffect(() => setDraft(strength), [strength]);
+  // The image stays under the content of the section, whatever its layout.
+  useEffect(() => {
+    const parent = ref.current?.parentElement;
+    if (parent && (src || editMode)) {
+      parent.style.isolation = "isolate";
+      if (getComputedStyle(parent).position === "static") parent.style.position = "relative";
+    }
+  }, [src, editMode]);
+  if (!src && !editMode) return null;
+  const ip = src ? imgProps(src, "100vw") : null;
+  return (
+    <>
+      <div ref={ref} aria-hidden className="pointer-events-none absolute inset-0 -z-10 overflow-hidden">
+        {ip && <img {...ip} alt="" loading="lazy" decoding="async" onError={(e) => (e.currentTarget.style.display = "none")} className="h-full w-full object-cover" style={{ opacity: draft / 100 }} />}
+      </div>
+      {editMode && (
+        <button type="button" className="absolute bottom-3 right-3 z-20 rounded-full bg-[var(--brand,#111)] px-3 py-1.5 text-xs font-medium text-white shadow" onClick={() => setOpen(true)}>
+          ✎ {ui(lang, "bg")}
+        </button>
+      )}
+      {editMode && (
+        <Sheet open={open} onClose={() => setOpen(false)} title={ui(lang, "bg")}>
+          <div className="space-y-4 pb-2">
+            <button type="button" className="w-full rounded-xl bg-[var(--brand,#111)] px-4 py-3 text-sm font-medium text-white" onClick={() => setPicking(true)}>
+              {ui(lang, "bgPick")}
+            </button>
+            {src && (
+              <>
+                <label className="block space-y-2 text-sm">
+                  <span className="font-medium">
+                    {ui(lang, "bgStrength")} : {draft} %
+                  </span>
+                  <input type="range" min={5} max={100} step={5} value={draft} onChange={(e) => setDraft(Number(e.target.value))} className="w-full" />
+                </label>
+                <p className="text-xs opacity-70">{ui(lang, "bgHint")}</p>
+                <div className="flex flex-wrap justify-between gap-2">
+                  <button type="button" className="rounded-xl border px-4 py-2 text-sm text-red-600" onClick={async () => { await remove(k); await remove(k + ".strength"); setOpen(false); }}>
+                    {ui(lang, "bgNone")}
+                  </button>
+                  <button type="button" className="rounded-xl bg-[var(--brand,#111)] px-4 py-2 text-sm font-medium text-white" onClick={async () => { await save(k + ".strength", String(draft), { translated: false }); setOpen(false); }}>
+                    {ui(lang, "save")}
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        </Sheet>
+      )}
+      {editMode && supabase && createPortal(
+        <ImageEditor
+          open={picking}
+          onClose={() => setPicking(false)}
+          aspect={16 / 9}
+          title={ui(lang, "bg")}
+          onSave={async ({ blob }) => {
+            const url = await uploadImage(supabase, blob);
+            await save(k, url, { translated: false });
+            if (!text(k + ".strength")) await save(k + ".strength", "25", { translated: false });
+            setPicking(false);
+          }}
+        />,
+        document.body,
+      )}
+    </>
   );
 }
 

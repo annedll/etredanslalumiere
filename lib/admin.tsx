@@ -233,6 +233,8 @@ function RowForm({ columns, row, onChange }: { columns: Column[]; row: Row; onCh
               ) : c.type === "select" ? (
                 <Select value={v ?? ""} onChange={(e) => set(e.target.value)}>
                   <option value="">—</option>
+                  {/* A value no longer in the list (renamed place, old choice…) stays shown and kept. */}
+                  {v && !c.options?.some((o) => o.value === v) && <option value={String(v)}>{String(v)}</option>}
                   {c.options?.map((o) => (
                     <option key={o.value} value={o.value}>
                       {o.label}

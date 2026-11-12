@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { BarChart3, FileText, Sparkles, CalendarDays, Clock, PhoneCall, BookOpen, Newspaper, Quote, MapPin, Bell, Share2, Scale, Shield, Star, Mail, Plus, Pencil, Trash2, Copy, Download, XCircle, Phone, Ticket, Image as ImageIcon, RotateCcw, ChevronRight, ChevronDown, ArrowUp, ArrowDown } from "lucide-react";
+import { BarChart3, FileText, Sparkles, CalendarDays, Clock, PhoneCall, BookOpen, Newspaper, Quote, Flower2, Bell, Share2, Scale, Shield, Star, Mail, Plus, Pencil, Trash2, Copy, Download, XCircle, Phone, Ticket, Image as ImageIcon, RotateCcw, ChevronRight, ChevronDown, ArrowUp, ArrowDown } from "lucide-react";
 import { useSeo } from "../lib/seo";
 import { LEGAL_PAGES, legalDefaultText, type LegalKind } from "../lib/legal";
 import { NotificationSettings, notify } from "../lib/notify";
@@ -158,7 +158,7 @@ function Dashboard() {
   );
 }
 
-const PRICE_KEYS: string[] = [];
+const PRICE_KEYS = ["deposit.amount", "meditation.card_price"];
 
 function Content() {
   const app = useApp();
@@ -201,30 +201,15 @@ function Offers() {
   return (
     <div className="space-y-10">
       <Crud table="offerings" title="Offres" order="sort_order" asc cols={["title", "kind", "is_published"]} defaults={{ kind: "soin", modes: ["cabinet"], is_published: true, sort_order: 50 }}
-        fields={[{ k: "title", label: "Titre" }, { k: "slug", label: "Adresse de la page (ex. soin-energetique)" }, { k: "kind", label: "Catégorie", type: "select", options: KINDS }, { k: "summary", label: "Résumé", type: "textarea" }, { k: "body", label: "Description complète", type: "textarea" }, { k: "deposit_cents", label: "Acompte en ligne (vide = pas d'acompte, paiement complet uniquement)", type: "money" }, { k: "duration_label", label: "Durée (ex. 1h30)" }, { k: "modes", label: "Modalités", type: "modes" }, { k: "image_url", label: "Image", type: "image" }, { k: "is_bookable_slot", label: "Réservable sur créneau", type: "bool" }, { k: "is_published", label: "Publiée", type: "bool" }, { k: "sort_order", label: "Ordre d'affichage", type: "number" }]} />
+        fields={[{ k: "title", label: "Titre" }, { k: "slug", label: "Adresse de la page (ex. soin-energetique)" }, { k: "kind", label: "Catégorie", type: "select", options: KINDS }, { k: "summary", label: "Résumé", type: "textarea" }, { k: "body", label: "Description complète", type: "textarea" }, { k: "duration_label", label: "Durée (ex. 1h30)" }, { k: "modes", label: "Modalités", type: "modes" }, { k: "image_url", label: "Image", type: "image" }, { k: "is_bookable_slot", label: "Réservable sur créneau", type: "bool" }, { k: "is_published", label: "Publiée", type: "bool" }, { k: "sort_order", label: "Ordre d'affichage", type: "number" }]} />
       <Crud table="offering_prices" title="Tarifs" order="sort_order" asc select="*, offering:offerings(title)" label={(r) => `${r.offering?.title} – ${r.label}`} cols={["amount_cents"]} defaults={{ sort_order: 0 }}
         fields={[{ k: "offering_id", label: "Offre", type: "select", options: offs }, { k: "label", label: "Libellé (ex. 4 séances)" }, { k: "amount_cents", label: "Prix", type: "money" }, { k: "sort_order", label: "Ordre", type: "number" }]} />
     </div>
   );
 }
 
-/** Places of the agenda: the site's address first, then those added in « Lieux ». */
-function usePlaces(): [string, string][] {
-  const app = useApp();
-  const [rows, setRows] = useState<any[]>([]);
-  useEffect(() => { supabase.from("places").select("*").eq("is_active", true).order("sort_order").then(({ data }) => setRows(data || [])); }, []);
-  const home = addressLine(app.settings, app.get);
-  return [[home, `Cabinet – ${home}`], ...rows.map((p): [string, string] => { const line = p.address ? `${p.name}, ${p.address}` : p.name; return [line, p.address ? `${p.name} – ${p.address}` : p.name]; })];
-}
-
-function Places() {
-  return <Crud table="places" title="Lieux" order="sort_order" asc cols={["address", "is_active"]} label={(r) => r.name} defaults={{ is_active: true, sort_order: 10 }}
-    fields={[{ k: "name", label: "Nom du lieu (ex. Salle Zen, En plein air)" }, { k: "address", label: "Adresse" }, { k: "is_active", label: "Proposé dans l'agenda", type: "bool" }, { k: "sort_order", label: "Ordre", type: "number" }]} />;
-}
-
 function Sessions() {
   const app = useApp();
-  const places = usePlaces();
   const offs = useOptions("offerings", (r) => r.title);
   const prices = useOptions("offering_prices", (r) => `${r.offering?.title} – ${r.label} (${money(r.amount_cents)})`, "*, offering:offerings(title)");
   const dup = async (r: any, reload: () => void) => { const { id, created_at, offering, seats_taken, ...rest } = r; const add = (s: string) => new Date(+new Date(s) + 7 * 864e5).toISOString(); const { error } = await supabase.from("sessions").insert({ ...rest, starts_at: add(r.starts_at), ends_at: add(r.ends_at), seats_taken: 0, status: "open" }); if (error) toast("Duplication impossible, réessayez.", "error"); else { toast("Session dupliquée."); releaseWaitlist(r.offering_id, { service: offering?.title, date: add(r.starts_at), url: "/agenda" }, supabase); } reload(); };
@@ -239,7 +224,7 @@ function Sessions() {
   return <Crud table="sessions" title="Agenda / Sessions" order="starts_at" select="*, offering:offerings(title)" label={(r) => `${r.offering?.title || "Session"} · ${show({ k: "", label: "", type: "datetime" }, r.starts_at)}`} cols={["seats_taken", "capacity", "status"]}
     defaults={{ capacity: 10, seats_taken: 0, status: "open", is_online: false, location: addressLine(app.settings, app.get) }}
     actions={(r, reload) => <><Button size="sm" variant="ghost" onClick={() => dup(r, reload)}><Copy className="h-4 w-4" />+7 jours</Button><Button size="sm" variant="ghost" onClick={() => regs(r)}><Download className="h-4 w-4" />Inscrits</Button>{r.status !== "cancelled" && <Button size="sm" variant="ghost" onClick={() => cancel(r, reload)}><XCircle className="h-4 w-4" />Annuler</Button>}</>}
-    fields={[{ k: "offering_id", label: "Offre", type: "select", options: offs }, { k: "price_id", label: "Tarif", type: "select", options: prices }, { k: "starts_at", label: "Début", type: "datetime" }, { k: "ends_at", label: "Fin", type: "datetime" }, { k: "location", label: "Lieu (liste modifiable dans « Lieux »)", type: "select", options: places }, { k: "is_online", label: "En ligne", type: "bool" }, { k: "capacity", label: "Nombre de places", type: "number" }, { k: "seats_taken", label: "Places prises", type: "number" }, { k: "co_host", label: "Co-animatrice" }, { k: "status", label: "Statut", type: "select", options: [["open", "Ouverte"], ["full", "Complète"], ["cancelled", "Annulée"]] }, { k: "is_featured", label: "Mise en avant", type: "bool" }]} />;
+    fields={[{ k: "offering_id", label: "Offre", type: "select", options: offs }, { k: "price_id", label: "Tarif", type: "select", options: prices }, { k: "starts_at", label: "Début", type: "datetime" }, { k: "ends_at", label: "Fin", type: "datetime" }, { k: "location", label: "Lieu" }, { k: "is_online", label: "En ligne", type: "bool" }, { k: "capacity", label: "Nombre de places", type: "number" }, { k: "seats_taken", label: "Places prises", type: "number" }, { k: "co_host", label: "Co-animatrice" }, { k: "status", label: "Statut", type: "select", options: [["open", "Ouverte"], ["full", "Complète"], ["cancelled", "Annulée"]] }, { k: "is_featured", label: "Mise en avant", type: "bool" }]} />;
 }
 
 function Slots() {
@@ -272,6 +257,13 @@ function Ebooks() {
   return <Crud key={n} table="ebooks" title="E-books" cols={["price_cents", "is_published"]} label={(r) => `${r.title}${r.file_path ? "" : " (PDF manquant)"}`} defaults={{ price_cents: 1200, is_published: false }}
     actions={(r) => <label className={buttonClass("ghost", "sm", "cursor-pointer")}><Download className="h-4 w-4 rotate-180" />Envoyer le PDF<input type="file" accept="application/pdf" className="hidden" onChange={(e) => e.target.files?.[0] && upload(r, e.target.files[0])} /></label>}
     fields={[{ k: "title", label: "Titre" }, { k: "slug", label: "Adresse de la page" }, { k: "description", label: "Description", type: "textarea" }, { k: "cover_url", label: "Couverture", type: "image" }, { k: "price_cents", label: "Prix", type: "money" }, { k: "is_published", label: "Publié", type: "bool" }]} />;
+}
+
+function Cards() {
+  return <Crud table="meditation_cards" title="Carnets de méditation" noCreate select="*, profile:profiles(email,first_name,last_name)" order="updated_at"
+    label={(r) => `${r.profile?.first_name || ""} ${r.profile?.last_name || ""} ${r.profile?.email || ""}`} cols={["sessions_used", "credits", "free_sessions_granted"]}
+    actions={(r, reload) => <><Button size="sm" variant="secondary" onClick={async () => { await supabase.from("meditation_cards").update({ sessions_used: (r.sessions_used || 0) + 1, credits: Math.max(0, (r.credits || 0) - 1) }).eq("id", r.id); reload(); }}>+1 séance</Button><Button size="sm" variant="ghost" onClick={async () => { await supabase.from("meditation_cards").update({ sessions_used: Math.max(0, (r.sessions_used || 0) - 1) }).eq("id", r.id); reload(); }}>−1</Button></>}
+    fields={[{ k: "sessions_used", label: "Séances suivies", type: "number" }, { k: "credits", label: "Séances restantes sur les carnets", type: "number" }, { k: "free_sessions_granted", label: "Séances offertes obtenues", type: "number" }]} />;
 }
 
 function Waitlist() {
@@ -349,7 +341,7 @@ function Rgpd() {
 const SECTIONS = [
   ["dash", "Tableau de bord", BarChart3], ["content", "Contenu", FileText], ["offers", "Offres & tarifs", Sparkles], ["sessions", "Agenda", CalendarDays], ["slots", "Disponibilités", Clock],
   ["apts", "Rendez-vous", PhoneCall], ["regs", "Inscriptions & ventes", Ticket], ["ebooks", "E-books", BookOpen], ["posts", "Blog", Newspaper], ["tes", "Témoignages", Quote], ["reviews", "Avis", Star],
-  ["places", "Lieux", MapPin], ["wait", "Liste d'attente", Bell], ["msgs", "Messages", Mail], ["social", "Réseaux sociaux", Share2], ["news", "Newsletter", Mail], ["notif", "Notifications", Bell],
+  ["cards", "Carnets", Flower2], ["wait", "Liste d'attente", Bell], ["msgs", "Messages", Mail], ["social", "Réseaux sociaux", Share2], ["news", "Newsletter", Mail], ["notif", "Notifications", Bell],
   ["legal", "Pages légales", Scale], ["rgpd", "RGPD & bêta", Shield],
 ] as const;
 
@@ -375,7 +367,7 @@ export function AdminPage() {
           actions={(r, reload) => r.status !== "approved" ? <Button size="sm" onClick={async () => { await supabase.from("testimonials").update({ status: "approved" }).eq("id", r.id); reload(); }}>Publier</Button> : null}
           fields={[{ k: "author_name", label: "Auteur" }, { k: "content", label: "Témoignage", type: "textarea" }, { k: "consent_publish", label: "Consentement de publication", type: "bool" }, { k: "status", label: "Statut", type: "select", options: [["pending", "En attente"], ["approved", "Publié"]] }]} />,
     reviews: <ReviewsAdmin supabase={supabase} />,
-    places: <Places />,
+    cards: <Cards />,
     wait: <Waitlist />,
     msgs: <Crud table="contact_messages" title="Messages de contact" noCreate cols={["email", "handled"]} label={(r) => `${r.name} · ${r.subject || String(r.message).slice(0, 50)}`}
           actions={(r, reload) => <Button size="sm" variant="secondary" onClick={async () => { await supabase.from("contact_messages").update({ handled: !r.handled }).eq("id", r.id); reload(); }}>{r.handled ? "Marquer non traité" : "Marquer traité"}</Button>}

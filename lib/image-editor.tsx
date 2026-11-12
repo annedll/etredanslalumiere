@@ -2,7 +2,32 @@
 import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
 
 export type ImageSize = "small" | "medium" | "large" | "full";
-export type EditedImage = { blob: Blob; size: ImageSize; width: number; height: number };
+export type ImageFrame = "auto" | "circle" | "rounded" | "square" | "organic";
+export type EditedImage = { blob: Blob; size: ImageSize; frame: ImageFrame; width: number; height: number };
+
+const FRAMES: { label: string; value: ImageFrame }[] = [
+  { label: "Comme prévu", value: "auto" },
+  { label: "Cercle", value: "circle" },
+  { label: "Arrondi", value: "rounded" },
+  { label: "Droit", value: "square" },
+  { label: "Organique", value: "organic" },
+];
+
+/** Corner shape of the chosen frame (undefined: the design's own shape). */
+export function imageFrameRadius(frame: ImageFrame | string | null | undefined): string | undefined {
+  switch (frame) {
+    case "circle":
+      return "9999px";
+    case "rounded":
+      return "1.5rem";
+    case "square":
+      return "0px";
+    case "organic":
+      return "46% 54% 52% 48% / 48% 46% 54% 52%";
+    default:
+      return undefined;
+  }
+}
 
 const ASPECTS = [
   { label: "Paysage 16:9", value: 16 / 9 },
@@ -54,6 +79,9 @@ export function ImageEditor(props: {
   onSave: (image: EditedImage) => void | Promise<void>;
   aspect?: number;
   size?: ImageSize;
+  /** Current frame and image: the editor opens on them (change the format or frame without importing again). */
+  frame?: ImageFrame;
+  src?: string;
   title?: string;
 }) {
   const { open, onClose, onSave } = props;
@@ -62,6 +90,7 @@ export function ImageEditor(props: {
   const [zoom, setZoom] = useState(1);
   const [pos, setPos] = useState({ x: 0, y: 0 });
   const [size, setSize] = useState<ImageSize>(props.size ?? "full");
+  const [frame, setFrame] = useState<ImageFrame>(props.frame ?? "auto");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const drag = useRef<{ x: number; y: number; px: number; py: number } | null>(null);
@@ -84,6 +113,21 @@ export function ImageEditor(props: {
     if (img) setPos((p) => clamp(p));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [zoom, aspect, img]);
+
+  // The current image, ready to be reframed (its own ratio: « Original »).
+  useEffect(() => {
+    if (!open || img || !props.src || /^data:|\.svg(\?|$)/i.test(props.src)) return;
+    const image = new Image();
+    image.crossOrigin = "anonymous";
+    image.onload = () => {
+      setAspect(0);
+      setImg(image);
+      setZoom(1);
+      setPos({ x: 0, y: 0 });
+    };
+    image.src = props.src;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, props.src]);
 
   function load(file: File | undefined) {
     if (!file || !file.type.startsWith("image/")) return setError("Choisissez une image (JPG, PNG, WebP…).");
@@ -123,7 +167,7 @@ export function ImageEditor(props: {
       canvas.getContext("2d")!.drawImage(img, -pos.x / scale, -pos.y / scale, sw, sh, 0, 0, outW, outH);
       const blob = await new Promise<Blob | null>((r) => canvas.toBlob(r, "image/webp", 0.82));
       if (!blob) throw new Error("Conversion de l'image impossible.");
-      await onSave({ blob, size, width: outW, height: outH });
+      await onSave({ blob, size, frame, width: outW, height: outH });
       setImg(null);
       onClose();
     } catch (e) {
@@ -153,7 +197,7 @@ export function ImageEditor(props: {
           </div>
         ) : (
           <>
-            <div className="mx-auto overflow-hidden rounded-lg bg-slate-100" style={{ width: frameW, height: frameH, maxWidth: "100%", touchAction: "none" }}>
+            <div className="mx-auto overflow-hidden rounded-lg bg-slate-100" style={{ width: frameW, height: frameH, maxWidth: "100%", touchAction: "none", borderRadius: imageFrameRadius(frame) }}>
               <img
                 src={img.src}
                 alt=""
@@ -169,10 +213,19 @@ export function ImageEditor(props: {
               Zoom
               <input type="range" min={1} max={4} step={0.01} value={zoom} onChange={(e) => setZoom(Number(e.target.value))} className="flex-1" />
             </label>
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap items-center gap-2 text-sm">
+              <span className="text-slate-500">Format :</span>
               {ASPECTS.map((a) => (
                 <button key={a.label} type="button" onClick={() => setAspect(a.value)} className={"rounded-full border px-3 py-1 text-xs " + (aspect === a.value ? "border-slate-900 bg-slate-900 text-white" : "border-slate-300")}>
                   {a.label}
+                </button>
+              ))}
+            </div>
+            <div className="flex flex-wrap items-center gap-2 text-sm">
+              <span className="text-slate-500">Cadre :</span>
+              {FRAMES.map((f) => (
+                <button key={f.value} type="button" onClick={() => setFrame(f.value)} className={"rounded-full border px-3 py-1 text-xs " + (frame === f.value ? "border-slate-900 bg-slate-900 text-white" : "border-slate-300")}>
+                  {f.label}
                 </button>
               ))}
             </div>
