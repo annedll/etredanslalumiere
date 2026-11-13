@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { AdminConsole, VisitStats, CalendarSync, ReplyButton } from "../lib/admin";
-import { CalendarDays, PhoneCall, Mail, Quote, Euro, Settings, Phone, Users, ShoppingBag, Newspaper, Star, LayoutDashboard, Ticket, Check } from "lucide-react";
+import { AdminConsole, VisitStats, CalendarSync, ReplyButton, Mailbox } from "../lib/admin";
+import { CalendarDays, PhoneCall, Mail, Quote, Euro, Settings, Phone, Users, ShoppingBag, Newspaper, Star, LayoutDashboard, Ticket, Check, Inbox } from "lucide-react";
 import { useSeo } from "../lib/seo";
 import { ReviewsAdmin, NewsletterAdmin } from "../lib/engage";
 import { supabase, isConfigured } from "../lib/supabase";
@@ -256,6 +256,7 @@ function GestionConsole() {
     { id: "agenda", label: "Agenda", icon: <CalendarDays />, element: <div className="space-y-6"><CalendarSync /><Agenda /></div> },
     { id: "clients", label: "Clients", icon: <Users />, element: <Clients /> },
     { id: "messages", label: "Messages", icon: <Mail />, element: <Messages /> },
+    { id: "mailbox", label: "Boîte mail", icon: <Inbox />, element: <Mailbox /> },
     { id: "orders", label: "Commandes", icon: <ShoppingBag />, element: <Orders /> },
     { id: "news", label: "Newsletter", icon: <Newspaper />, element: <NewsletterAdmin supabase={supabase} /> },
     { id: "reviews", label: "Avis", icon: <Star />, element: <Moderation /> },
