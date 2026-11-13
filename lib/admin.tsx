@@ -1,5 +1,5 @@
 // Injected by Usin (management console: layout, dashboard, data tables, texts, legal pages, administrators). Do not edit.
-import { Fragment, useEffect, useMemo, useState, type ReactNode } from "react";
+import { Fragment, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useContent, useData, invalidate } from "./content";
 import { AddressInput, Badge, Button, Card, Container, Dialog, EmptyState, Field, Input, Select, Skeleton, Stat, Switch, Tabs, Textarea, cn, confirmAction, toast } from "./ui";
@@ -1103,13 +1103,19 @@ export function ReplyButton({ to, subject, quote, onSent }: { to: string; subjec
 // ------------------------------------------------------------------ mailbox
 
 type MailServer = { host: string; port: number; secure: boolean };
-type MailItem = { uid: number; from: string; fromEmail: string; subject: string; date: string; seen: boolean };
-type MailFull = MailItem & { to: string; text: string; html: string; messageId: string; references: string; attachments: { name: string; size: number }[] };
+type MailFolder = { path: string; name: string; role: "inbox" | "sent" | "drafts" | "junk" | "trash" | "archive" | "other"; total: number; unseen: number };
+type MailItem = { uid: number; from: string; fromEmail: string; to: string; subject: string; date: string; seen: boolean; flagged: boolean; attachments: boolean };
+type MailFull = { uid: number; from: string; fromEmail: string; to: string; cc: string; subject: string; date: string; text: string; html: string; messageId: string; references: string; attachments: { index: number; name: string; size: number; type: string }[] };
+type MailDraft = { to: string; cc: string; bcc: string; subject: string; body: string; inReplyTo?: string; references?: string; draftUid?: number; attachments: { name: string; type: string; data: string; size: number }[]; showCc: boolean };
+
+const FOLDER_ICON: Record<MailFolder["role"], string> = { inbox: "📥", sent: "📤", drafts: "📝", junk: "🚫", trash: "🗑️", archive: "🗄️", other: "📁" };
+const blankDraft = (): MailDraft => ({ to: "", cc: "", bcc: "", subject: "", body: "", attachments: [], showCc: false });
 
 /**
- * The business's own mailbox in the console (any IMAP / SMTP provider: OVH, Zimbra, Infomaniak, Gandi, Orange, Yahoo,
- * iCloud…): read, answer, write from the pro address. The settings are found from the address; the password stays on
- * Usin's server, encrypted. <Mailbox />
+ * The business's own mailbox in the console, like a modern mail app: folders (réception, envoyés, brouillons, spam,
+ * corbeille, archives…), search, star, unread, archive, spam, bin, move, attachments (read and send), reply / reply
+ * all / forward, drafts. Any IMAP / SMTP provider; the settings are found from the address; the password stays on
+ * Usin's server, encrypted. Emails stay in the mailbox (phone and computer unchanged). <Mailbox />
  */
 export function Mailbox() {
   const { supabase } = useContent();
@@ -1123,36 +1129,146 @@ export function Mailbox() {
   };
   const [status, setStatus] = useState<{ connected: boolean; email?: string } | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [folders, setFolders] = useState<MailFolder[]>([]);
+  const [folder, setFolder] = useState("INBOX");
   const [list, setList] = useState<MailItem[] | null>(null);
-  const [open, setOpen] = useState<MailFull | null>(null);
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(false);
+  const [search, setSearch] = useState("");
+  const [query, setQuery] = useState("");
+  const [openUid, setOpenUid] = useState<number | null>(null);
+  const [full, setFull] = useState<MailFull | null>(null);
   const [busy, setBusy] = useState(false);
-  const [compose, setCompose] = useState<{ to: string; subject: string; body: string; inReplyTo?: string; references?: string } | null>(null);
+  const [draft, setDraft] = useState<MailDraft | null>(null);
+  const cache = useMemo(() => new Map<string, MailFull>(), []);
+  const openRef = useRef<number | null>(null);
   // Connection form
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [advanced, setAdvanced] = useState(false);
-  const [imap, setImap] = useState<MailServer>({ host: "", port: 993, secure: true });
-  const [smtp, setSmtp] = useState<MailServer>({ host: "", port: 465, secure: true });
+  const [imapS, setImapS] = useState<MailServer>({ host: "", port: 993, secure: true });
+  const [smtpS, setSmtpS] = useState<MailServer>({ host: "", port: 465, secure: true });
   const [user, setUser] = useState("");
 
-  const refresh = async () => {
+  const role = folders.find((f) => f.path === folder)?.role ?? "inbox";
+  const loadFolders = () => call<MailFolder[]>("folders").then(setFolders).catch(() => undefined);
+  const load = async (opts: { folder?: string; page?: number; search?: string } = {}) => {
+    const f = opts.folder ?? folder;
+    const p = opts.page ?? 1;
+    const q = opts.search ?? query;
     setError(null);
+    if (p === 1) setList(null);
     try {
-      setList((await call<{ items: MailItem[] }>("list", { limit: 40 })).items);
+      const r = await call<{ items: MailItem[]; hasMore: boolean }>("list", { folder: f, page: p, search: q || undefined });
+      setList((old) => (p === 1 ? r.items : [...(old ?? []), ...r.items]));
+      setHasMore(r.hasMore);
+      setPage(p);
+      // The first emails are fetched in the background: they open at once.
+      void (async () => {
+        for (const m of r.items.slice(0, 6)) {
+          const k = f + ":" + m.uid;
+          if (cache.has(k)) continue;
+          const one = await call<MailFull>("read", { uid: m.uid, folder: f, peek: true }).catch(() => null);
+          if (one) cache.set(k, one);
+        }
+      })();
     } catch (e) {
       setError((e as Error).message);
+      setList([]);
     }
   };
+
   useEffect(() => {
     if (!base || !supabase) return;
     call<{ connected: boolean; email?: string }>("status")
       .then((s) => {
         setStatus(s);
-        if (s.connected) void refresh();
+        if (s.connected) {
+          void loadFolders();
+          void load({ folder: "INBOX" });
+        }
       })
       .catch((e: Error) => setError(e.message));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [base, supabase]);
+
+  // New emails appear on their own (every minute while the page is open).
+  useEffect(() => {
+    if (!status?.connected) return;
+    const t = setInterval(() => {
+      if (document.visibilityState !== "visible" || query || page > 1) return;
+      void loadFolders();
+      call<{ items: MailItem[]; hasMore: boolean }>("list", { folder, page: 1 })
+        .then((r) => setList((old) => (old && r.items.length && old[0]?.uid === r.items[0]?.uid ? old : r.items)))
+        .catch(() => undefined);
+    }, 60_000);
+    return () => clearInterval(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [status?.connected, folder, query, page]);
+
+  const openMail = async (m: MailItem) => {
+    openRef.current = m.uid;
+    setOpenUid(m.uid);
+    const k = folder + ":" + m.uid;
+    const hit = cache.get(k);
+    setFull(hit ?? null);
+    if (!m.seen) {
+      setList((l) => l?.map((x) => (x.uid === m.uid ? { ...x, seen: true } : x)) ?? l);
+      setFolders((fs) => fs.map((f) => (f.path === folder ? { ...f, unseen: Math.max(0, f.unseen - 1) } : f)));
+    }
+    if (role === "drafts") {
+      const d = hit ?? (await call<MailFull>("read", { uid: m.uid, folder, peek: true }).catch(() => null));
+      if (d) setDraft({ ...blankDraft(), to: d.to, cc: d.cc, subject: d.subject === "(sans objet)" ? "" : d.subject, body: d.text, draftUid: m.uid, showCc: Boolean(d.cc) });
+      return;
+    }
+    if (hit) {
+      if (!m.seen) void call("act", { uids: [m.uid], folder, action: "read" }).catch(() => undefined);
+      return;
+    }
+    try {
+      const one = await call<MailFull>("read", { uid: m.uid, folder });
+      cache.set(k, one);
+      if (openRef.current === m.uid) setFull(one);
+    } catch (e) {
+      setError((e as Error).message);
+    }
+  };
+
+  const act = async (action: string, uids: number[], to?: string) => {
+    const moving = !["read", "unread", "star", "unstar"].includes(action);
+    setList((l) =>
+      moving
+        ? l?.filter((x) => !uids.includes(x.uid)) ?? l
+        : l?.map((x) => (uids.includes(x.uid) ? { ...x, seen: action === "read" ? true : action === "unread" ? false : x.seen, flagged: action === "star" ? true : action === "unstar" ? false : x.flagged } : x)) ?? l,
+    );
+    if (moving && openUid && uids.includes(openUid)) {
+      setOpenUid(null);
+      setFull(null);
+    }
+    try {
+      await call("act", { uids, folder, action, to });
+      if (moving) void loadFolders();
+    } catch (e) {
+      toast((e as Error).message, "error");
+      void load({ page: 1 });
+    }
+  };
+
+  const download = async (a: { index: number; name: string }) => {
+    if (!full) return;
+    try {
+      const f = await call<{ name: string; type: string; data: string }>("attachment", { uid: full.uid, index: a.index, folder });
+      const bytes = Uint8Array.from(atob(f.data), (ch) => ch.charCodeAt(0));
+      const url = URL.createObjectURL(new Blob([bytes], { type: f.type || "application/octet-stream" }));
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = f.name;
+      link.click();
+      setTimeout(() => URL.revokeObjectURL(url), 10_000);
+    } catch (e) {
+      toast((e as Error).message, "error");
+    }
+  };
 
   if (!base) return <EmptyState title="Boîte mail" text="Disponible sur le site publié." />;
   if (!status) return error ? <p className="text-sm text-red-600">{error}</p> : <Skeleton className="h-40" />;
@@ -1164,21 +1280,17 @@ export function Mailbox() {
           <p className="text-lg font-semibold text-neutral-900 dark:text-neutral-100">Connecter ma boîte mail pro</p>
           <p className="text-sm text-neutral-600 dark:text-neutral-400">Lisez, répondez et écrivez vos emails ici, depuis votre adresse habituelle (OVH, Zimbra, Infomaniak, Gandi, Orange, Yahoo, iCloud…). Vos emails restent dans votre boîte : rien ne change sur votre téléphone ou votre ordinateur. Le mot de passe est chiffré et n'est jamais affiché.</p>
         </div>
-        <Field label="Adresse email">
-          <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="off" />
-        </Field>
-        <Field label="Mot de passe de la boîte mail">
-          <Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="new-password" />
-        </Field>
+        <Field label="Adresse email"><Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="off" /></Field>
+        <Field label="Mot de passe de la boîte mail"><Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="new-password" /></Field>
         <button type="button" className="text-sm underline opacity-70" onClick={() => setAdvanced(!advanced)}>
           {advanced ? "Masquer les réglages avancés" : "Réglages avancés (si la connexion automatique échoue)"}
         </button>
         {advanced && (
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            <Field label="Serveur de réception (IMAP)"><Input value={imap.host} placeholder="ex. ssl0.ovh.net" onChange={(e) => setImap({ ...imap, host: e.target.value.trim() })} /></Field>
-            <Field label="Port IMAP"><Input type="number" value={imap.port} onChange={(e) => setImap({ ...imap, port: Number(e.target.value) || 993, secure: Number(e.target.value) !== 143 })} /></Field>
-            <Field label="Serveur d'envoi (SMTP)"><Input value={smtp.host} placeholder="ex. ssl0.ovh.net" onChange={(e) => setSmtp({ ...smtp, host: e.target.value.trim() })} /></Field>
-            <Field label="Port SMTP"><Input type="number" value={smtp.port} onChange={(e) => setSmtp({ ...smtp, port: Number(e.target.value) || 465, secure: Number(e.target.value) === 465 })} /></Field>
+            <Field label="Serveur de réception (IMAP)"><Input value={imapS.host} placeholder="ex. ssl0.ovh.net" onChange={(e) => setImapS({ ...imapS, host: e.target.value.trim() })} /></Field>
+            <Field label="Port IMAP"><Input type="number" value={imapS.port} onChange={(e) => setImapS({ ...imapS, port: Number(e.target.value) || 993, secure: Number(e.target.value) !== 143 })} /></Field>
+            <Field label="Serveur d'envoi (SMTP)"><Input value={smtpS.host} placeholder="ex. ssl0.ovh.net" onChange={(e) => setSmtpS({ ...smtpS, host: e.target.value.trim() })} /></Field>
+            <Field label="Port SMTP"><Input type="number" value={smtpS.port} onChange={(e) => setSmtpS({ ...smtpS, port: Number(e.target.value) || 465, secure: Number(e.target.value) === 465 })} /></Field>
             <Field label="Identifiant (si différent de l'adresse)"><Input value={user} onChange={(e) => setUser(e.target.value)} autoComplete="off" /></Field>
           </div>
         )}
@@ -1189,15 +1301,11 @@ export function Mailbox() {
             setBusy(true);
             setError(null);
             try {
-              const s = await call<{ connected: boolean; email: string }>("connect", {
-                email,
-                password,
-                ...(user ? { user } : {}),
-                ...(advanced && imap.host && smtp.host ? { imap, smtp } : {}),
-              });
+              const s = await call<{ connected: boolean; email: string }>("connect", { email, password, ...(user ? { user } : {}), ...(advanced && imapS.host && smtpS.host ? { imap: imapS, smtp: smtpS } : {}) });
               setStatus(s);
               setPassword("");
-              void refresh();
+              void loadFolders();
+              void load({ folder: "INBOX" });
             } catch (e) {
               setError((e as Error).message);
             } finally {
@@ -1210,120 +1318,204 @@ export function Mailbox() {
       </Card>
     );
 
-  const fmt = (d: string) => new Date(d).toLocaleString(undefined, { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
+  const fmt = (d: string) => {
+    const date = new Date(d);
+    return date.toDateString() === new Date().toDateString() ? date.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" }) : date.toLocaleDateString(undefined, { day: "numeric", month: "short" });
+  };
+  const current = list?.find((m) => m.uid === openUid);
+  const iconBtn = "grid size-10 place-items-center rounded-full text-lg transition hover:bg-black/5 active:scale-95 dark:hover:bg-white/10";
+  const reply = (all: boolean) => {
+    if (!full) return;
+    const others = all ? [full.to, full.cc].join(",").split(",").map((x) => x.trim()).filter((x) => x && x.toLowerCase() !== (status.email ?? "").toLowerCase() && x !== full.fromEmail) : [];
+    setDraft({
+      ...blankDraft(),
+      to: full.fromEmail,
+      cc: others.join(", "),
+      showCc: others.length > 0,
+      subject: /^re\s*:/i.test(full.subject) ? full.subject : "Re : " + full.subject,
+      body: "\n\n" + `Le ${new Date(full.date).toLocaleString()}, ${full.from} a écrit :\n` + full.text.split("\n").slice(0, 60).map((l) => "> " + l).join("\n"),
+      inReplyTo: full.messageId,
+      references: full.references,
+    });
+  };
+
   return (
-    <div className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <p className="min-w-0 truncate font-semibold text-neutral-900 dark:text-neutral-100">📬 {status.email}</p>
-        <div className="flex flex-wrap gap-2">
-          <Button size="sm" onClick={() => setCompose({ to: "", subject: "", body: "" })}>Nouveau message</Button>
-          <Button size="sm" variant="secondary" onClick={() => void refresh()}>Actualiser</Button>
-          <Button
-            size="sm"
-            variant="ghost"
-            onClick={async () => {
-              if (!(await confirmAction("Déconnecter la boîte mail de l'appli ? (vos emails ne sont pas supprimés)"))) return;
-              setStatus(await call("disconnect"));
-              setList(null);
-              setOpen(null);
-            }}
-          >
-            Déconnecter
-          </Button>
-        </div>
+    <div className="space-y-3">
+      <div className="flex flex-wrap items-center gap-2">
+        <Button onClick={() => setDraft(blankDraft())}>✏️ Nouveau message</Button>
+        <form
+          className="flex min-w-0 flex-1 gap-2"
+          onSubmit={(e) => {
+            e.preventDefault();
+            setQuery(search);
+            void load({ page: 1, search });
+          }}
+        >
+          <Input className="min-w-0 flex-1" value={search} placeholder="Rechercher (expéditeur, objet, texte)…" onChange={(e) => setSearch(e.target.value)} />
+          {query && (
+            <Button type="button" variant="ghost" onClick={() => { setSearch(""); setQuery(""); void load({ page: 1, search: "" }); }}>
+              ✕
+            </Button>
+          )}
+        </form>
+        <Button variant="secondary" onClick={() => { void loadFolders(); void load({ page: 1 }); }}>↻</Button>
+        <Button
+          variant="ghost"
+          onClick={async () => {
+            if (!(await confirmAction("Déconnecter la boîte mail de l'appli ? (vos emails ne sont pas supprimés)"))) return;
+            setStatus(await call("disconnect"));
+          }}
+        >
+          Déconnecter
+        </Button>
       </div>
       {error && <p className="text-sm text-red-600">{error}</p>}
-      <div className="grid gap-4 lg:grid-cols-[minmax(0,22rem)_1fr]">
-        <Card className={"max-h-[70vh] overflow-y-auto p-1 " + (open ? "hidden lg:block" : "")}>
-          {!list ? (
-            <Skeleton className="m-2 h-40" />
-          ) : list.length ? (
-            list.map((m) => (
+      <div className="grid gap-3 lg:grid-cols-[13rem_minmax(0,21rem)_1fr]">
+        {/* Folders: a column on computers, a menu on phones */}
+        <div className={openUid ? "hidden lg:block" : ""}>
+          <Select className="lg:hidden" value={folder} onChange={(e) => { setFolder(e.target.value); setOpenUid(null); setFull(null); void load({ folder: e.target.value, page: 1 }); }}>
+            {folders.map((f) => (
+              <option key={f.path} value={f.path}>{FOLDER_ICON[f.role]} {f.name}{f.unseen ? ` (${f.unseen})` : ""}</option>
+            ))}
+          </Select>
+          <nav className="hidden space-y-0.5 lg:block">
+            {folders.map((f) => (
               <button
-                key={m.uid}
+                key={f.path}
                 type="button"
-                onClick={async () => {
-                  setBusy(true);
-                  try {
-                    setOpen(await call<MailFull>("read", { uid: m.uid }));
-                    setList((l) => l?.map((x) => (x.uid === m.uid ? { ...x, seen: true } : x)) ?? l);
-                  } catch (e) {
-                    setError((e as Error).message);
-                  } finally {
-                    setBusy(false);
-                  }
-                }}
-                className={"block w-full rounded-xl px-3 py-2.5 text-left transition hover:bg-black/5 dark:hover:bg-white/5 " + (open?.uid === m.uid ? "bg-[var(--brand)]/10" : "")}
+                onClick={() => { setFolder(f.path); setOpenUid(null); setFull(null); void load({ folder: f.path, page: 1 }); }}
+                className={"flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-sm transition " + (folder === f.path ? "bg-[var(--brand)]/10 font-semibold text-[var(--brand)]" : "hover:bg-black/5 dark:hover:bg-white/5")}
               >
-                <span className="flex items-center justify-between gap-2 text-sm">
-                  <span className={"min-w-0 truncate " + (m.seen ? "" : "font-semibold")}>{!m.seen && <span className="mr-1.5 inline-block size-2 rounded-full bg-[var(--brand)]" />}{m.from}</span>
-                  <span className="shrink-0 text-xs opacity-60">{fmt(m.date)}</span>
-                </span>
-                <span className={"block truncate text-sm " + (m.seen ? "opacity-70" : "font-medium")}>{m.subject}</span>
+                <span>{FOLDER_ICON[f.role]}</span>
+                <span className="min-w-0 flex-1 truncate">{f.name}</span>
+                {f.unseen > 0 && f.role !== "sent" && <span className="rounded-full bg-[var(--brand)] px-2 text-xs leading-5 text-white">{f.unseen}</span>}
               </button>
-            ))
+            ))}
+          </nav>
+        </div>
+        {/* List */}
+        <Card className={"max-h-[75vh] overflow-y-auto p-1 " + (openUid ? "hidden lg:block" : "")}>
+          {!list ? (
+            <div className="space-y-2 p-2">{[0, 1, 2, 3, 4].map((i) => <Skeleton key={i} className="h-12" />)}</div>
+          ) : list.length ? (
+            <>
+              {list.map((m) => (
+                <div key={m.uid} className={"group flex items-start gap-1 rounded-xl px-2 py-2 transition hover:bg-black/5 dark:hover:bg-white/5 " + (openUid === m.uid ? "bg-[var(--brand)]/10" : "")}>
+                  <button type="button" aria-label={m.flagged ? "Retirer l'étoile" : "Étoile"} onClick={() => void act(m.flagged ? "unstar" : "star", [m.uid])} className="mt-0.5 shrink-0 px-1 text-base">
+                    {m.flagged ? "⭐" : <span className="opacity-30 group-hover:opacity-70">☆</span>}
+                  </button>
+                  <button type="button" onClick={() => void openMail(m)} className="min-w-0 flex-1 text-left">
+                    <span className="flex items-center justify-between gap-2 text-sm">
+                      <span className={"min-w-0 truncate " + (m.seen ? "" : "font-semibold")}>
+                        {!m.seen && <span className="mr-1.5 inline-block size-2 rounded-full bg-[var(--brand)]" />}
+                        {role === "sent" || role === "drafts" ? "À : " + (m.to || "—") : m.from}
+                      </span>
+                      <span className="shrink-0 text-xs opacity-60">{m.attachments ? "📎 " : ""}{fmt(m.date)}</span>
+                    </span>
+                    <span className={"block truncate text-sm " + (m.seen ? "opacity-70" : "font-medium")}>{m.subject}</span>
+                  </button>
+                </div>
+              ))}
+              {hasMore && (
+                <button type="button" className="w-full p-3 text-sm text-[var(--brand)]" onClick={() => void load({ page: page + 1 })}>
+                  Charger plus
+                </button>
+              )}
+            </>
           ) : (
-            <p className="p-4 text-sm opacity-70">Aucun email.</p>
+            <p className="p-4 text-sm opacity-70">{query ? "Aucun email trouvé." : "Aucun email."}</p>
           )}
         </Card>
-        <Card className={"min-h-[50vh] p-5 " + (open ? "" : "hidden lg:block")}>
-          {busy && !open ? (
-            <Skeleton className="h-40" />
-          ) : open ? (
-            <div className="space-y-4">
-              <button type="button" className="text-sm underline opacity-70 lg:hidden" onClick={() => setOpen(null)}>← Retour à la liste</button>
-              <div className="space-y-1">
-                <p className="text-lg font-semibold text-neutral-900 dark:text-neutral-100">{open.subject}</p>
-                <p className="text-sm opacity-80">{open.from} &lt;{open.fromEmail}&gt; · {fmt(open.date)}</p>
-                {open.to && <p className="text-xs opacity-60">À : {open.to}</p>}
-              </div>
-              <div className="flex flex-wrap gap-2">
-                <Button
-                  size="sm"
-                  onClick={() =>
-                    setCompose({
-                      to: open.fromEmail,
-                      subject: /^re\s*:/i.test(open.subject) ? open.subject : "Re : " + open.subject,
-                      body: "\n\n" + `Le ${fmt(open.date)}, ${open.from} a écrit :\n` + open.text.split("\n").slice(0, 40).map((l) => "> " + l).join("\n"),
-                      inReplyTo: open.messageId,
-                      references: open.references,
-                    })
-                  }
-                >
-                  Répondre
-                </Button>
-                <Button size="sm" variant="secondary" onClick={() => setCompose({ to: "", subject: "Tr : " + open.subject, body: "\n\n---------- Message transféré ----------\n" + `De : ${open.from} <${open.fromEmail}>\n\n` + open.text })}>
-                  Transférer
-                </Button>
-              </div>
-              {open.html ? (
-                <iframe title="email" sandbox="" srcDoc={open.html} className="h-[60vh] w-full rounded-xl border border-black/10 bg-white dark:border-white/10" />
-              ) : (
-                <pre className="whitespace-pre-wrap break-words font-sans text-sm leading-relaxed">{open.text}</pre>
-              )}
-              {open.attachments.length > 0 && <p className="text-xs opacity-60">📎 {open.attachments.map((a) => a.name).join(", ")} (à ouvrir depuis votre messagerie habituelle)</p>}
-            </div>
-          ) : (
+        {/* Reading */}
+        <Card className={"min-h-[50vh] p-4 sm:p-5 " + (openUid ? "" : "hidden lg:block")}>
+          {!openUid ? (
             <p className="text-sm opacity-60">Choisissez un email dans la liste.</p>
+          ) : (
+            <div className="space-y-3">
+              <div className="flex flex-wrap items-center gap-0.5">
+                <button type="button" className={iconBtn + " lg:hidden"} aria-label="Retour" onClick={() => { setOpenUid(null); setFull(null); }}>←</button>
+                <button type="button" className={iconBtn} title="Répondre" aria-label="Répondre" onClick={() => reply(false)}>↩️</button>
+                <button type="button" className={iconBtn} title="Répondre à tous" aria-label="Répondre à tous" onClick={() => reply(true)}>⏪</button>
+                <button
+                  type="button"
+                  className={iconBtn}
+                  title="Transférer"
+                  aria-label="Transférer"
+                  onClick={() => full && setDraft({ ...blankDraft(), subject: "Tr : " + full.subject, body: "\n\n---------- Message transféré ----------\n" + `De : ${full.from} <${full.fromEmail}>\nDate : ${new Date(full.date).toLocaleString()}\nObjet : ${full.subject}\n\n` + full.text })}
+                >
+                  ↪️
+                </button>
+                <span className="mx-1 h-6 w-px bg-black/10 dark:bg-white/15" />
+                <button type="button" className={iconBtn} title={current?.flagged ? "Retirer l'étoile" : "Étoile"} onClick={() => current && void act(current.flagged ? "unstar" : "star", [current.uid])}>{current?.flagged ? "⭐" : "☆"}</button>
+                <button type="button" className={iconBtn} title="Marquer comme non lu" onClick={() => current && (void act("unread", [current.uid]), setOpenUid(null), setFull(null))}>✉️</button>
+                {role !== "archive" && <button type="button" className={iconBtn} title="Archiver" onClick={() => openUid && void act("archive", [openUid])}>🗄️</button>}
+                {role === "junk" ? (
+                  <button type="button" className={iconBtn} title="Ce n'est pas du spam" onClick={() => openUid && void act("inbox", [openUid])}>✅</button>
+                ) : (
+                  <button type="button" className={iconBtn} title="Spam" onClick={() => openUid && void act("junk", [openUid])}>🚫</button>
+                )}
+                {role === "trash" ? (
+                  <button type="button" className={iconBtn} title="Supprimer définitivement" onClick={async () => openUid && (await confirmAction("Supprimer définitivement cet email ?")) && void act("delete", [openUid])}>❌</button>
+                ) : (
+                  <button type="button" className={iconBtn} title="Corbeille" onClick={() => openUid && void act("trash", [openUid])}>🗑️</button>
+                )}
+                <Select className="ml-auto h-10 w-auto min-w-0 text-sm" value="" onChange={(e) => e.target.value && openUid && void act("move", [openUid], e.target.value)}>
+                  <option value="">Déplacer…</option>
+                  {folders.filter((f) => f.path !== folder).map((f) => <option key={f.path} value={f.path}>{f.name}</option>)}
+                </Select>
+              </div>
+              {!full ? (
+                <div className="space-y-2">
+                  <p className="text-lg font-semibold">{current?.subject}</p>
+                  <p className="text-sm opacity-70">{current?.from}</p>
+                  <Skeleton className="h-48" />
+                </div>
+              ) : (
+                <>
+                  <div className="space-y-0.5">
+                    <p className="text-lg font-semibold text-neutral-900 dark:text-neutral-100">{full.subject}</p>
+                    <p className="text-sm opacity-80">{full.from} &lt;{full.fromEmail}&gt; · {new Date(full.date).toLocaleString()}</p>
+                    {full.to && <p className="text-xs opacity-60">À : {full.to}{full.cc ? " · Cc : " + full.cc : ""}</p>}
+                  </div>
+                  {full.attachments.length > 0 && (
+                    <div className="flex flex-wrap gap-2">
+                      {full.attachments.map((a) => (
+                        <button key={a.index} type="button" onClick={() => void download(a)} className="rounded-full border border-black/10 px-3 py-1.5 text-xs hover:bg-black/5 dark:border-white/15 dark:hover:bg-white/10">
+                          📎 {a.name} · {Math.max(1, Math.round(a.size / 1024))} Ko
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                  {full.html ? (
+                    <iframe title="email" sandbox="allow-popups allow-popups-to-escape-sandbox" srcDoc={'<base target="_blank">' + full.html} className="h-[62vh] w-full rounded-xl border border-black/10 bg-white dark:border-white/10" />
+                  ) : (
+                    <pre className="whitespace-pre-wrap break-words font-sans text-sm leading-relaxed">{full.text}</pre>
+                  )}
+                </>
+              )}
+            </div>
           )}
         </Card>
       </div>
       <Dialog
-        open={Boolean(compose)}
-        onClose={() => setCompose(null)}
-        title={compose?.inReplyTo ? "Répondre" : "Nouveau message"}
+        open={Boolean(draft)}
+        onClose={() => setDraft(null)}
+        title={draft?.inReplyTo ? "Répondre" : draft?.draftUid ? "Brouillon" : "Nouveau message"}
         footer={
           <>
-            <Button variant="ghost" onClick={() => setCompose(null)}>Annuler</Button>
             <Button
-              disabled={busy || !compose?.to || !compose?.subject || !compose?.body.trim()}
+              variant="ghost"
+              disabled={busy}
               onClick={async () => {
-                if (!compose) return;
+                if (!draft) return;
                 setBusy(true);
                 try {
-                  await call("send", compose);
-                  toast("Email envoyé ✓");
-                  setCompose(null);
+                  const { attachments, showCc: _showCc, ...rest } = draft;
+                  void _showCc;
+                  const r = await call<{ draftUid?: number }>("draft", { ...rest, attachments: attachments.map(({ size: _s, ...a }) => (void _s, a)) });
+                  setDraft({ ...draft, draftUid: r.draftUid });
+                  toast("Brouillon enregistré ✓");
+                  void loadFolders();
                 } catch (e) {
                   toast((e as Error).message, "error");
                 } finally {
@@ -1331,16 +1523,78 @@ export function Mailbox() {
                 }
               }}
             >
-              {busy ? "Envoi…" : "Envoyer"}
+              Enregistrer le brouillon
+            </Button>
+            <Button
+              disabled={busy || !draft?.to || !draft?.subject || !draft?.body.trim()}
+              onClick={async () => {
+                if (!draft) return;
+                setBusy(true);
+                try {
+                  const { attachments, showCc: _showCc, ...rest } = draft;
+                  void _showCc;
+                  await call("send", { ...rest, attachments: attachments.map(({ size: _s, ...a }) => (void _s, a)) });
+                  toast("Email envoyé ✓");
+                  setDraft(null);
+                  void loadFolders();
+                  if (role === "drafts" || role === "sent") void load({ page: 1 });
+                } catch (e) {
+                  toast((e as Error).message, "error");
+                } finally {
+                  setBusy(false);
+                }
+              }}
+            >
+              {busy ? "…" : "Envoyer"}
             </Button>
           </>
         }
       >
-        {compose && (
+        {draft && (
           <div className="space-y-3">
-            <Field label="À"><Input type="email" multiple value={compose.to} onChange={(e) => setCompose({ ...compose, to: e.target.value })} /></Field>
-            <Field label="Objet"><Input value={compose.subject} onChange={(e) => setCompose({ ...compose, subject: e.target.value })} /></Field>
-            <Field label="Message"><Textarea rows={10} value={compose.body} onChange={(e) => setCompose({ ...compose, body: e.target.value })} autoFocus /></Field>
+            <Field label="À"><Input value={draft.to} onChange={(e) => setDraft({ ...draft, to: e.target.value })} placeholder="adresse@exemple.be (plusieurs : séparées par des virgules)" /></Field>
+            {draft.showCc ? (
+              <div className="grid gap-3 sm:grid-cols-2">
+                <Field label="Cc"><Input value={draft.cc} onChange={(e) => setDraft({ ...draft, cc: e.target.value })} /></Field>
+                <Field label="Cci"><Input value={draft.bcc} onChange={(e) => setDraft({ ...draft, bcc: e.target.value })} /></Field>
+              </div>
+            ) : (
+              <button type="button" className="text-xs underline opacity-70" onClick={() => setDraft({ ...draft, showCc: true })}>Ajouter Cc / Cci</button>
+            )}
+            <Field label="Objet"><Input value={draft.subject} onChange={(e) => setDraft({ ...draft, subject: e.target.value })} /></Field>
+            <Field label="Message"><Textarea rows={10} value={draft.body} onChange={(e) => setDraft({ ...draft, body: e.target.value })} autoFocus /></Field>
+            <div className="flex flex-wrap items-center gap-2">
+              <label className="cursor-pointer rounded-full border border-black/10 px-3 py-1.5 text-sm dark:border-white/15">
+                📎 Joindre un fichier
+                <input
+                  type="file"
+                  multiple
+                  className="hidden"
+                  onChange={async (e) => {
+                    const files = Array.from(e.target.files ?? []);
+                    e.target.value = "";
+                    const total = draft.attachments.reduce((n, a) => n + a.size, 0) + files.reduce((n, f) => n + f.size, 0);
+                    if (total > 3_000_000) return toast("Pièces jointes trop lourdes (3 Mo au total depuis l'appli).", "error");
+                    const added = await Promise.all(
+                      files.map(
+                        (f) =>
+                          new Promise<MailDraft["attachments"][number]>((resolve) => {
+                            const r = new FileReader();
+                            r.onload = () => resolve({ name: f.name, type: f.type || "application/octet-stream", size: f.size, data: String(r.result).split(",")[1] ?? "" });
+                            r.readAsDataURL(f);
+                          }),
+                      ),
+                    );
+                    setDraft((d) => (d ? { ...d, attachments: [...d.attachments, ...added] } : d));
+                  }}
+                />
+              </label>
+              {draft.attachments.map((a, i) => (
+                <button key={i} type="button" className="rounded-full bg-black/5 px-3 py-1.5 text-xs dark:bg-white/10" title="Retirer" onClick={() => setDraft({ ...draft, attachments: draft.attachments.filter((_, j) => j !== i) })}>
+                  {a.name} ✕
+                </button>
+              ))}
+            </div>
           </div>
         )}
       </Dialog>
