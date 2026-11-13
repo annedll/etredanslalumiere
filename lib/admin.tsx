@@ -1562,6 +1562,8 @@ type MailFolder = {
 };
 type MailItem = {
   uid: number;
+  /** « Toutes les boîtes »: the mailbox of this email. */
+  account?: number;
   from: string;
   fromEmail: string;
   to: string;
@@ -1586,6 +1588,8 @@ type MailFull = {
   attachments: { index: number; name: string; size: number; type: string }[];
 };
 type MailDraft = {
+  /** The mailbox it is sent from. */
+  account?: number;
   to: string;
   cc: string;
   bcc: string;
@@ -1650,6 +1654,7 @@ const MAIL_ICONS = {
   move: '<path d="M2 9V5a2 2 0 0 1 2-2h3.9a2 2 0 0 1 1.69.9l.81 1.2a2 2 0 0 0 1.67.9H20a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-1"/><path d="M2 13h10"/><path d="m9 16 3-3-3-3"/>',
   remove: '<path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="m10 11 4 4"/><path d="m14 11-4 4"/>',
   open: '<path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/>',
+  keyboard: '<rect width="20" height="16" x="2" y="4" rx="2"/><path d="M6 8h.01M10 8h.01M14 8h.01M18 8h.01M8 12h.01M12 12h.01M16 12h.01M7 16h10"/>',
 } as const;
 type MailIconName = keyof typeof MAIL_ICONS;
 function MailIcon({ name, filled, className }: { name: MailIconName; filled?: boolean; className?: string }) {
@@ -1682,7 +1687,13 @@ function MailRow({
   checked,
   selecting,
   onSelect,
+  count = 1,
+  box,
 }: {
+  /** Emails in this conversation. */
+  count?: number;
+  /** « Toutes les boîtes »: the mailbox it arrived in. */
+  box?: string;
   checked: boolean;
   /** Selection under way: a tap selects instead of opening. */
   selecting: boolean;
@@ -1812,11 +1823,13 @@ function MailRow({
             <span className={cn("min-w-0 truncate text-sm", m.seen ? "text-neutral-700 dark:text-neutral-300" : "font-semibold text-neutral-900 dark:text-neutral-100")}>
               {outgoing ? "À : " : ""}
               {who}
+              {count > 1 && <span className="ml-1.5 rounded-full bg-black/[0.06] px-1.5 text-xs font-medium text-neutral-600 dark:bg-white/10 dark:text-neutral-300">{count}</span>}
             </span>
             <span className={cn("shrink-0 text-xs", m.seen ? "text-neutral-500" : "font-semibold text-[var(--brand)]")}>{date}</span>
           </span>
           <span className="mt-0.5 flex items-center gap-1.5">
             <span className={cn("min-w-0 flex-1 truncate text-sm", m.seen ? "text-neutral-500 dark:text-neutral-400" : "font-medium text-neutral-800 dark:text-neutral-200")}>{m.subject}</span>
+            {box && <span className="max-w-[40%] shrink-0 truncate rounded-full bg-[var(--brand)]/10 px-2 text-[11px] leading-5 text-[var(--brand)]">{box.split("@")[0]}</span>}
             {m.attachments && <MailIcon name="clip" className="size-3.5 text-neutral-400" />}
             <button
               type="button"
@@ -2119,6 +2132,16 @@ function MailAccountSettings({
  * all / forward, drafts. Any IMAP / SMTP provider; the settings are found from the address; the password stays on
  * Usin's server, encrypted. Emails stay in the mailbox (phone and computer unchanged). <Mailbox />
  */
+/** « Toutes les boîtes » in the picker; in that view a row's key holds its mailbox (key = mailbox × 10¹⁰ + uid). */
+const ALL = -1;
+const KEY = 1e10;
+const threadKey = (s: string) => {
+  let t = s.trim();
+  for (let i = 0; i < 5; i++) t = t.replace(/^(?:re|tr|fw|fwd|aw|wg|sv|antw|réf)\s*(?:\[\d+\])?\s*:\s*/i, "").trim();
+  return t.toLowerCase();
+};
+type ThreadItem = MailItem & { folder: string };
+
 export function Mailbox() {
   const { supabase } = useContent();
   const base = env.paymentsUrl ? env.paymentsUrl.replace("/api/pay/", "/api/app-notify/") : "";
@@ -2127,9 +2150,26 @@ export function Mailbox() {
   const [account, setAccount] = useState<number | null>(null);
   const call = <T,>(action: string, body: Record<string, unknown> = {}) =>
     mailCall<T>(supabase!, action, {
-      ...(accountRef.current ? { account: accountRef.current } : {}),
+      ...(accountRef.current && accountRef.current > 0 ? { account: accountRef.current } : {}),
       ...body,
     });
+  /** The mailbox and real number of a row (they differ in « Toutes les boîtes »). */
+  const split = (key: number) => (accountRef.current === ALL ? { account: Math.floor(key / KEY), uid: key % KEY } : { account: accountRef.current ?? undefined, uid: key });
+  const callAt = <T,>(key: number, action: string, body: Record<string, unknown> = {}) => {
+    const s = split(key);
+    return mailCall<T>(supabase!, action, { ...body, ...(s.account && s.account > 0 ? { account: s.account } : {}), uid: s.uid });
+  };
+  // Conversations: the emails of one exchange on one line (switch kept on this device).
+  const [threads, setThreads] = useState(() => {
+    try {
+      return localStorage.getItem("usin:mail-threads") !== "off";
+    } catch {
+      return true;
+    }
+  });
+  const [thread, setThread] = useState<ThreadItem[] | null>(null);
+  const [opened, setOpened] = useState<Record<string, MailFull | "loading">>({});
+  const [sigs, setSigs] = useState<Record<number, string>>({});
   const location = useLocation();
   const [status, setStatus] = useState<MailStatus | null>(null);
   const [adding, setAdding] = useState(false);
@@ -2201,8 +2241,9 @@ export function Mailbox() {
   const role = folders.find((f) => f.path === folder)?.role ?? "inbox";
   const current_ = status?.accounts.find((a) => a.id === account) ?? status?.accounts[0];
   const loadFolders = () =>
-    call<MailFolder[]>("folders")
+    (accountRef.current === ALL ? mailCall<{ unseen: number }>(supabase!, "unseen").then((r) => (setBadge("mail", r.unseen), [] as MailFolder[])) : call<MailFolder[]>("folders"))
       .then((fs) => {
+        if (accountRef.current === ALL) return;
         setFolders(fs);
         // The counter of the menu: every mailbox together.
         if ((status?.accounts.length ?? 1) > 1)
@@ -2223,7 +2264,11 @@ export function Mailbox() {
     setSearch("");
     cache.clear();
     setSignature(null);
-    if (id && s?.connected) {
+    setThread(null);
+    if (id === ALL && s?.connected) {
+      void loadFolders();
+      void load({ folder: "INBOX", search: "" });
+    } else if (id && s?.connected) {
       void loadFolders();
       void load({ folder: "INBOX", search: "" });
       void call<{ html: string }>("signature")
@@ -2246,11 +2291,17 @@ export function Mailbox() {
       setSelected([]);
     }
     try {
-      const r = await call<{ items: MailItem[]; hasMore: boolean }>("list", {
-        folder: f,
-        page: p,
-        search: q || undefined,
-      });
+      const r =
+        accountRef.current === ALL
+          ? await mailCall<{ items: MailItem[]; hasMore: boolean }>(supabase!, "list-all", { page: p, search: q || undefined }).then((x) => ({
+              ...x,
+              items: x.items.map((m) => ({ ...m, uid: (m.account ?? 0) * KEY + m.uid })),
+            }))
+          : await call<{ items: MailItem[]; hasMore: boolean }>("list", {
+              folder: f,
+              page: p,
+              search: q || undefined,
+            });
       setList((old) => (p === 1 ? r.items : [...(old ?? []), ...r.items]));
       setHasMore(r.hasMore);
       setPage(p);
@@ -2259,8 +2310,7 @@ export function Mailbox() {
         for (const m of r.items.slice(0, 6)) {
           const k = accountRef.current + ":" + f + ":" + m.uid;
           if (cache.has(k)) continue;
-          const one = await call<MailFull>("read", {
-            uid: m.uid,
+          const one = await callAt<MailFull>(m.uid, "read", {
             folder: f,
             peek: true,
           }).catch(() => null);
@@ -2300,7 +2350,10 @@ export function Mailbox() {
     const t = setInterval(() => {
       if (document.visibilityState !== "visible" || query || page > 1) return;
       void loadFolders();
-      call<{ items: MailItem[]; hasMore: boolean }>("list", { folder, page: 1 })
+      (accountRef.current === ALL
+        ? mailCall<{ items: MailItem[]; hasMore: boolean }>(supabase!, "list-all", { page: 1 }).then((x) => ({ ...x, items: x.items.map((m) => ({ ...m, uid: (m.account ?? 0) * KEY + m.uid })) }))
+        : call<{ items: MailItem[]; hasMore: boolean }>("list", { folder, page: 1 })
+      )
         .then((r) => setList((old) => (old && r.items.length && old[0]?.uid === r.items[0]?.uid ? old : r.items)))
         .catch(() => undefined);
     }, 60_000);
@@ -2311,6 +2364,13 @@ export function Mailbox() {
   const openMail = async (m: MailItem) => {
     openRef.current = m.uid;
     setOpenUid(m.uid);
+    setThread(null);
+    setOpened({});
+    // The whole conversation (my answers included) is fetched next to it.
+    if (threads && role !== "drafts")
+      void callAt<{ items: ThreadItem[] }>(m.uid, "thread", { subject: m.subject })
+        .then((r) => openRef.current === m.uid && setThread(r.items.length > 1 ? r.items : null))
+        .catch(() => undefined);
     const k = accountRef.current + ":" + folder + ":" + m.uid;
     const hit = cache.get(k);
     setFull(hit ?? null);
@@ -2320,7 +2380,7 @@ export function Mailbox() {
       if (role === "inbox") setBadge("mail", Math.max(0, (folders.find((f) => f.path === folder)?.unseen ?? 1) - 1));
     }
     if (role === "drafts") {
-      const d = hit ?? (await call<MailFull>("read", { uid: m.uid, folder, peek: true }).catch(() => null));
+      const d = hit ?? (await callAt<MailFull>(m.uid, "read", { folder, peek: true }).catch(() => null));
       if (d)
         setDraft({
           ...blankDraft(),
@@ -2328,17 +2388,18 @@ export function Mailbox() {
           cc: d.cc,
           subject: d.subject === "(sans objet)" ? "" : d.subject,
           body: d.text,
-          draftUid: m.uid,
+          draftUid: split(m.uid).uid,
+          account: split(m.uid).account,
           showCc: Boolean(d.cc),
         });
       return;
     }
     if (hit) {
-      if (!m.seen) void call("act", { uids: [m.uid], folder, action: "read" }).catch(() => undefined);
+      if (!m.seen) void act("read", [m.uid], undefined, true);
       return;
     }
     try {
-      const one = await call<MailFull>("read", { uid: m.uid, folder });
+      const one = await callAt<MailFull>(m.uid, "read", { folder });
       cache.set(k, one);
       if (openRef.current === m.uid) setFull(one);
     } catch (e) {
@@ -2346,7 +2407,21 @@ export function Mailbox() {
     }
   };
 
-  const act = async (action: string, uids: number[], to?: string) => {
+  /** A conversation's line stands for all its emails of this folder. */
+  const expand = (keys: number[]) => {
+    if (!threads || !list) return keys;
+    const groups = new Map<string, number[]>();
+    for (const x of list) {
+      const g = (accountRef.current === ALL ? Math.floor(x.uid / KEY) + ":" : "") + threadKey(x.subject);
+      groups.set(g, [...(groups.get(g) ?? []), x.uid]);
+    }
+    return Array.from(new Set(keys.flatMap((k) => {
+      const x = list.find((y) => y.uid === k);
+      return x ? groups.get((accountRef.current === ALL ? Math.floor(x.uid / KEY) + ":" : "") + threadKey(x.subject)) ?? [k] : [k];
+    })));
+  };
+  const act = async (action: string, keys: number[], to?: string, only = false) => {
+    const uids = only ? keys : expand(keys);
     const moving = !["read", "unread", "star", "unstar"].includes(action);
     setList((l) =>
       moving
@@ -2366,7 +2441,13 @@ export function Mailbox() {
       setFull(null);
     }
     try {
-      await call("act", { uids, folder, action, to });
+      // In « Toutes les boîtes », each mailbox gets its own emails.
+      const byBox = new Map<number | undefined, number[]>();
+      for (const k of uids) {
+        const s2 = split(k);
+        byBox.set(s2.account, [...(byBox.get(s2.account) ?? []), s2.uid]);
+      }
+      for (const [acc, real] of byBox) await mailCall(supabase!, "act", { ...(acc && acc > 0 ? { account: acc } : {}), uids: real, folder, action, to });
       if (moving || action === "read" || action === "unread") void loadFolders();
     } catch (e) {
       toast((e as Error).message, "error");
@@ -2377,7 +2458,7 @@ export function Mailbox() {
   const download = async (a: { index: number; name: string }) => {
     if (!full) return;
     try {
-      const f = await call<{ name: string; type: string; data: string }>("attachment", { uid: full.uid, index: a.index, folder });
+      const f = await callAt<{ name: string; type: string; data: string }>(openUid ?? full.uid, "attachment", { index: a.index, folder });
       const bytes = Uint8Array.from(atob(f.data), (ch) => ch.charCodeAt(0));
       const url = URL.createObjectURL(new Blob([bytes], { type: f.type || "application/octet-stream" }));
       const link = document.createElement("a");
@@ -2544,9 +2625,38 @@ export function Mailbox() {
       : date.toLocaleDateString(undefined, { day: "numeric", month: "short" });
   };
   const current = list?.find((m) => m.uid === openUid);
+  const boxOf = (key: number) => status.accounts.find((a) => a.id === Math.floor(key / KEY))?.email ?? "";
+  // One line per conversation (the newest email, how many, unread if one is).
+  const rows: (MailItem & { count: number })[] = !list
+    ? []
+    : !threads
+      ? list.map((m) => ({ ...m, count: 1 }))
+      : (() => {
+          const seen = new Map<string, MailItem & { count: number }>();
+          for (const m of list) {
+            const g = (account === ALL ? Math.floor(m.uid / KEY) + ":" : "") + threadKey(m.subject);
+            const top = seen.get(g);
+            if (!top) seen.set(g, { ...m, count: 1 });
+            else seen.set(g, { ...top, count: top.count + 1, seen: top.seen && m.seen, flagged: top.flagged || m.flagged, attachments: top.attachments || m.attachments });
+          }
+          return Array.from(seen.values());
+        })();
   const outgoing = role === "sent" || role === "drafts";
   const fullOf = async (m: MailItem) =>
-    cache.get(accountRef.current + ":" + folder + ":" + m.uid) ?? (full?.uid === m.uid ? full : await call<MailFull>("read", { uid: m.uid, folder, peek: true }).catch(() => null));
+    cache.get(accountRef.current + ":" + folder + ":" + m.uid) ?? (openUid === m.uid && full ? full : await callAt<MailFull>(m.uid, "read", { folder, peek: true }).catch(() => null));
+  /** The mailbox an answer leaves from: the one of the email, else the one shown, else the person's first. */
+  const fromBox = (key?: number | null) => {
+    const a = key != null ? split(key).account : undefined;
+    return a && a > 0 ? a : accountRef.current && accountRef.current > 0 ? accountRef.current : (status.accounts.find((x) => x.mine) ?? status.accounts[0])?.id;
+  };
+  const compose = (d: MailDraft) => {
+    const acc = d.account ?? fromBox(openUid);
+    setDraft({ ...d, account: acc });
+    if (acc && sigs[acc] === undefined)
+      void mailCall<{ html: string }>(supabase!, "signature", { account: acc })
+        .then((r) => setSigs((x) => ({ ...x, [acc]: status.accounts.find((a) => a.id === acc)?.signature.on === false ? "" : r.html })))
+        .catch(() => undefined);
+  };
   const reply = (f: MailFull | null, all: boolean) => {
     if (!f) return;
     const others = all
@@ -2556,7 +2666,7 @@ export function Mailbox() {
           .map((x) => x.trim())
           .filter((x) => x && !x.toLowerCase().includes((current_?.email ?? "").toLowerCase()) && !x.includes(f.fromEmail))
       : [];
-    setDraft({
+    compose({
       ...blankDraft(),
       to: f.fromEmail,
       cc: others.join(", "),
@@ -2576,7 +2686,7 @@ export function Mailbox() {
   };
   const forward = (f: MailFull | null) =>
     f &&
-    setDraft({
+    compose({
       ...blankDraft(),
       subject: "Tr : " + f.subject,
       body: "\n\n---------- Message transféré ----------\n" + `De : ${f.from} <${f.fromEmail}>\nDate : ${new Date(f.date).toLocaleString()}\nObjet : ${f.subject}\n\n` + f.text,
@@ -2584,6 +2694,7 @@ export function Mailbox() {
   const close = () => {
     setOpenUid(null);
     setFull(null);
+    setThread(null);
   };
   const choose = (path: string) => {
     setFolder(path);
@@ -2711,10 +2822,10 @@ export function Mailbox() {
   keyHandler.current = (e: KeyboardEvent) => {
     const t = e.target as HTMLElement | null;
     if (t?.closest("input,textarea,select,[contenteditable='true']") || draft || settingsOpen || moving || menu || helpOpen || !list) return;
-    const idx = list.findIndex((m) => m.uid === openUid);
-    const cur = idx >= 0 ? list[idx] : null;
+    const idx = rows.findIndex((m) => m.uid === openUid);
+    const cur = idx >= 0 ? rows[idx] : null;
     const go = (i: number) => {
-      const m = list[Math.max(0, Math.min(list.length - 1, i))];
+      const m = rows[Math.max(0, Math.min(rows.length - 1, i))];
       if (m) void openMail(m);
     };
     const k = e.key;
@@ -2740,7 +2851,7 @@ export function Mailbox() {
       u: () => void onTargets("unread"),
       i: () => void onTargets("read"),
       s: () => cur && void act(cur.flagged ? "unstar" : "star", [cur.uid]),
-      c: () => setDraft(blankDraft()),
+      c: () => compose(blankDraft()),
       "/": () => searchRef.current?.focus(),
       "?": () => setHelpOpen(true),
       Escape: () => (selected.length || selecting ? clearSelection() : close()),
@@ -2757,12 +2868,13 @@ export function Mailbox() {
     <div ref={box} className="space-y-4">
       {/* Top: write, search, refresh, settings */}
       <div className="flex items-center gap-2">
-        <Button onClick={() => setDraft(blankDraft())} className="shrink-0">
+        <Button onClick={() => compose(blankDraft())} className="shrink-0">
           <MailIcon name="write" />
           <span className="max-sm:hidden">Écrire</span>
         </Button>
         {status.accounts.length > 1 && (
           <Select aria-label="Boîte mail" className="w-auto max-w-[40%] shrink-0 rounded-full" value={String(account ?? "")} onChange={(e) => switchTo(Number(e.target.value))}>
+            <option value={ALL}>Toutes les boîtes</option>
             {status.accounts.map((a) => (
               <option key={a.id} value={a.id}>
                 {a.email}
@@ -2814,9 +2926,15 @@ export function Mailbox() {
         </Button>
       </div>
 
-      {/* Folders */}
+      {/* Folders (in « Toutes les boîtes »: the inboxes together) */}
       <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 [scrollbar-width:none] sm:mx-0 sm:flex-wrap sm:px-0">
-        {folders.map((f) => (
+        {account === ALL && (
+          <span className="inline-flex min-h-10 shrink-0 items-center gap-2 rounded-full bg-[var(--brand)] px-4 text-sm font-medium text-white shadow-sm shadow-[var(--brand)]/20">
+            <MailIcon name="inbox" className="size-4" />
+            Réception de toutes les boîtes
+          </span>
+        )}
+        {account !== ALL && folders.map((f) => (
           <button
             key={f.path}
             type="button"
@@ -2901,8 +3019,27 @@ export function Mailbox() {
                     Sélectionner
                   </button>
                   <span className="flex-1" />
-                  <button type="button" className={cn(tool, "hidden text-neutral-500 [@media(pointer:fine)]:inline-flex")} onClick={() => setHelpOpen(true)} title="Raccourcis clavier (?)">
-                    ⌨ Raccourcis
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={threads}
+                    title="Regrouper les emails d'un même échange"
+                    className={cn(tool, threads ? "text-[var(--brand)]" : "text-neutral-500")}
+                    onClick={() => {
+                      const next = !threads;
+                      setThreads(next);
+                      try {
+                        localStorage.setItem("usin:mail-threads", next ? "on" : "off");
+                      } catch {
+                        /* private mode */
+                      }
+                    }}
+                  >
+                    <MailIcon name="replyAll" className="size-4" />
+                    Conversations
+                  </button>
+                  <button type="button" className={cn(tool, "hidden px-2 text-neutral-500 [@media(pointer:fine)]:inline-flex")} onClick={() => setHelpOpen(true)} title="Raccourcis clavier (?)" aria-label="Raccourcis clavier">
+                    <MailIcon name="keyboard" />
                   </button>
                 </>
               )}
@@ -2916,10 +3053,12 @@ export function Mailbox() {
             </div>
           ) : list.length ? (
             <div className="space-y-0.5">
-              {list.map((m) => (
+              {rows.map((m) => (
                 <MailRow
                   key={m.uid}
                   m={m}
+                  count={m.count}
+                  box={account === ALL ? boxOf(m.uid) : undefined}
                   active={openUid === m.uid}
                   outgoing={outgoing}
                   date={fmt(m.date)}
@@ -3026,6 +3165,49 @@ export function Mailbox() {
                     <MailIcon name="star" filled={current.flagged} />
                   </button>
                 </div>
+                {thread && (
+                  <div className="space-y-1.5">
+                    <p className="text-xs font-medium text-neutral-500">{thread.length} messages dans cette conversation</p>
+                    {thread
+                      .filter((t) => !(t.folder === folder && t.uid === split(openUid!).uid))
+                      .map((t) => {
+                        const k = t.folder + ":" + t.uid;
+                        const o = opened[k];
+                        return (
+                          <div key={k} className="rounded-xl border border-black/5 bg-black/[0.02] dark:border-white/10 dark:bg-white/[0.03]">
+                            <button
+                              type="button"
+                              className="flex w-full items-center gap-3 px-3 py-2 text-left text-sm"
+                              onClick={() => {
+                                if (o) return setOpened((x) => {
+                                  const { [k]: _gone, ...rest } = x;
+                                  void _gone;
+                                  return rest;
+                                });
+                                setOpened((x) => ({ ...x, [k]: "loading" }));
+                                const acc = split(openUid!).account;
+                                void mailCall<MailFull>(supabase!, "read", { ...(acc && acc > 0 ? { account: acc } : {}), uid: t.uid, folder: t.folder, peek: true })
+                                  .then((f) => setOpened((x) => ({ ...x, [k]: f })))
+                                  .catch(() => setOpened((x) => ({ ...x, [k]: "loading" })));
+                              }}
+                            >
+                              <span className="grid size-7 shrink-0 place-items-center rounded-full bg-[var(--brand)]/10 text-xs font-semibold text-[var(--brand)]">
+                                {t.folder === "INBOX" ? (t.from.replace(/^[^\p{L}\p{N}]+/u, "")[0] ?? "?").toUpperCase() : "↩"}
+                              </span>
+                              <span translate="no" className="min-w-0 flex-1 truncate font-medium">{t.folder === "INBOX" ? t.from : "Vous"}</span>
+                              <span className="shrink-0 text-xs text-neutral-500">{fmt(t.date)}</span>
+                            </button>
+                            {o === "loading" && <Skeleton className="mx-3 mb-3 h-16" />}
+                            {o && o !== "loading" && (
+                              <pre translate="no" className="whitespace-pre-wrap break-words px-3 pb-3 font-sans text-sm leading-relaxed text-neutral-700 dark:text-neutral-300">
+                                {o.text.split(/\n(?:Le .+ a écrit :|On .+ wrote:)/)[0].trim() || o.text.slice(0, 2000)}
+                              </pre>
+                            )}
+                          </div>
+                        );
+                      })}
+                  </div>
+                )}
                 <div className="flex items-start gap-3">
                   <span className="grid size-10 shrink-0 place-items-center rounded-full bg-[var(--brand)]/15 font-semibold text-[var(--brand)]">
                     {((full?.from || current.from || "?").replace(/^[^\p{L}\p{N}]+/u, "")[0] ?? "?").toUpperCase()}
@@ -3283,20 +3465,26 @@ export function Mailbox() {
               <Input value={draft.subject} onChange={(e) => setDraft({ ...draft, subject: e.target.value })} />
             </Field>
             {status.accounts.length > 1 && (
-              <p className="text-xs text-neutral-500">
-                Envoyé depuis <strong>{current_?.email}</strong>
-              </p>
+              <Field label="De">
+                <Select value={String(draft.account ?? "")} onChange={(e) => compose({ ...draft, account: Number(e.target.value) })}>
+                  {status.accounts.map((a) => (
+                    <option key={a.id} value={a.id}>
+                      {a.email}
+                    </option>
+                  ))}
+                </Select>
+              </Field>
             )}
             <Field label="Message">
               <Textarea rows={10} value={draft.body} onChange={(e) => setDraft({ ...draft, body: e.target.value })} autoFocus />
             </Field>
-            {signature?.on && signature.html && (
+            {draft.account !== undefined && sigs[draft.account] && (
               <div className="space-y-1">
                 <p className="text-xs text-neutral-500">Signature ajoutée à l'envoi</p>
                 <iframe
                   title="Signature"
                   sandbox=""
-                  srcDoc={'<body style="margin:8px;background:#fff">' + signature.html + "</body>"}
+                  srcDoc={'<body style="margin:8px;background:#fff">' + sigs[draft.account] + "</body>"}
                   className="h-32 w-full rounded-xl border border-black/5 bg-white dark:border-white/10"
                 />
               </div>
