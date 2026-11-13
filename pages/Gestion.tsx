@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { AdminConsole, VisitStats, CalendarSync } from "../lib/admin";
+import { AdminConsole, VisitStats, CalendarSync, ReplyButton } from "../lib/admin";
 import { CalendarDays, PhoneCall, Mail, Quote, Euro, Settings, Phone, Users, ShoppingBag, Newspaper, Star, LayoutDashboard, Ticket, Check } from "lucide-react";
 import { useSeo } from "../lib/seo";
 import { ReviewsAdmin, NewsletterAdmin } from "../lib/engage";
@@ -197,7 +197,7 @@ function Messages() {
           <div className="flex flex-wrap items-center gap-2"><Badge tone={m.handled ? "green" : "amber"}>{m.handled ? "Traité" : "À traiter"}</Badge><span className="text-xs text-neutral-500">{fmtDate(m.created_at, "fr", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}</span></div>
           <p className="font-medium text-neutral-900 dark:text-neutral-100">{m.name}{m.subject ? ` · ${m.subject}` : ""}</p>
           <p className="text-sm text-neutral-700 dark:text-neutral-300 whitespace-pre-line break-words">{m.message}</p>
-          <div className="flex flex-wrap gap-2"><Contact phone={m.phone} email={m.email} /><Button size="sm" variant="ghost" onClick={async () => { await supabase.from("contact_messages").update({ handled: !m.handled }).eq("id", m.id); load(); }}><Check className="h-4 w-4" />{m.handled ? "Marquer non traité" : "Marquer traité"}</Button></div>
+          <div className="flex flex-wrap gap-2"><Contact phone={m.phone} email={m.email} /><ReplyButton to={m.email} subject={"Re : " + (m.subject || "votre message")} quote={m.message} onSent={async () => { await supabase.from("contact_messages").update({ handled: true }).eq("id", m.id); load(); }} /><Button size="sm" variant="ghost" onClick={async () => { await supabase.from("contact_messages").update({ handled: !m.handled }).eq("id", m.id); load(); }}><Check className="h-4 w-4" />{m.handled ? "Marquer non traité" : "Marquer traité"}</Button></div>
         </Card>
       )) : <EmptyState icon={<Mail />} title="Aucun message reçu" />}
     </div>
