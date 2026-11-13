@@ -11,37 +11,128 @@ import { env } from "./env";
 
 const T: Record<string, Record<string, string>> = {
   fr: {
-    seo: "Référencement Google", seoIntro: "Le titre et la description que Google affiche pour chaque page. Écrivez ce que vos clients tapent dans Google : votre activité et votre ville (ex. « Soins énergétiques à Bailleul »). Chaque page doit avoir les siens.",
-    seoTitle: "Titre dans Google", seoDesc: "Description dans Google", seoReset: "Reprendre le texte d'origine", seoNone: "La liste des pages apparaît sur le site publié (après une publication).",
-    seoTitleTip: "Idéal : 30 à 60 caractères", seoDescTip: "Idéal : 120 à 160 caractères", seoLive: "Appliqué tout de suite sur le site ; pris en compte par Google à son prochain passage.",
-    add: "Ajouter", edit: "Modifier", del: "Supprimer", save: "Enregistrer", cancel: "Annuler", search: "Rechercher…", export: "Exporter",
-    saved: "Enregistré ✓", deleted: "Supprimé ✓", delAsk: "Supprimer cet élément ?", empty: "Aucun élément pour le moment", emptyHint: "Ajoutez le premier avec le bouton « Ajouter ».",
-    required: "Champ obligatoire", yes: "Oui", no: "Non", image: "Choisir une image", visits7: "Visites (7 jours)", visits30: "Visites (30 jours)",
-    resetStats: "Remettre les statistiques à zéro", resetAsk: "Effacer toutes les visites enregistrées ?", ownVisits: "Vos propres visites (aperçu, appareils où vous êtes connecté) ne sont pas comptées.",
-    admins: "Administrateurs", adminAdd: "Ajouter un administrateur", adminEmail: "Email de la personne (elle crée son compte avec ce même email)", you: "vous",
-    viewAs: "Voir en tant que", asAdmin: "Admin", asClient: "Client", asVisitor: "Visiteur", content: "Textes du site", reset: "Revenir au texte par défaut",
-    legal: "Pages légales", menu: "Menu",
+    seo: "Référencement Google",
+    seoIntro:
+      "Le titre et la description que Google affiche pour chaque page. Écrivez ce que vos clients tapent dans Google : votre activité et votre ville (ex. « Soins énergétiques à Bailleul »). Chaque page doit avoir les siens.",
+    seoTitle: "Titre dans Google",
+    seoDesc: "Description dans Google",
+    seoReset: "Reprendre le texte d'origine",
+    seoNone: "La liste des pages apparaît sur le site publié (après une publication).",
+    seoTitleTip: "Idéal : 30 à 60 caractères",
+    seoDescTip: "Idéal : 120 à 160 caractères",
+    seoLive: "Appliqué tout de suite sur le site ; pris en compte par Google à son prochain passage.",
+    add: "Ajouter",
+    edit: "Modifier",
+    del: "Supprimer",
+    save: "Enregistrer",
+    cancel: "Annuler",
+    search: "Rechercher…",
+    export: "Exporter",
+    saved: "Enregistré ✓",
+    deleted: "Supprimé ✓",
+    delAsk: "Supprimer cet élément ?",
+    empty: "Aucun élément pour le moment",
+    emptyHint: "Ajoutez le premier avec le bouton « Ajouter ».",
+    required: "Champ obligatoire",
+    yes: "Oui",
+    no: "Non",
+    image: "Choisir une image",
+    visits7: "Visites (7 jours)",
+    visits30: "Visites (30 jours)",
+    resetStats: "Remettre les statistiques à zéro",
+    resetAsk: "Effacer toutes les visites enregistrées ?",
+    ownVisits: "Vos propres visites (aperçu, appareils où vous êtes connecté) ne sont pas comptées.",
+    admins: "Administrateurs",
+    adminAdd: "Ajouter un administrateur",
+    adminEmail: "Email de la personne (elle crée son compte avec ce même email)",
+    you: "vous",
+    viewAs: "Voir en tant que",
+    asAdmin: "Admin",
+    asClient: "Client",
+    asVisitor: "Visiteur",
+    content: "Textes du site",
+    reset: "Revenir au texte par défaut",
+    legal: "Pages légales",
+    menu: "Menu",
   },
   en: {
-    seo: "Google search", seoIntro: "The title and description Google shows for each page. Write what your customers type into Google: your activity and your town. Each page needs its own.",
-    seoTitle: "Title in Google", seoDesc: "Description in Google", seoReset: "Back to the original text", seoNone: "The list of pages appears on the published site (after a publication).",
-    seoTitleTip: "Best: 30 to 60 characters", seoDescTip: "Best: 120 to 160 characters", seoLive: "Applied on the site right away; taken into account by Google on its next visit.",
-    add: "Add", edit: "Edit", del: "Delete", save: "Save", cancel: "Cancel", search: "Search…", export: "Export",
-    saved: "Saved ✓", deleted: "Deleted ✓", delAsk: "Delete this item?", empty: "Nothing here yet", emptyHint: "Add the first one with the « Add » button.",
-    required: "Required", yes: "Yes", no: "No", image: "Choose an image", visits7: "Visits (7 days)", visits30: "Visits (30 days)",
-    resetStats: "Reset statistics", resetAsk: "Erase all recorded visits?", ownVisits: "Your own visits (preview, devices where you are signed in) are not counted.",
-    admins: "Administrators", adminAdd: "Add an administrator", adminEmail: "Their email (they sign up with this same email)", you: "you",
-    viewAs: "View as", asAdmin: "Admin", asClient: "Customer", asVisitor: "Visitor", content: "Site texts", reset: "Back to the default text",
-    legal: "Legal pages", menu: "Menu",
+    seo: "Google search",
+    seoIntro: "The title and description Google shows for each page. Write what your customers type into Google: your activity and your town. Each page needs its own.",
+    seoTitle: "Title in Google",
+    seoDesc: "Description in Google",
+    seoReset: "Back to the original text",
+    seoNone: "The list of pages appears on the published site (after a publication).",
+    seoTitleTip: "Best: 30 to 60 characters",
+    seoDescTip: "Best: 120 to 160 characters",
+    seoLive: "Applied on the site right away; taken into account by Google on its next visit.",
+    add: "Add",
+    edit: "Edit",
+    del: "Delete",
+    save: "Save",
+    cancel: "Cancel",
+    search: "Search…",
+    export: "Export",
+    saved: "Saved ✓",
+    deleted: "Deleted ✓",
+    delAsk: "Delete this item?",
+    empty: "Nothing here yet",
+    emptyHint: "Add the first one with the « Add » button.",
+    required: "Required",
+    yes: "Yes",
+    no: "No",
+    image: "Choose an image",
+    visits7: "Visits (7 days)",
+    visits30: "Visits (30 days)",
+    resetStats: "Reset statistics",
+    resetAsk: "Erase all recorded visits?",
+    ownVisits: "Your own visits (preview, devices where you are signed in) are not counted.",
+    admins: "Administrators",
+    adminAdd: "Add an administrator",
+    adminEmail: "Their email (they sign up with this same email)",
+    you: "you",
+    viewAs: "View as",
+    asAdmin: "Admin",
+    asClient: "Customer",
+    asVisitor: "Visitor",
+    content: "Site texts",
+    reset: "Back to the default text",
+    legal: "Legal pages",
+    menu: "Menu",
   },
   nl: {
-    add: "Toevoegen", edit: "Bewerken", del: "Verwijderen", save: "Opslaan", cancel: "Annuleren", search: "Zoeken…", export: "Exporteren",
-    saved: "Opgeslagen ✓", deleted: "Verwijderd ✓", delAsk: "Dit element verwijderen?", empty: "Nog niets", emptyHint: "Voeg het eerste toe met de knop « Toevoegen ».",
-    required: "Verplicht", yes: "Ja", no: "Nee", image: "Afbeelding kiezen", visits7: "Bezoeken (7 dagen)", visits30: "Bezoeken (30 dagen)",
-    resetStats: "Statistieken op nul zetten", resetAsk: "Alle geregistreerde bezoeken wissen?", ownVisits: "Je eigen bezoeken (voorbeeld, toestellen waarop je bent ingelogd) tellen niet mee.",
-    admins: "Beheerders", adminAdd: "Beheerder toevoegen", adminEmail: "Hun e-mailadres (ze maken een account met hetzelfde adres)", you: "jij",
-    viewAs: "Bekijken als", asAdmin: "Beheerder", asClient: "Klant", asVisitor: "Bezoeker", content: "Teksten van de site", reset: "Terug naar de standaardtekst",
-    legal: "Juridische pagina's", menu: "Menu",
+    add: "Toevoegen",
+    edit: "Bewerken",
+    del: "Verwijderen",
+    save: "Opslaan",
+    cancel: "Annuleren",
+    search: "Zoeken…",
+    export: "Exporteren",
+    saved: "Opgeslagen ✓",
+    deleted: "Verwijderd ✓",
+    delAsk: "Dit element verwijderen?",
+    empty: "Nog niets",
+    emptyHint: "Voeg het eerste toe met de knop « Toevoegen ».",
+    required: "Verplicht",
+    yes: "Ja",
+    no: "Nee",
+    image: "Afbeelding kiezen",
+    visits7: "Bezoeken (7 dagen)",
+    visits30: "Bezoeken (30 dagen)",
+    resetStats: "Statistieken op nul zetten",
+    resetAsk: "Alle geregistreerde bezoeken wissen?",
+    ownVisits: "Je eigen bezoeken (voorbeeld, toestellen waarop je bent ingelogd) tellen niet mee.",
+    admins: "Beheerders",
+    adminAdd: "Beheerder toevoegen",
+    adminEmail: "Hun e-mailadres (ze maken een account met hetzelfde adres)",
+    you: "jij",
+    viewAs: "Bekijken als",
+    asAdmin: "Beheerder",
+    asClient: "Klant",
+    asVisitor: "Bezoeker",
+    content: "Teksten van de site",
+    reset: "Terug naar de standaardtekst",
+    legal: "Juridische pagina's",
+    menu: "Menu",
   },
 };
 function useT() {
@@ -51,7 +142,15 @@ function useT() {
 
 // ------------------------------------------------------------------ layout
 
-export type AdminSection = { id: string; label: string; icon?: ReactNode; element: ReactNode; badge?: number; /** Kept for older apps: the layout is the same for every section. */ wide?: boolean; /** Heading the section is listed under (« Activité », « Clients »…): a long menu stays easy to scan. */ group?: string };
+export type AdminSection = {
+  id: string;
+  label: string;
+  icon?: ReactNode;
+  element: ReactNode;
+  badge?: number;
+  /** Kept for older apps: the layout is the same for every section. */ wide?: boolean;
+  /** Heading the section is listed under (« Activité », « Clients »…): a long menu stays easy to scan. */ group?: string;
+};
 
 const MENU_KEY = "usin:admin-menu";
 
@@ -61,12 +160,34 @@ const MENU_KEY = "usin:admin-menu";
  * The chosen section is kept in the address (?s=…) so a reload or a shared link opens the same place.
  * <AdminConsole title="Gestion" sections={[{ id: "dashboard", label: "Tableau de bord", icon: <Gauge />, element: <… /> }, …]} actions={…} />
  */
-export function AdminConsole({ title, sections: own, actions, seo = true }: { title: string; sections: AdminSection[]; actions?: ReactNode; /** false on a second console (daily management): Google titles stay in one place. */ seo?: boolean }) {
+export function AdminConsole({
+  title,
+  sections: own,
+  actions,
+  seo = true,
+}: {
+  title: string;
+  sections: AdminSection[];
+  actions?: ReactNode;
+  /** false on a second console (daily management): Google titles stay in one place. */ seo?: boolean;
+}) {
   const location = useLocation();
   const navigate = useNavigate();
   const tr = useT();
   // Every management space can write the Google titles of the pages (once, even if the app adds its own).
-  const sections: AdminSection[] = !seo || own.some((s) => s.id === "seo") ? own : [...own, { id: "seo", label: tr("seo"), icon: <SearchIcon />, element: <SeoEditor />, group: own[own.length - 1]?.group }];
+  const sections: AdminSection[] =
+    !seo || own.some((s) => s.id === "seo")
+      ? own
+      : [
+          ...own,
+          {
+            id: "seo",
+            label: tr("seo"),
+            icon: <SearchIcon />,
+            element: <SeoEditor />,
+            group: own[own.length - 1]?.group,
+          },
+        ];
   useSeo({ title, noindex: true });
   useAdminTranslation();
   const current = new URLSearchParams(location.search).get("s");
@@ -99,11 +220,16 @@ export function AdminConsole({ title, sections: own, actions, seo = true }: { ti
         {actions && <div className="flex flex-wrap gap-2">{actions}</div>}
       </div>
       <div className={cn("grid gap-6 md:transition-[grid-template-columns] md:duration-200", small ? "md:grid-cols-[3rem_minmax(0,1fr)]" : "md:grid-cols-[15rem_minmax(0,1fr)]")}>
-        <nav aria-label={title} className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 [scrollbar-width:none] md:sticky md:top-24 md:mx-0 md:max-h-[calc(100dvh-7rem)] md:flex-col md:gap-1 md:self-start md:overflow-y-auto md:overflow-x-visible md:px-0 md:pb-4">
+        <nav
+          aria-label={title}
+          className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 [scrollbar-width:none] md:sticky md:top-24 md:mx-0 md:max-h-[calc(100dvh-7rem)] md:flex-col md:gap-1 md:self-start md:overflow-y-auto md:overflow-x-visible md:px-0 md:pb-4"
+        >
           {sections.map((s, i) => (
             <Fragment key={s.id}>
               {s.group && s.group !== sections[i - 1]?.group && (
-                <p className={cn("hidden px-4 pb-1 pt-4 text-xs font-semibold uppercase tracking-wide text-neutral-500 first:pt-0 dark:text-neutral-400", small ? "md:hidden" : "md:block")}>{s.group}</p>
+                <p className={cn("hidden px-4 pb-1 pt-4 text-xs font-semibold uppercase tracking-wide text-neutral-500 first:pt-0 dark:text-neutral-400", small ? "md:hidden" : "md:block")}>
+                  {s.group}
+                </p>
               )}
               <button
                 type="button"
@@ -122,7 +248,12 @@ export function AdminConsole({ title, sections: own, actions, seo = true }: { ti
                 {s.icon}
                 <span className={cn("whitespace-nowrap", small && "md:sr-only")}>{s.label}</span>
                 {Boolean(s.badge) && (
-                  <span className={cn("ml-auto min-w-5 rounded-full bg-[var(--brand)] px-1.5 text-center text-xs leading-5 text-white", small && "md:absolute md:right-0.5 md:top-0.5 md:ml-0 md:min-w-4 md:px-1 md:text-[10px] md:leading-4")}>
+                  <span
+                    className={cn(
+                      "ml-auto min-w-5 rounded-full bg-[var(--brand)] px-1.5 text-center text-xs leading-5 text-white",
+                      small && "md:absolute md:right-0.5 md:top-0.5 md:ml-0 md:min-w-4 md:px-1 md:text-[10px] md:leading-4",
+                    )}
+                  >
                     {s.badge}
                   </span>
                 )}
@@ -134,9 +265,21 @@ export function AdminConsole({ title, sections: own, actions, seo = true }: { ti
             onClick={toggle}
             title={small ? "Agrandir le menu" : "Réduire le menu"}
             aria-label={small ? "Agrandir le menu" : "Réduire le menu"}
-            className={cn("mt-3 hidden min-h-10 items-center gap-3 rounded-2xl px-4 text-sm text-neutral-500 transition hover:bg-black/5 md:flex dark:hover:bg-white/5", small && "md:size-12 md:justify-center md:px-0")}
+            className={cn(
+              "mt-3 hidden min-h-10 items-center gap-3 rounded-2xl px-4 text-sm text-neutral-500 transition hover:bg-black/5 md:flex dark:hover:bg-white/5",
+              small && "md:size-12 md:justify-center md:px-0",
+            )}
           >
-            <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" className={cn("size-5 shrink-0 transition-transform", small && "rotate-180")}>
+            <svg
+              aria-hidden="true"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth={1.8}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className={cn("size-5 shrink-0 transition-transform", small && "rotate-180")}
+            >
               <rect width="18" height="18" x="3" y="3" rx="2" />
               <path d="M9 3v18" />
               <path d="m16 15-3-3 3-3" />
@@ -158,7 +301,10 @@ export function AdminConsole({ title, sections: own, actions, seo = true }: { ti
  * that are exactly a text of the code are replaced: customers' names, messages and emails are never touched (and
  * anything inside translate="no" is skipped).
  */
-type AdminDict = { exact: Map<string, string>; patterns: { re: RegExp; to: string }[] };
+type AdminDict = {
+  exact: Map<string, string>;
+  patterns: { re: RegExp; to: string }[];
+};
 const adminDicts = new Map<string, Promise<AdminDict | null>>();
 const ATTRS = ["placeholder", "title", "aria-label"] as const;
 
@@ -239,7 +385,7 @@ function useAdminTranslation() {
       const texts = nodes as Text[];
       const shownValues = texts.map((n) => n.nodeValue ?? "");
       // A node still showing what was put there keeps its original; a node React changed since brings its new text.
-      const sources = texts.map((n, i) => (groupSet.has(n) && groupSet.get(n) === shownValues[i] ? groupOriginal.get(n) ?? shownValues[i] : shownValues[i]));
+      const sources = texts.map((n, i) => (groupSet.has(n) && groupSet.get(n) === shownValues[i] ? (groupOriginal.get(n) ?? shownValues[i]) : shownValues[i]));
       const to = translateText(dict, sources.join(""));
       if (!to || to === shownValues.join("")) return;
       texts.forEach((n, i) => {
@@ -280,8 +426,7 @@ function useAdminTranslation() {
         if (m.type === "characterData") {
           doText(m.target as Text);
           doGroup((m.target as Text).parentElement);
-        }
-        else if (m.type === "attributes") doEl(m.target as Element);
+        } else if (m.type === "attributes") doEl(m.target as Element);
         else m.addedNodes.forEach(walk);
       }
       observer.takeRecords();
@@ -293,7 +438,13 @@ function useAdminTranslation() {
         if (!alive || !d) return;
         dict = d;
         walk(document.body);
-        observer.observe(document.body, { subtree: true, childList: true, characterData: true, attributes: true, attributeFilter: [...ATTRS] });
+        observer.observe(document.body, {
+          subtree: true,
+          childList: true,
+          characterData: true,
+          attributes: true,
+          attributeFilter: [...ATTRS],
+        });
       });
     return () => {
       alive = false;
@@ -359,11 +510,17 @@ function display(col: Column, value: any, lang: string, tr: (k: string) => strin
   if (value === null || value === undefined || value === "") return <span className="text-neutral-400">—</span>;
   switch (col.type) {
     case "money":
-      return new Intl.NumberFormat(lang, { style: "currency", currency: "EUR" }).format(Number(value) / 100);
+      return new Intl.NumberFormat(lang, {
+        style: "currency",
+        currency: "EUR",
+      }).format(Number(value) / 100);
     case "date":
       return new Intl.DateTimeFormat(lang, { dateStyle: "medium" }).format(new Date(value));
     case "datetime":
-      return new Intl.DateTimeFormat(lang, { dateStyle: "medium", timeStyle: "short" }).format(new Date(value));
+      return new Intl.DateTimeFormat(lang, {
+        dateStyle: "medium",
+        timeStyle: "short",
+      }).format(new Date(value));
     case "boolean":
       return value ? <Badge tone="success">{tr("yes")}</Badge> : <Badge tone="neutral">{tr("no")}</Badge>;
     case "select":
@@ -471,7 +628,10 @@ function RowForm({ columns, row, onChange }: { columns: Column[]; row: Row; onCh
                         type="button"
                         aria-pressed={on}
                         onClick={() => set(on ? list.filter((x) => x !== o.value) : [...list, o.value])}
-                        className={cn("min-h-10 rounded-full border px-4 text-sm font-medium transition", on ? "border-transparent bg-[var(--brand)] text-white" : "border-neutral-300 text-neutral-700 dark:border-neutral-700 dark:text-neutral-300")}
+                        className={cn(
+                          "min-h-10 rounded-full border px-4 text-sm font-medium transition",
+                          on ? "border-transparent bg-[var(--brand)] text-white" : "border-neutral-300 text-neutral-700 dark:border-neutral-700 dark:text-neutral-300",
+                        )}
                       >
                         {o.label}
                       </button>
@@ -554,7 +714,15 @@ export function CrudTable({
   const rows = useMemo(() => {
     const all = data ?? [];
     const q = query.trim().toLowerCase();
-    return q ? all.filter((r) => columns.some((c) => String(r[c.key] ?? "").toLowerCase().includes(q))) : all;
+    return q
+      ? all.filter((r) =>
+          columns.some((c) =>
+            String(r[c.key] ?? "")
+              .toLowerCase()
+              .includes(q),
+          ),
+        )
+      : all;
   }, [data, query, columns]);
 
   const refresh = () => {
@@ -624,7 +792,10 @@ export function CrudTable({
             <Card key={r.id} className="flex flex-wrap items-center gap-x-6 gap-y-2 p-4" onClick={() => open(r)}>
               {label && <div className="min-w-0 flex-1 basis-full font-medium text-neutral-900 sm:basis-auto dark:text-neutral-100">{label(r)}</div>}
               {listCols.map((c, i) => (
-                <div key={c.key} className={cn("min-w-0", i === 0 && !label ? "flex-1 basis-full font-medium text-neutral-900 sm:basis-auto dark:text-neutral-100" : "text-sm text-neutral-600 dark:text-neutral-400")}>
+                <div
+                  key={c.key}
+                  className={cn("min-w-0", i === 0 && !label ? "flex-1 basis-full font-medium text-neutral-900 sm:basis-auto dark:text-neutral-100" : "text-sm text-neutral-600 dark:text-neutral-400")}
+                >
                   {(i > 0 || label) && <span className="mr-1 text-xs text-neutral-400">{c.label} :</span>}
                   {display(c, r[c.key], lang, tr)}
                 </div>
@@ -1076,12 +1247,33 @@ export function SeoEditor() {
 }
 
 /** A row saved in a table with an « i18n » column is translated by Usin into the app's other languages (background). */
-function translateRows(supabase: { auth: { getSession: () => Promise<{ data: { session: { access_token: string } | null } }> } } | null, table: string) {
+function translateRows(
+  supabase: {
+    auth: {
+      getSession: () => Promise<{
+        data: { session: { access_token: string } | null };
+      }>;
+    };
+  } | null,
+  table: string,
+) {
   const base = env.paymentsUrl ? env.paymentsUrl.replace("/api/pay/", "/api/app-notify/") : "";
   if (!base || !supabase) return;
   supabase.auth
     .getSession()
-    .then(({ data }) => data.session && fetch(base + "/translate", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ accessToken: data.session.access_token, tables: [table] }), keepalive: true }))
+    .then(
+      ({ data }) =>
+        data.session &&
+        fetch(base + "/translate", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            accessToken: data.session.access_token,
+            tables: [table],
+          }),
+          keepalive: true,
+        }),
+    )
     .catch(() => undefined);
 }
 
@@ -1093,34 +1285,65 @@ function translateRows(supabase: { auth: { getSession: () => Promise<{ data: { s
  */
 export function CalendarSync() {
   const { supabase } = useContent();
-  const [links, setLinks] = useState<{ https: string; webcal: string; google: string } | null>(null);
+  const [links, setLinks] = useState<{
+    https: string;
+    webcal: string;
+    google: string;
+  } | null>(null);
   const [failed, setFailed] = useState<string | false>(false);
   const base = env.paymentsUrl ? env.paymentsUrl.replace("/api/pay/", "/api/app-notify/") : "";
   useEffect(() => {
     if (!base || !supabase) return setFailed("app non publiée");
     supabase.auth
       .getSession()
-      .then(({ data }) => fetch(base + "/calendar/link", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ accessToken: data.session?.access_token ?? "" }) }))
-      .then(async (r) => (r.ok ? r.json() : Promise.reject(new Error(((await r.json().catch(() => ({}))) as { message?: string; error?: string }).error || "erreur " + r.status))))
+      .then(({ data }) =>
+        fetch(base + "/calendar/link", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            accessToken: data.session?.access_token ?? "",
+          }),
+        }),
+      )
+      .then(async (r) =>
+        r.ok
+          ? r.json()
+          : Promise.reject(
+              new Error(
+                (
+                  (await r.json().catch(() => ({}))) as {
+                    message?: string;
+                    error?: string;
+                  }
+                ).error || "erreur " + r.status,
+              ),
+            ),
+      )
       .then(setLinks)
       .catch((e: Error) => setFailed(e.message || "erreur"));
   }, [base, supabase]);
-  if (failed)
-    return (
-      <Card className="p-5 text-sm text-neutral-600 dark:text-neutral-400">
-        📅 La synchronisation avec votre agenda n'est pas disponible pour le moment ({failed}).
-      </Card>
-    );
+  if (failed) return <Card className="p-5 text-sm text-neutral-600 dark:text-neutral-400">📅 La synchronisation avec votre agenda n'est pas disponible pour le moment ({failed}).</Card>;
   return (
     <Card className="space-y-3 p-5">
       <div className="space-y-1">
         <p className="font-semibold text-neutral-900 dark:text-neutral-100">📅 Mes rendez-vous dans mon agenda</p>
-        <p className="text-sm text-neutral-600 dark:text-neutral-400">Abonnez votre agenda une seule fois : chaque nouvelle réservation y apparaît toute seule, une annulation l'enlève. Le lien est privé, ne le partagez pas.</p>
+        <p className="text-sm text-neutral-600 dark:text-neutral-400">
+          Abonnez votre agenda une seule fois : chaque nouvelle réservation y apparaît toute seule, une annulation l'enlève. Le lien est privé, ne le partagez pas.
+        </p>
       </div>
       {links ? (
         <div className="flex flex-wrap gap-2">
-          <a href={links.webcal} className="inline-flex min-h-11 items-center rounded-full bg-[var(--brand)] px-4 text-sm font-medium text-white">iPhone / Mac</a>
-          <a href={links.google} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-11 items-center rounded-full border border-black/10 px-4 text-sm font-medium dark:border-white/15">Google Agenda</a>
+          <a href={links.webcal} className="inline-flex min-h-11 items-center rounded-full bg-[var(--brand)] px-4 text-sm font-medium text-white">
+            iPhone / Mac
+          </a>
+          <a
+            href={links.google}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex min-h-11 items-center rounded-full border border-black/10 px-4 text-sm font-medium dark:border-white/15"
+          >
+            Google Agenda
+          </a>
           <Button
             variant="ghost"
             onClick={async () => {
@@ -1167,12 +1390,16 @@ export function WeeklyPlanner({ onCreate, extra }: { onCreate: (slots: { start: 
         const start = new Date(day);
         start.setHours(h, m, 0, 0);
         if (+start < Date.now()) continue;
-        out.push({ start: start.toISOString(), end: new Date(+start + duration * 60e3).toISOString() });
+        out.push({
+          start: start.toISOString(),
+          end: new Date(+start + duration * 60e3).toISOString(),
+        });
       }
     }
     return out;
   }, [days, times, duration, from, weeks]);
-  const chip = (on: boolean) => "min-h-10 rounded-full border px-3 text-sm font-medium transition " + (on ? "border-[var(--brand)] bg-[var(--brand)] text-white" : "border-black/10 dark:border-white/15");
+  const chip = (on: boolean) =>
+    "min-h-10 rounded-full border px-3 text-sm font-medium transition " + (on ? "border-[var(--brand)] bg-[var(--brand)] text-white" : "border-black/10 dark:border-white/15");
   return (
     <Card className="space-y-4 p-5">
       <p className="font-semibold text-neutral-900 dark:text-neutral-100">Créer plusieurs créneaux d'un coup</p>
@@ -1195,7 +1422,15 @@ export function WeeklyPlanner({ onCreate, extra }: { onCreate: (slots: { start: 
             </button>
           ))}
           <Input type="time" className="h-10 w-32" value={time} onChange={(e) => setTime(e.target.value)} />
-          <Button size="sm" variant="secondary" disabled={!time || times.includes(time)} onClick={() => { setTimes([...times, time].sort()); setTime(""); }}>
+          <Button
+            size="sm"
+            variant="secondary"
+            disabled={!time || times.includes(time)}
+            onClick={() => {
+              setTimes([...times, time].sort());
+              setTime("");
+            }}
+          >
             + Ajouter
           </Button>
         </div>
@@ -1270,9 +1505,21 @@ export function ReplyButton({ to, subject, quote, onSent }: { to: string; subjec
                   const res = await fetch(base + "/reply", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ accessToken: data.session?.access_token ?? "", to, subject: title, body: body + (quote ? "\n\n> " + quote.split("\n").join("\n> ") : "") }),
+                    body: JSON.stringify({
+                      accessToken: data.session?.access_token ?? "",
+                      to,
+                      subject: title,
+                      body: body + (quote ? "\n\n> " + quote.split("\n").join("\n> ") : ""),
+                    }),
                   });
-                  if (!res.ok) throw new Error(((await res.json().catch(() => ({}))) as { error?: string }).error || "Envoi impossible");
+                  if (!res.ok)
+                    throw new Error(
+                      (
+                        (await res.json().catch(() => ({}))) as {
+                          error?: string;
+                        }
+                      ).error || "Envoi impossible",
+                    );
                   toast("Réponse envoyée ✓");
                   setOpen(false);
                   setBody("");
@@ -1306,14 +1553,76 @@ export function ReplyButton({ to, subject, quote, onSent }: { to: string; subjec
 // ------------------------------------------------------------------ mailbox
 
 type MailServer = { host: string; port: number; secure: boolean };
-type MailFolder = { path: string; name: string; role: "inbox" | "sent" | "drafts" | "junk" | "trash" | "archive" | "other"; total: number; unseen: number };
-type MailItem = { uid: number; from: string; fromEmail: string; to: string; subject: string; date: string; seen: boolean; flagged: boolean; attachments: boolean };
-type MailFull = { uid: number; from: string; fromEmail: string; to: string; cc: string; subject: string; date: string; text: string; html: string; messageId: string; references: string; attachments: { index: number; name: string; size: number; type: string }[] };
-type MailDraft = { to: string; cc: string; bcc: string; subject: string; body: string; inReplyTo?: string; references?: string; draftUid?: number; attachments: { name: string; type: string; data: string; size: number }[]; showCc: boolean };
+type MailFolder = {
+  path: string;
+  name: string;
+  role: "inbox" | "sent" | "drafts" | "junk" | "trash" | "archive" | "other";
+  total: number;
+  unseen: number;
+};
+type MailItem = {
+  uid: number;
+  from: string;
+  fromEmail: string;
+  to: string;
+  subject: string;
+  date: string;
+  seen: boolean;
+  flagged: boolean;
+  attachments: boolean;
+};
+type MailFull = {
+  uid: number;
+  from: string;
+  fromEmail: string;
+  to: string;
+  cc: string;
+  subject: string;
+  date: string;
+  text: string;
+  html: string;
+  messageId: string;
+  references: string;
+  attachments: { index: number; name: string; size: number; type: string }[];
+};
+type MailDraft = {
+  to: string;
+  cc: string;
+  bcc: string;
+  subject: string;
+  body: string;
+  inReplyTo?: string;
+  references?: string;
+  draftUid?: number;
+  attachments: { name: string; type: string; data: string; size: number }[];
+  showCc: boolean;
+};
 
-type MailAccount = { id: number; email: string; watch: boolean; every: number; signature: { on: boolean; name?: string; role?: string }; oauth: string | null };
-type MailStatus = { connected: boolean; accounts: MailAccount[]; oauth: string[] };
-const blankDraft = (): MailDraft => ({ to: "", cc: "", bcc: "", subject: "", body: "", attachments: [], showCc: false });
+type MailAccount = {
+  id: number;
+  email: string;
+  watch: boolean;
+  every: number;
+  signature: { on: boolean; name?: string; role?: string };
+  oauth: string | null;
+  shared: boolean;
+  mine: boolean;
+  unclaimed: boolean;
+};
+type MailStatus = {
+  connected: boolean;
+  accounts: MailAccount[];
+  oauth: string[];
+};
+const blankDraft = (): MailDraft => ({
+  to: "",
+  cc: "",
+  bcc: "",
+  subject: "",
+  body: "",
+  attachments: [],
+  showCc: false,
+});
 
 // Line icons in the app's colours (they take the colour of the text around them, like the rest of the design).
 const MAIL_ICONS = {
@@ -1370,7 +1679,14 @@ function MailRow({
   onStar,
   onSwipe,
   onMenu,
+  checked,
+  selecting,
+  onSelect,
 }: {
+  checked: boolean;
+  /** Selection under way: a tap selects instead of opening. */
+  selecting: boolean;
+  onSelect: (range: boolean) => void;
   m: MailItem;
   active: boolean;
   outgoing: boolean;
@@ -1382,7 +1698,13 @@ function MailRow({
   onMenu: (x: number, y: number) => void;
 }) {
   const [dx, setDx] = useState(0);
-  const g = useRef<{ x: number; y: number; dir: "h" | "v" | null; press: ReturnType<typeof setTimeout> | null; menu: boolean } | null>(null);
+  const g = useRef<{
+    x: number;
+    y: number;
+    dir: "h" | "v" | null;
+    press: ReturnType<typeof setTimeout> | null;
+    menu: boolean;
+  } | null>(null);
   const LIMIT = 90;
   const who = outgoing ? m.to || "—" : m.from || m.fromEmail;
   const initial = (who.replace(/^[^\p{L}\p{N}]+/u, "")[0] ?? "?").toUpperCase();
@@ -1391,16 +1713,25 @@ function MailRow({
       {dx !== 0 && (
         <div className={cn("absolute inset-0 flex items-center px-5 text-sm font-medium text-white", dx > 0 ? "justify-start bg-[var(--brand)]" : "justify-end bg-red-600")}>
           {dx > 0 ? (
-            <span className="flex items-center gap-2"><MailIcon name="archive" /> Archiver</span>
+            <span className="flex items-center gap-2">
+              <MailIcon name="archive" /> Archiver
+            </span>
           ) : (
-            <span className="flex items-center gap-2">Corbeille <MailIcon name="trash" /></span>
+            <span className="flex items-center gap-2">
+              Corbeille <MailIcon name="trash" />
+            </span>
           )}
         </div>
       )}
       <div
         role="button"
         tabIndex={0}
-        onClick={() => !g.current?.menu && onOpen()}
+        onClick={(e) => {
+          if (g.current?.menu) return;
+          // Ctrl / ⌘ + click: add to the selection; Shift + click: select up to here.
+          if (selecting || e.metaKey || e.ctrlKey || e.shiftKey) onSelect(e.shiftKey);
+          else onOpen();
+        }}
         onKeyDown={(e) => e.key === "Enter" && onOpen()}
         onContextMenu={(e) => {
           e.preventDefault();
@@ -1414,7 +1745,13 @@ function MailRow({
             navigator.vibrate?.(10);
             onMenu(t.clientX, t.clientY);
           }, 500);
-          g.current = { x: t.clientX, y: t.clientY, dir: null, press, menu: false };
+          g.current = {
+            x: t.clientX,
+            y: t.clientY,
+            dir: null,
+            press,
+            menu: false,
+          };
         }}
         onTouchMove={(e) => {
           const s = g.current;
@@ -1445,7 +1782,31 @@ function MailRow({
           active ? "bg-[color-mix(in_srgb,var(--brand)_10%,white)] dark:bg-[color-mix(in_srgb,var(--brand)_18%,#171717)]" : "hover:bg-neutral-50 dark:hover:bg-white/5",
         )}
       >
-        <span className={cn("mt-0.5 grid size-9 shrink-0 place-items-center rounded-full text-sm font-semibold", m.seen ? "bg-neutral-100 text-neutral-500 dark:bg-white/10 dark:text-neutral-400" : "bg-[var(--brand)]/15 text-[var(--brand)]")}>{initial}</span>
+        <button
+          type="button"
+          role="checkbox"
+          aria-checked={checked}
+          aria-label="Sélectionner"
+          onClick={(e) => {
+            e.stopPropagation();
+            onSelect(e.shiftKey);
+          }}
+          className={cn(
+            "group/check mt-0.5 grid size-9 shrink-0 place-items-center rounded-full text-sm font-semibold transition",
+            checked ? "bg-[var(--brand)] text-white" : m.seen ? "bg-neutral-100 text-neutral-500 dark:bg-white/10 dark:text-neutral-400" : "bg-[var(--brand)]/15 text-[var(--brand)]",
+          )}
+        >
+          {checked ? (
+            <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" className="size-4">
+              <path d="M20 6 9 17l-5-5" />
+            </svg>
+          ) : (
+            <>
+              <span className={cn(selecting ? "hidden" : "[@media(pointer:fine)]:group-hover/check:hidden")}>{initial}</span>
+              <span className={cn("size-4 rounded-full border-2 border-current", selecting ? "block" : "hidden [@media(pointer:fine)]:group-hover/check:block")} />
+            </>
+          )}
+        </button>
         <span className="min-w-0 flex-1">
           <span className="flex items-baseline justify-between gap-2">
             <span className={cn("min-w-0 truncate text-sm", m.seen ? "text-neutral-700 dark:text-neutral-300" : "font-semibold text-neutral-900 dark:text-neutral-100")}>
@@ -1464,7 +1825,10 @@ function MailRow({
                 e.stopPropagation();
                 onStar();
               }}
-              className={cn("-m-1.5 grid size-8 place-items-center rounded-full transition hover:bg-black/5 dark:hover:bg-white/10", m.flagged ? "text-amber-500" : "text-neutral-400 opacity-0 group-hover:opacity-100 max-lg:opacity-60")}
+              className={cn(
+                "-m-1.5 grid size-8 place-items-center rounded-full transition hover:bg-black/5 dark:hover:bg-white/10",
+                m.flagged ? "text-amber-500" : "text-neutral-400 opacity-0 group-hover:opacity-100 max-lg:opacity-60",
+              )}
             >
               <MailIcon name="star" filled={m.flagged} className="size-4" />
             </button>
@@ -1487,7 +1851,10 @@ function MailMenu({ at, items, onClose }: { at: { x: number; y: number }; items:
     if (el) {
       const w = el.offsetWidth;
       const h = el.offsetHeight;
-      setPos({ left: Math.max(8, Math.min(at.x, window.innerWidth - w - 8)), top: Math.max(8, Math.min(at.y, window.innerHeight - h - 8)) });
+      setPos({
+        left: Math.max(8, Math.min(at.x, window.innerWidth - w - 8)),
+        top: Math.max(8, Math.min(at.y, window.innerHeight - h - 8)),
+      });
       el.querySelector<HTMLButtonElement>("button")?.focus();
     }
     const key = (e: KeyboardEvent) => e.key === "Escape" && onClose();
@@ -1544,7 +1911,14 @@ function MailMenu({ at, items, onClose }: { at: { x: number; y: number }; items:
 async function mailCall<T>(supabase: NonNullable<ReturnType<typeof useContent>["supabase"]>, action: string, body: Record<string, unknown> = {}): Promise<T> {
   const base = env.paymentsUrl ? env.paymentsUrl.replace("/api/pay/", "/api/app-notify/") : "";
   const { data } = await supabase.auth.getSession();
-  const res = await fetch(base + "/mailbox/" + action, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...body, accessToken: data.session?.access_token ?? "" }) });
+  const res = await fetch(base + "/mailbox/" + action, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      ...body,
+      accessToken: data.session?.access_token ?? "",
+    }),
+  });
   const json = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error((json as { error?: string }).error || "Erreur " + res.status);
   return json as T;
@@ -1580,22 +1954,51 @@ export function useMailUnread() {
 }
 
 /** Settings of one mailbox: alerts for new emails, signature (built from the app's brand and contact details), removal. */
-function MailAccountSettings({ acc, single, back, onChange, onRemoved }: { acc: MailAccount; single: boolean; back: string; onChange: (s: MailStatus | null, patch?: Partial<MailAccount>) => void; onRemoved: () => void }) {
+function MailAccountSettings({
+  acc,
+  single,
+  back,
+  onChange,
+  onRemoved,
+}: {
+  acc: MailAccount;
+  single: boolean;
+  back: string;
+  onChange: (s: MailStatus | null, patch?: Partial<MailAccount>) => void;
+  onRemoved: () => void;
+}) {
   const { supabase } = useContent();
   const call = <T,>(action: string, body: Record<string, unknown> = {}) => mailCall<T>(supabase!, action, { account: acc.id, ...body });
   const [busy, setBusy] = useState(false);
   const [sig, setSig] = useState(acc.signature);
   const [preview, setPreview] = useState<string | null>(null);
   useEffect(() => {
-    void call<{ html: string }>("signature").then((r) => setPreview(r.html)).catch(() => setPreview(""));
+    void call<{ html: string }>("signature")
+      .then((r) => setPreview(r.html))
+      .catch(() => setPreview(""));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [acc.id]);
   const watch = async (on: boolean, every: number) => {
     setBusy(true);
     try {
-      const r = await call<{ watch: boolean; every: number }>("watch", { on, every, url: back });
+      const r = await call<{ watch: boolean; every: number }>("watch", {
+        on,
+        every,
+        url: back,
+      });
       onChange(null, { watch: r.watch, every: r.every });
       toast(r.watch ? "Vous serez prévenu des nouveaux emails ✓" : "Alertes des nouveaux emails coupées ✓");
+    } catch (e) {
+      toast((e as Error).message, "error");
+    } finally {
+      setBusy(false);
+    }
+  };
+  const share = async (input: { shared?: boolean; claim?: boolean }) => {
+    setBusy(true);
+    try {
+      onChange(await call<MailStatus>("share", input));
+      toast("Enregistré ✓");
     } catch (e) {
       toast((e as Error).message, "error");
     } finally {
@@ -1622,6 +2025,21 @@ function MailAccountSettings({ acc, single, back, onChange, onRemoved }: { acc: 
         <span className="min-w-0 truncate">{acc.email}</span>
         {acc.oauth && <Badge tone="neutral">{acc.oauth === "microsoft" ? "Microsoft" : "Google"}</Badge>}
       </p>
+      {acc.unclaimed && (
+        <div className="space-y-2 rounded-xl bg-amber-500/10 p-3 text-sm">
+          <p>Cette boîte a été connectée avant le choix « privée / partagée ». Si c'est la vôtre, elle redevient visible par vous seul(e).</p>
+          <Button size="sm" disabled={busy} onClick={() => void share({ claim: true, shared: false })}>
+            C'est ma boîte
+          </Button>
+        </div>
+      )}
+      {(acc.mine || acc.unclaimed) && (
+        <div className="space-y-1">
+          <Switch label="Boîte partagée avec les autres administrateurs" checked={acc.shared} disabled={busy} onChange={(shared) => void share({ shared })} />
+          <p className="text-xs leading-relaxed text-neutral-500">Pour une adresse commune (info@, contact@…). Sinon, vous seul(e) voyez cette boîte et recevez ses alertes.</p>
+        </div>
+      )}
+      {!acc.mine && !acc.unclaimed && <p className="text-xs text-neutral-500">Boîte partagée par un autre administrateur.</p>}
       <div className="space-y-2">
         <Switch label="Me prévenir des nouveaux emails dans l'appli" checked={acc.watch} disabled={busy} onChange={(on) => void watch(on, acc.every)} />
         {acc.watch && (
@@ -1634,7 +2052,8 @@ function MailAccountSettings({ acc, single, back, onChange, onRemoved }: { acc: 
           </Field>
         )}
         <p className="text-xs leading-relaxed text-neutral-500">
-          Une notification dans l'appli et sur votre téléphone pour chaque nouvel email. Dès qu'une boîte vous prévient, les alertes de l'appli (réservations, messages, avis…) ne vous sont plus envoyées par email : vous les voyez dans l'appli et sur votre téléphone. Vos clients reçoivent toujours leurs emails.
+          Une notification dans l'appli et sur votre téléphone pour chaque nouvel email. Dès qu'une boîte vous prévient, les alertes de l'appli (réservations, messages, avis…) ne vous sont plus
+          envoyées par email : vous les voyez dans l'appli et sur votre téléphone. Vos clients reçoivent toujours leurs emails.
         </p>
       </div>
       <div className="space-y-3 border-t border-black/5 pt-4 dark:border-white/10">
@@ -1653,7 +2072,12 @@ function MailAccountSettings({ acc, single, back, onChange, onRemoved }: { acc: 
             {preview === null ? (
               <Skeleton className="h-24" />
             ) : preview ? (
-              <iframe title="Signature" sandbox="" srcDoc={'<body style="margin:12px;background:#fff">' + preview + "</body>"} className="h-36 w-full rounded-xl border border-black/5 bg-white dark:border-white/10" />
+              <iframe
+                title="Signature"
+                sandbox=""
+                srcDoc={'<body style="margin:12px;background:#fff">' + preview + "</body>"}
+                className="h-36 w-full rounded-xl border border-black/5 bg-white dark:border-white/10"
+              />
             ) : null}
           </>
         )}
@@ -1688,14 +2112,38 @@ export function Mailbox() {
   // Several mailboxes (contact@, anne@…): every call is for the one shown.
   const accountRef = useRef<number | null>(null);
   const [account, setAccount] = useState<number | null>(null);
-  const call = <T,>(action: string, body: Record<string, unknown> = {}) => mailCall<T>(supabase!, action, { ...(accountRef.current ? { account: accountRef.current } : {}), ...body });
+  const call = <T,>(action: string, body: Record<string, unknown> = {}) =>
+    mailCall<T>(supabase!, action, {
+      ...(accountRef.current ? { account: accountRef.current } : {}),
+      ...body,
+    });
   const location = useLocation();
   const [status, setStatus] = useState<MailStatus | null>(null);
   const [adding, setAdding] = useState(false);
-  const [signature, setSignature] = useState<{ html: string; on: boolean } | null>(null);
-  const [menu, setMenu] = useState<{ x: number; y: number; uid: number; reader?: boolean } | null>(null);
-  const [moving, setMoving] = useState<number | null>(null);
+  const [signature, setSignature] = useState<{
+    html: string;
+    on: boolean;
+  } | null>(null);
+  const [menu, setMenu] = useState<{
+    x: number;
+    y: number;
+    uid: number;
+    reader?: boolean;
+  } | null>(null);
+  const [moving, setMoving] = useState<number[] | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  // Several emails at once: the avatar (or Ctrl / ⌘ + click, Shift + click for a range, « x » on the keyboard).
+  const [selected, setSelected] = useState<number[]>([]);
+  const [selecting, setSelecting] = useState(false);
+  const anchor = useRef<number | null>(null);
+  const [helpOpen, setHelpOpen] = useState(false);
+  const searchRef = useRef<HTMLInputElement>(null);
+  const keyHandler = useRef<((e: KeyboardEvent) => void) | null>(null);
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => keyHandler.current?.(e);
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
   // List and email side by side only when the section is wide enough (menu reduced, big screen); otherwise one at a time.
   const box = useRef<HTMLDivElement>(null);
   const [two, setTwo] = useState(false);
@@ -1725,8 +2173,16 @@ export function Mailbox() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [advanced, setAdvanced] = useState(false);
-  const [imapS, setImapS] = useState<MailServer>({ host: "", port: 993, secure: true });
-  const [smtpS, setSmtpS] = useState<MailServer>({ host: "", port: 465, secure: true });
+  const [imapS, setImapS] = useState<MailServer>({
+    host: "",
+    port: 993,
+    secure: true,
+  });
+  const [smtpS, setSmtpS] = useState<MailServer>({
+    host: "",
+    port: 465,
+    secure: true,
+  });
   const [user, setUser] = useState("");
 
   const role = folders.find((f) => f.path === folder)?.role ?? "inbox";
@@ -1736,7 +2192,10 @@ export function Mailbox() {
       .then((fs) => {
         setFolders(fs);
         // The counter of the menu: every mailbox together.
-        if ((status?.accounts.length ?? 1) > 1) void mailCall<{ unseen: number }>(supabase!, "unseen").then((r) => setBadge("mail", r.unseen)).catch(() => undefined);
+        if ((status?.accounts.length ?? 1) > 1)
+          void mailCall<{ unseen: number }>(supabase!, "unseen")
+            .then((r) => setBadge("mail", r.unseen))
+            .catch(() => undefined);
         else setBadge("mail", fs.find((f) => f.role === "inbox")?.unseen ?? 0);
       })
       .catch(() => undefined);
@@ -1754,7 +2213,14 @@ export function Mailbox() {
     if (id && s?.connected) {
       void loadFolders();
       void load({ folder: "INBOX", search: "" });
-      void call<{ html: string }>("signature").then((r) => setSignature({ html: r.html, on: s.accounts.find((a) => a.id === id)?.signature.on ?? true })).catch(() => undefined);
+      void call<{ html: string }>("signature")
+        .then((r) =>
+          setSignature({
+            html: r.html,
+            on: s.accounts.find((a) => a.id === id)?.signature.on ?? true,
+          }),
+        )
+        .catch(() => undefined);
     }
   };
   const load = async (opts: { folder?: string; page?: number; search?: string } = {}) => {
@@ -1762,9 +2228,16 @@ export function Mailbox() {
     const p = opts.page ?? 1;
     const q = opts.search ?? query;
     setError(null);
-    if (p === 1) setList(null);
+    if (p === 1) {
+      setList(null);
+      setSelected([]);
+    }
     try {
-      const r = await call<{ items: MailItem[]; hasMore: boolean }>("list", { folder: f, page: p, search: q || undefined });
+      const r = await call<{ items: MailItem[]; hasMore: boolean }>("list", {
+        folder: f,
+        page: p,
+        search: q || undefined,
+      });
       setList((old) => (p === 1 ? r.items : [...(old ?? []), ...r.items]));
       setHasMore(r.hasMore);
       setPage(p);
@@ -1773,7 +2246,11 @@ export function Mailbox() {
         for (const m of r.items.slice(0, 6)) {
           const k = accountRef.current + ":" + f + ":" + m.uid;
           if (cache.has(k)) continue;
-          const one = await call<MailFull>("read", { uid: m.uid, folder: f, peek: true }).catch(() => null);
+          const one = await call<MailFull>("read", {
+            uid: m.uid,
+            folder: f,
+            peek: true,
+          }).catch(() => null);
           if (one) cache.set(k, one);
         }
       })();
@@ -1831,7 +2308,16 @@ export function Mailbox() {
     }
     if (role === "drafts") {
       const d = hit ?? (await call<MailFull>("read", { uid: m.uid, folder, peek: true }).catch(() => null));
-      if (d) setDraft({ ...blankDraft(), to: d.to, cc: d.cc, subject: d.subject === "(sans objet)" ? "" : d.subject, body: d.text, draftUid: m.uid, showCc: Boolean(d.cc) });
+      if (d)
+        setDraft({
+          ...blankDraft(),
+          to: d.to,
+          cc: d.cc,
+          subject: d.subject === "(sans objet)" ? "" : d.subject,
+          body: d.text,
+          draftUid: m.uid,
+          showCc: Boolean(d.cc),
+        });
       return;
     }
     if (hit) {
@@ -1851,8 +2337,16 @@ export function Mailbox() {
     const moving = !["read", "unread", "star", "unstar"].includes(action);
     setList((l) =>
       moving
-        ? l?.filter((x) => !uids.includes(x.uid)) ?? l
-        : l?.map((x) => (uids.includes(x.uid) ? { ...x, seen: action === "read" ? true : action === "unread" ? false : x.seen, flagged: action === "star" ? true : action === "unstar" ? false : x.flagged } : x)) ?? l,
+        ? (l?.filter((x) => !uids.includes(x.uid)) ?? l)
+        : (l?.map((x) =>
+            uids.includes(x.uid)
+              ? {
+                  ...x,
+                  seen: action === "read" ? true : action === "unread" ? false : x.seen,
+                  flagged: action === "star" ? true : action === "unstar" ? false : x.flagged,
+                }
+              : x,
+          ) ?? l),
     );
     if (moving && openUid && uids.includes(openUid)) {
       setOpenUid(null);
@@ -1891,7 +2385,10 @@ export function Mailbox() {
       <Card className="space-y-4 p-5">
         <div className="space-y-1">
           <p className="text-lg font-semibold text-neutral-900 dark:text-neutral-100">{status.connected ? "Ajouter une boîte mail" : "Connecter ma boîte mail pro"}</p>
-          <p className="text-sm text-neutral-600 dark:text-neutral-400">Lisez, répondez et écrivez vos emails ici, depuis votre adresse habituelle (OVH, Zimbra, Infomaniak, Gandi, Orange, Yahoo, iCloud, Gmail, Outlook…). Vos emails restent dans votre boîte : rien ne change sur votre téléphone ou votre ordinateur. Le mot de passe est chiffré et n'est jamais affiché.</p>
+          <p className="text-sm text-neutral-600 dark:text-neutral-400">
+            Lisez, répondez et écrivez vos emails ici, depuis votre adresse habituelle (OVH, Zimbra, Infomaniak, Gandi, Orange, Yahoo, iCloud, Gmail, Outlook…). Vos emails restent dans votre boîte :
+            rien ne change sur votre téléphone ou votre ordinateur. Le mot de passe est chiffré et n'est jamais affiché.
+          </p>
         </div>
         {status.oauth.length > 0 && (
           <div className="flex flex-wrap gap-2">
@@ -1903,7 +2400,10 @@ export function Mailbox() {
                 onClick={async () => {
                   setBusy(true);
                   try {
-                    const r = await call<{ url: string }>("oauth-start", { provider, back: window.location.href });
+                    const r = await call<{ url: string }>("oauth-start", {
+                      provider,
+                      back: window.location.href,
+                    });
                     window.location.href = r.url;
                   } catch (e) {
                     setError((e as Error).message);
@@ -1916,27 +2416,66 @@ export function Mailbox() {
             ))}
           </div>
         )}
-        <Field label="Adresse email"><Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="off" /></Field>
-        <Field label="Mot de passe de la boîte mail"><Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="new-password" /></Field>
+        <Field label="Adresse email">
+          <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="off" />
+        </Field>
+        <Field label="Mot de passe de la boîte mail">
+          <Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="new-password" />
+        </Field>
         {/@(gmail|googlemail)\.com$/i.test(email.trim()) && (
           <p className="rounded-xl bg-[var(--brand)]/5 p-3 text-sm text-neutral-700 dark:text-neutral-300">
             Gmail : utilisez un <strong>mot de passe d'application</strong> (pas votre mot de passe habituel). Créez-le sur{" "}
-            <a className="underline" href="https://myaccount.google.com/apppasswords" target="_blank" rel="noreferrer">myaccount.google.com/apppasswords</a> (la validation en deux étapes doit être activée), puis collez-le ici.
+            <a className="underline" href="https://myaccount.google.com/apppasswords" target="_blank" rel="noreferrer">
+              myaccount.google.com/apppasswords
+            </a>{" "}
+            (la validation en deux étapes doit être activée), puis collez-le ici.
           </p>
         )}
         {/@(outlook|hotmail|live|msn)\.[a-z.]+$/i.test(email.trim()) && !status.oauth.includes("microsoft") && (
-          <p className="rounded-xl bg-amber-500/10 p-3 text-sm text-neutral-700 dark:text-neutral-300">Outlook / Hotmail : Microsoft n'accepte plus les mots de passe pour les autres applis. La connexion « Se connecter avec Microsoft » arrive bientôt dans votre appli.</p>
+          <p className="rounded-xl bg-amber-500/10 p-3 text-sm text-neutral-700 dark:text-neutral-300">
+            Outlook / Hotmail : Microsoft n'accepte plus les mots de passe pour les autres applis. La connexion « Se connecter avec Microsoft » arrive bientôt dans votre appli.
+          </p>
         )}
         <button type="button" className="text-sm underline opacity-70" onClick={() => setAdvanced(!advanced)}>
           {advanced ? "Masquer les réglages avancés" : "Réglages avancés (si la connexion automatique échoue)"}
         </button>
         {advanced && (
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            <Field label="Serveur de réception (IMAP)"><Input value={imapS.host} placeholder="ex. ssl0.ovh.net" onChange={(e) => setImapS({ ...imapS, host: e.target.value.trim() })} /></Field>
-            <Field label="Port IMAP"><Input type="number" value={imapS.port} onChange={(e) => setImapS({ ...imapS, port: Number(e.target.value) || 993, secure: Number(e.target.value) !== 143 })} /></Field>
-            <Field label="Serveur d'envoi (SMTP)"><Input value={smtpS.host} placeholder="ex. ssl0.ovh.net" onChange={(e) => setSmtpS({ ...smtpS, host: e.target.value.trim() })} /></Field>
-            <Field label="Port SMTP"><Input type="number" value={smtpS.port} onChange={(e) => setSmtpS({ ...smtpS, port: Number(e.target.value) || 465, secure: Number(e.target.value) === 465 })} /></Field>
-            <Field label="Identifiant (si différent de l'adresse)"><Input value={user} onChange={(e) => setUser(e.target.value)} autoComplete="off" /></Field>
+            <Field label="Serveur de réception (IMAP)">
+              <Input value={imapS.host} placeholder="ex. ssl0.ovh.net" onChange={(e) => setImapS({ ...imapS, host: e.target.value.trim() })} />
+            </Field>
+            <Field label="Port IMAP">
+              <Input
+                type="number"
+                value={imapS.port}
+                onChange={(e) =>
+                  setImapS({
+                    ...imapS,
+                    port: Number(e.target.value) || 993,
+                    secure: Number(e.target.value) !== 143,
+                  })
+                }
+              />
+            </Field>
+            <Field label="Serveur d'envoi (SMTP)">
+              <Input value={smtpS.host} placeholder="ex. ssl0.ovh.net" onChange={(e) => setSmtpS({ ...smtpS, host: e.target.value.trim() })} />
+            </Field>
+            <Field label="Port SMTP">
+              <Input
+                type="number"
+                value={smtpS.port}
+                onChange={(e) =>
+                  setSmtpS({
+                    ...smtpS,
+                    port: Number(e.target.value) || 465,
+                    secure: Number(e.target.value) === 465,
+                  })
+                }
+              />
+            </Field>
+            <Field label="Identifiant (si différent de l'adresse)">
+              <Input value={user} onChange={(e) => setUser(e.target.value)} autoComplete="off" />
+            </Field>
           </div>
         )}
         {error && <p className="text-sm text-red-600">{error}</p>}
@@ -1947,7 +2486,12 @@ export function Mailbox() {
               setBusy(true);
               setError(null);
               try {
-                const s = await mailCall<MailStatus & { account: number }>(supabase!, "connect", { email, password, ...(user ? { user } : {}), ...(advanced && imapS.host && smtpS.host ? { imap: imapS, smtp: smtpS } : {}) });
+                const s = await mailCall<MailStatus & { account: number }>(supabase!, "connect", {
+                  email,
+                  password,
+                  ...(user ? { user } : {}),
+                  ...(advanced && imapS.host && smtpS.host ? { imap: imapS, smtp: smtpS } : {}),
+                });
                 setStatus(s);
                 setPassword("");
                 setEmail("");
@@ -1963,7 +2507,13 @@ export function Mailbox() {
             {busy ? "Connexion…" : "Connecter"}
           </Button>
           {adding && (
-            <Button variant="ghost" onClick={() => { setAdding(false); setError(null); }}>
+            <Button
+              variant="ghost"
+              onClick={() => {
+                setAdding(false);
+                setError(null);
+              }}
+            >
               Annuler
             </Button>
           )}
@@ -1973,27 +2523,51 @@ export function Mailbox() {
 
   const fmt = (d: string) => {
     const date = new Date(d);
-    return date.toDateString() === new Date().toDateString() ? date.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" }) : date.toLocaleDateString(undefined, { day: "numeric", month: "short" });
+    return date.toDateString() === new Date().toDateString()
+      ? date.toLocaleTimeString(undefined, {
+          hour: "2-digit",
+          minute: "2-digit",
+        })
+      : date.toLocaleDateString(undefined, { day: "numeric", month: "short" });
   };
   const current = list?.find((m) => m.uid === openUid);
   const outgoing = role === "sent" || role === "drafts";
-  const fullOf = async (m: MailItem) => cache.get(accountRef.current + ":" + folder + ":" + m.uid) ?? (full?.uid === m.uid ? full : await call<MailFull>("read", { uid: m.uid, folder, peek: true }).catch(() => null));
+  const fullOf = async (m: MailItem) =>
+    cache.get(accountRef.current + ":" + folder + ":" + m.uid) ?? (full?.uid === m.uid ? full : await call<MailFull>("read", { uid: m.uid, folder, peek: true }).catch(() => null));
   const reply = (f: MailFull | null, all: boolean) => {
     if (!f) return;
-    const others = all ? [f.to, f.cc].join(",").split(",").map((x) => x.trim()).filter((x) => x && !x.toLowerCase().includes((current_?.email ?? "").toLowerCase()) && !x.includes(f.fromEmail)) : [];
+    const others = all
+      ? [f.to, f.cc]
+          .join(",")
+          .split(",")
+          .map((x) => x.trim())
+          .filter((x) => x && !x.toLowerCase().includes((current_?.email ?? "").toLowerCase()) && !x.includes(f.fromEmail))
+      : [];
     setDraft({
       ...blankDraft(),
       to: f.fromEmail,
       cc: others.join(", "),
       showCc: others.length > 0,
       subject: /^re\s*:/i.test(f.subject) ? f.subject : "Re : " + f.subject,
-      body: "\n\n" + `Le ${new Date(f.date).toLocaleString()}, ${f.from} a écrit :\n` + f.text.split("\n").slice(0, 60).map((l) => "> " + l).join("\n"),
+      body:
+        "\n\n" +
+        `Le ${new Date(f.date).toLocaleString()}, ${f.from} a écrit :\n` +
+        f.text
+          .split("\n")
+          .slice(0, 60)
+          .map((l) => "> " + l)
+          .join("\n"),
       inReplyTo: f.messageId,
       references: f.references,
     });
   };
   const forward = (f: MailFull | null) =>
-    f && setDraft({ ...blankDraft(), subject: "Tr : " + f.subject, body: "\n\n---------- Message transféré ----------\n" + `De : ${f.from} <${f.fromEmail}>\nDate : ${new Date(f.date).toLocaleString()}\nObjet : ${f.subject}\n\n` + f.text });
+    f &&
+    setDraft({
+      ...blankDraft(),
+      subject: "Tr : " + f.subject,
+      body: "\n\n---------- Message transféré ----------\n" + `De : ${f.from} <${f.fromEmail}>\nDate : ${new Date(f.date).toLocaleString()}\nObjet : ${f.subject}\n\n` + f.text,
+    });
   const close = () => {
     setOpenUid(null);
     setFull(null);
@@ -2003,6 +2577,31 @@ export function Mailbox() {
     close();
     void load({ folder: path, page: 1 });
   };
+  const toggleSelect = (uid: number, range: boolean) => {
+    if (!list) return;
+    if (range && anchor.current !== null) {
+      const a = list.findIndex((x) => x.uid === anchor.current);
+      const b = list.findIndex((x) => x.uid === uid);
+      const ids = list.slice(Math.min(a, b), Math.max(a, b) + 1).map((x) => x.uid);
+      setSelected((sel) => Array.from(new Set([...sel, ...ids])));
+    } else setSelected((sel) => (sel.includes(uid) ? sel.filter((x) => x !== uid) : [...sel, uid]));
+    anchor.current = uid;
+  };
+  const clearSelection = () => {
+    setSelected([]);
+    setSelecting(false);
+  };
+  /** An action on the selected emails, or on the open one. */
+  const onTargets = async (action: string) => {
+    const uids = selected.length ? selected : openUid ? [openUid] : [];
+    if (!uids.length) return;
+    if (action === "trash" && role === "trash") {
+      if (!(await confirmAction(uids.length > 1 ? `Supprimer définitivement ${uids.length} emails ?` : "Supprimer définitivement cet email ?"))) return;
+      action = "delete";
+    }
+    void act(action, uids);
+    if (selected.length) clearSelection();
+  };
   const remove = async (m: MailItem) => {
     if (role === "trash") {
       if (await confirmAction("Supprimer définitivement cet email ?")) void act("delete", [m.uid]);
@@ -2010,28 +2609,136 @@ export function Mailbox() {
   };
   // Same actions everywhere: right-click / long press in the list, « ⋯ » in the email.
   const actions = (m: MailItem, inReader: boolean): MenuItem[] => [
-    ...(inReader ? [] : [{ label: "Ouvrir", icon: "open" as const, run: () => void openMail(m) }]),
+    ...(inReader
+      ? []
+      : [
+          {
+            label: "Ouvrir",
+            icon: "open" as const,
+            run: () => void openMail(m),
+          },
+        ]),
     ...(role === "drafts"
       ? []
       : [
-          { label: "Répondre", icon: "reply" as const, run: async () => reply(await fullOf(m), false) },
-          { label: "Répondre à tous", icon: "replyAll" as const, run: async () => reply(await fullOf(m), true) },
-          { label: "Transférer", icon: "forward" as const, run: async () => forward(await fullOf(m)) },
+          {
+            label: "Répondre",
+            icon: "reply" as const,
+            run: async () => reply(await fullOf(m), false),
+          },
+          {
+            label: "Répondre à tous",
+            icon: "replyAll" as const,
+            run: async () => reply(await fullOf(m), true),
+          },
+          {
+            label: "Transférer",
+            icon: "forward" as const,
+            run: async () => forward(await fullOf(m)),
+          },
           "-" as const,
         ]),
     m.seen
-      ? { label: "Marquer comme non lu", icon: "unread", run: () => (void act("unread", [m.uid]), inReader && close()) }
-      : { label: "Marquer comme lu", icon: "read", run: () => void act("read", [m.uid]) },
-    { label: m.flagged ? "Ne plus suivre" : "Suivre (étoile)", icon: "star", run: () => void act(m.flagged ? "unstar" : "star", [m.uid]) },
-    ...(role !== "archive" ? [{ label: "Archiver", icon: "archive" as const, run: () => void act("archive", [m.uid]) }] : []),
-    role === "junk" ? { label: "Ce n'est pas du spam", icon: "inbox", run: () => void act("inbox", [m.uid]) } : { label: "Signaler comme spam", icon: "junk", run: () => void act("junk", [m.uid]) },
-    { label: "Déplacer vers…", icon: "move", run: () => setMoving(m.uid) },
+      ? {
+          label: "Marquer comme non lu",
+          icon: "unread",
+          run: () => (void act("unread", [m.uid]), inReader && close()),
+        }
+      : {
+          label: "Marquer comme lu",
+          icon: "read",
+          run: () => void act("read", [m.uid]),
+        },
+    {
+      label: m.flagged ? "Ne plus suivre" : "Suivre (étoile)",
+      icon: "star",
+      run: () => void act(m.flagged ? "unstar" : "star", [m.uid]),
+    },
+    ...(role !== "archive"
+      ? [
+          {
+            label: "Archiver",
+            icon: "archive" as const,
+            run: () => void act("archive", [m.uid]),
+          },
+        ]
+      : []),
+    role === "junk"
+      ? {
+          label: "Ce n'est pas du spam",
+          icon: "inbox",
+          run: () => void act("inbox", [m.uid]),
+        }
+      : {
+          label: "Signaler comme spam",
+          icon: "junk",
+          run: () => void act("junk", [m.uid]),
+        },
+    { label: "Déplacer vers…", icon: "move", run: () => setMoving([m.uid]) },
+    ...(inReader
+      ? []
+      : [
+          {
+            label: "Sélectionner",
+            icon: "read" as const,
+            run: () => (setSelecting(true), toggleSelect(m.uid, false)),
+          },
+        ]),
     "-",
-    { label: role === "trash" ? "Supprimer définitivement" : "Supprimer", icon: role === "trash" ? "remove" : "trash", danger: true, run: () => void remove(m) },
+    {
+      label: role === "trash" ? "Supprimer définitivement" : "Supprimer",
+      icon: role === "trash" ? "remove" : "trash",
+      danger: true,
+      run: () => void remove(m),
+    },
   ];
   const inbox = folders.find((f) => f.role === "inbox");
   const back = location.pathname + "?s=" + (new URLSearchParams(location.search).get("s") ?? "mailbox");
-  const tool = "inline-flex min-h-10 items-center gap-2 rounded-full px-3 text-sm font-medium text-neutral-700 transition hover:bg-black/5 active:scale-[0.97] dark:text-neutral-200 dark:hover:bg-white/10";
+  // Keyboard, like a mail app (« ? » shows the list). The listener is set once, above; it calls this.
+  keyHandler.current = (e: KeyboardEvent) => {
+    const t = e.target as HTMLElement | null;
+    if (t?.closest("input,textarea,select,[contenteditable='true']") || draft || settingsOpen || moving || menu || helpOpen || !list) return;
+    const idx = list.findIndex((m) => m.uid === openUid);
+    const cur = idx >= 0 ? list[idx] : null;
+    const go = (i: number) => {
+      const m = list[Math.max(0, Math.min(list.length - 1, i))];
+      if (m) void openMail(m);
+    };
+    const k = e.key;
+    if ((e.metaKey || e.ctrlKey) && k.toLowerCase() === "a") {
+      e.preventDefault();
+      setSelected(list.map((m) => m.uid));
+      return;
+    }
+    if (e.metaKey || e.ctrlKey || e.altKey) return;
+    const keys: Record<string, () => void> = {
+      j: () => go(idx + 1),
+      ArrowDown: () => go(idx + 1),
+      k: () => go(idx < 0 ? 0 : idx - 1),
+      ArrowUp: () => go(idx < 0 ? 0 : idx - 1),
+      x: () => cur && toggleSelect(cur.uid, false),
+      e: () => void onTargets("archive"),
+      "#": () => void onTargets("trash"),
+      Delete: () => void onTargets("trash"),
+      Backspace: () => void onTargets("trash"),
+      r: () => cur && fullOf(cur).then((f) => reply(f, false)),
+      a: () => cur && fullOf(cur).then((f) => reply(f, true)),
+      f: () => cur && fullOf(cur).then((f) => forward(f)),
+      u: () => void onTargets("unread"),
+      i: () => void onTargets("read"),
+      s: () => cur && void act(cur.flagged ? "unstar" : "star", [cur.uid]),
+      c: () => setDraft(blankDraft()),
+      "/": () => searchRef.current?.focus(),
+      "?": () => setHelpOpen(true),
+      Escape: () => (selected.length || selecting ? clearSelection() : close()),
+    };
+    const run = keys[k];
+    if (!run) return;
+    e.preventDefault();
+    run();
+  };
+  const tool =
+    "inline-flex min-h-10 items-center gap-2 rounded-full px-3 text-sm font-medium text-neutral-700 transition hover:bg-black/5 active:scale-[0.97] dark:text-neutral-200 dark:hover:bg-white/10";
 
   return (
     <div ref={box} className="space-y-4">
@@ -2044,7 +2751,10 @@ export function Mailbox() {
         {status.accounts.length > 1 && (
           <Select aria-label="Boîte mail" className="w-auto max-w-[40%] shrink-0 rounded-full" value={String(account ?? "")} onChange={(e) => switchTo(Number(e.target.value))}>
             {status.accounts.map((a) => (
-              <option key={a.id} value={a.id}>{a.email}</option>
+              <option key={a.id} value={a.id}>
+                {a.email}
+                {a.shared ? " · partagée" : ""}
+              </option>
             ))}
           </Select>
         )}
@@ -2058,14 +2768,32 @@ export function Mailbox() {
           }}
         >
           <MailIcon name="search" className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-neutral-400" />
-          <Input type="search" className="rounded-full pl-11 pr-10" value={search} placeholder="Rechercher dans les emails" onChange={(e) => setSearch(e.target.value)} />
+          <Input ref={searchRef} type="search" className="rounded-full pl-11 pr-10" value={search} placeholder="Rechercher dans les emails" onChange={(e) => setSearch(e.target.value)} />
           {query && (
-            <button type="button" aria-label="Effacer la recherche" className="absolute right-2 top-1/2 grid size-8 -translate-y-1/2 place-items-center rounded-full text-neutral-500 hover:bg-black/5 dark:hover:bg-white/10" onClick={() => { setSearch(""); setQuery(""); void load({ page: 1, search: "" }); }}>
+            <button
+              type="button"
+              aria-label="Effacer la recherche"
+              className="absolute right-2 top-1/2 grid size-8 -translate-y-1/2 place-items-center rounded-full text-neutral-500 hover:bg-black/5 dark:hover:bg-white/10"
+              onClick={() => {
+                setSearch("");
+                setQuery("");
+                void load({ page: 1, search: "" });
+              }}
+            >
               <MailIcon name="close" className="size-4" />
             </button>
           )}
         </form>
-        <Button variant="ghost" size="icon" aria-label="Actualiser" title="Actualiser" onClick={() => { void loadFolders(); void load({ page: 1 }); }}>
+        <Button
+          variant="ghost"
+          size="icon"
+          aria-label="Actualiser"
+          title="Actualiser"
+          onClick={() => {
+            void loadFolders();
+            void load({ page: 1 });
+          }}
+        >
           <MailIcon name="refresh" />
         </Button>
         <Button variant="ghost" size="icon" aria-label="Réglages de la boîte mail" title="Réglages" onClick={() => setSettingsOpen(true)}>
@@ -2082,7 +2810,9 @@ export function Mailbox() {
             onClick={() => choose(f.path)}
             className={cn(
               "inline-flex min-h-10 shrink-0 items-center gap-2 rounded-full px-4 text-sm font-medium transition",
-              folder === f.path ? "bg-[var(--brand)] text-white shadow-sm shadow-[var(--brand)]/20" : "bg-black/[0.04] text-neutral-700 hover:bg-black/[0.07] dark:bg-white/5 dark:text-neutral-300 dark:hover:bg-white/10",
+              folder === f.path
+                ? "bg-[var(--brand)] text-white shadow-sm shadow-[var(--brand)]/20"
+                : "bg-black/[0.04] text-neutral-700 hover:bg-black/[0.07] dark:bg-white/5 dark:text-neutral-300 dark:hover:bg-white/10",
             )}
           >
             <MailIcon name={f.role} className="size-4" />
@@ -2100,8 +2830,77 @@ export function Mailbox() {
       <div className={cn("grid gap-4", two && "grid-cols-[minmax(18rem,24rem)_minmax(0,1fr)]")}>
         {/* List */}
         <Card className={cn("overflow-hidden p-1.5", two && "h-[calc(100dvh-16rem)] min-h-[30rem] overflow-y-auto", openUid && !two && "hidden")}>
+          {list && list.length > 0 && (
+            <div className="sticky top-0 z-10 -mx-1.5 -mt-1.5 mb-1 flex min-h-12 items-center gap-1 border-b border-black/5 bg-white/95 px-2 backdrop-blur dark:border-white/10 dark:bg-neutral-900/95">
+              {selected.length || selecting ? (
+                <>
+                  <button
+                    type="button"
+                    role="checkbox"
+                    aria-checked={selected.length === list.length}
+                    aria-label="Tout sélectionner"
+                    title="Tout sélectionner (Ctrl/⌘ + A)"
+                    onClick={() => setSelected(selected.length === list.length ? [] : list.map((m) => m.uid))}
+                    className={cn(
+                      "grid size-9 shrink-0 place-items-center rounded-full border-2 transition",
+                      selected.length === list.length ? "border-[var(--brand)] bg-[var(--brand)] text-white" : "border-neutral-300 dark:border-neutral-600",
+                    )}
+                  >
+                    {selected.length === list.length && (
+                      <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" className="size-4">
+                        <path d="M20 6 9 17l-5-5" />
+                      </svg>
+                    )}
+                  </button>
+                  <span className="min-w-0 flex-1 truncate px-1 text-sm font-medium">
+                    {selected.length} sélectionné
+                    {selected.length > 1 ? "s" : ""}
+                  </span>
+                  {selected.length > 0 && (
+                    <>
+                      <button type="button" className={tool + " px-2"} title="Marquer comme lu" aria-label="Marquer comme lu" onClick={() => void onTargets("read")}>
+                        <MailIcon name="read" />
+                      </button>
+                      <button type="button" className={tool + " px-2"} title="Marquer comme non lu" aria-label="Marquer comme non lu" onClick={() => void onTargets("unread")}>
+                        <MailIcon name="unread" />
+                      </button>
+                      {role !== "archive" && (
+                        <button type="button" className={tool + " px-2"} title="Archiver (e)" aria-label="Archiver" onClick={() => void onTargets("archive")}>
+                          <MailIcon name="archive" />
+                        </button>
+                      )}
+                      <button type="button" className={tool + " px-2"} title="Déplacer" aria-label="Déplacer" onClick={() => setMoving(selected)}>
+                        <MailIcon name="move" />
+                      </button>
+                      <button type="button" className={tool + " px-2 hover:text-red-600"} title="Supprimer (#)" aria-label="Supprimer" onClick={() => void onTargets("trash")}>
+                        <MailIcon name={role === "trash" ? "remove" : "trash"} />
+                      </button>
+                    </>
+                  )}
+                  <button type="button" className={tool + " px-2"} title="Annuler la sélection (Échap)" aria-label="Annuler la sélection" onClick={clearSelection}>
+                    <MailIcon name="close" />
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button type="button" className={tool} onClick={() => setSelecting(true)}>
+                    <span className="size-4 rounded-full border-2 border-current" />
+                    Sélectionner
+                  </button>
+                  <span className="flex-1" />
+                  <button type="button" className={cn(tool, "hidden text-neutral-500 [@media(pointer:fine)]:inline-flex")} onClick={() => setHelpOpen(true)} title="Raccourcis clavier (?)">
+                    ⌨ Raccourcis
+                  </button>
+                </>
+              )}
+            </div>
+          )}
           {!list ? (
-            <div className="space-y-2 p-2">{[0, 1, 2, 3, 4, 5].map((i) => <Skeleton key={i} className="h-14" />)}</div>
+            <div className="space-y-2 p-2">
+              {[0, 1, 2, 3, 4, 5].map((i) => (
+                <Skeleton key={i} className="h-14" />
+              ))}
+            </div>
           ) : list.length ? (
             <div className="space-y-0.5">
               {list.map((m) => (
@@ -2116,6 +2915,9 @@ export function Mailbox() {
                   onStar={() => void act(m.flagged ? "unstar" : "star", [m.uid])}
                   onSwipe={(to) => (to === "trash" ? void remove(m) : void act("archive", [m.uid]))}
                   onMenu={(x, y) => setMenu({ x, y, uid: m.uid })}
+                  checked={selected.includes(m.uid)}
+                  selecting={selecting || selected.length > 0}
+                  onSelect={(range) => toggleSelect(m.uid, range)}
                 />
               ))}
               {hasMore && (
@@ -2186,7 +2988,12 @@ export function Mailbox() {
                   title="Plus d'actions"
                   onClick={(e) => {
                     const r = e.currentTarget.getBoundingClientRect();
-                    setMenu({ x: r.right - 224, y: r.bottom + 6, uid: current.uid, reader: true });
+                    setMenu({
+                      x: r.right - 224,
+                      y: r.bottom + 6,
+                      uid: current.uid,
+                      reader: true,
+                    });
                   }}
                 >
                   <MailIcon name="more" />
@@ -2194,13 +3001,22 @@ export function Mailbox() {
               </div>
               <div className="min-h-0 flex-1 space-y-4 overflow-y-auto p-4 sm:p-6">
                 <div className="flex items-start gap-3">
-                  <h3 translate="no" className="min-w-0 flex-1 text-xl font-semibold leading-snug text-neutral-900 dark:text-neutral-100">{full?.subject ?? current.subject}</h3>
-                  <button type="button" aria-label={current.flagged ? "Ne plus suivre" : "Suivre"} onClick={() => void act(current.flagged ? "unstar" : "star", [current.uid])} className={cn("grid size-9 shrink-0 place-items-center rounded-full hover:bg-black/5 dark:hover:bg-white/10", current.flagged ? "text-amber-500" : "text-neutral-400")}>
+                  <h3 translate="no" className="min-w-0 flex-1 text-xl font-semibold leading-snug text-neutral-900 dark:text-neutral-100">
+                    {full?.subject ?? current.subject}
+                  </h3>
+                  <button
+                    type="button"
+                    aria-label={current.flagged ? "Ne plus suivre" : "Suivre"}
+                    onClick={() => void act(current.flagged ? "unstar" : "star", [current.uid])}
+                    className={cn("grid size-9 shrink-0 place-items-center rounded-full hover:bg-black/5 dark:hover:bg-white/10", current.flagged ? "text-amber-500" : "text-neutral-400")}
+                  >
                     <MailIcon name="star" filled={current.flagged} />
                   </button>
                 </div>
                 <div className="flex items-start gap-3">
-                  <span className="grid size-10 shrink-0 place-items-center rounded-full bg-[var(--brand)]/15 font-semibold text-[var(--brand)]">{((full?.from || current.from || "?").replace(/^[^\p{L}\p{N}]+/u, "")[0] ?? "?").toUpperCase()}</span>
+                  <span className="grid size-10 shrink-0 place-items-center rounded-full bg-[var(--brand)]/15 font-semibold text-[var(--brand)]">
+                    {((full?.from || current.from || "?").replace(/^[^\p{L}\p{N}]+/u, "")[0] ?? "?").toUpperCase()}
+                  </span>
                   <div translate="no" className="min-w-0 flex-1 text-sm">
                     <p className="flex flex-wrap items-baseline gap-x-2">
                       <span className="font-semibold text-neutral-900 dark:text-neutral-100">{full?.from || current.from}</span>
@@ -2208,7 +3024,10 @@ export function Mailbox() {
                     </p>
                     {full && (
                       <p className="text-xs text-neutral-500">
-                        {new Date(full.date).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" })}
+                        {new Date(full.date).toLocaleString(undefined, {
+                          dateStyle: "medium",
+                          timeStyle: "short",
+                        })}
                         {full.to ? " · À : " + full.to : ""}
                         {full.cc ? " · Cc : " + full.cc : ""}
                       </p>
@@ -2222,7 +3041,12 @@ export function Mailbox() {
                     {full.attachments.length > 0 && (
                       <div className="flex flex-wrap gap-2">
                         {full.attachments.map((a) => (
-                          <button key={a.index} type="button" onClick={() => void download(a)} className="inline-flex items-center gap-2 rounded-xl border border-black/10 px-3 py-2 text-left text-xs transition hover:bg-black/5 dark:border-white/15 dark:hover:bg-white/10">
+                          <button
+                            key={a.index}
+                            type="button"
+                            onClick={() => void download(a)}
+                            className="inline-flex items-center gap-2 rounded-xl border border-black/10 px-3 py-2 text-left text-xs transition hover:bg-black/5 dark:border-white/15 dark:hover:bg-white/10"
+                          >
                             <MailIcon name="clip" className="size-4 text-neutral-500" />
                             <span className="max-w-[14rem] truncate font-medium">{a.name}</span>
                             <span className="text-neutral-500">{Math.max(1, Math.round(a.size / 1024))} Ko</span>
@@ -2231,9 +3055,16 @@ export function Mailbox() {
                       </div>
                     )}
                     {full.html ? (
-                      <iframe title="email" sandbox="allow-popups allow-popups-to-escape-sandbox" srcDoc={'<base target="_blank"><style>body{font-family:system-ui,sans-serif;margin:16px;word-wrap:break-word}img{max-width:100%;height:auto}</style>' + full.html} className={cn("w-full rounded-xl border border-black/5 bg-white dark:border-white/10", two ? "h-full min-h-[24rem]" : "h-[65vh]")} />
+                      <iframe
+                        title="email"
+                        sandbox="allow-popups allow-popups-to-escape-sandbox"
+                        srcDoc={'<base target="_blank"><style>body{font-family:system-ui,sans-serif;margin:16px;word-wrap:break-word}img{max-width:100%;height:auto}</style>' + full.html}
+                        className={cn("w-full rounded-xl border border-black/5 bg-white dark:border-white/10", two ? "h-full min-h-[24rem]" : "h-[65vh]")}
+                      />
                     ) : (
-                      <pre translate="no" className="whitespace-pre-wrap break-words font-sans text-sm leading-relaxed text-neutral-800 dark:text-neutral-200">{full.text}</pre>
+                      <pre translate="no" className="whitespace-pre-wrap break-words font-sans text-sm leading-relaxed text-neutral-800 dark:text-neutral-200">
+                        {full.text}
+                      </pre>
                     )}
                     {role !== "drafts" && (
                       <div className="flex flex-wrap gap-2 pt-2">
@@ -2253,29 +3084,62 @@ export function Mailbox() {
         </Card>
       </div>
 
-      {menu && (() => {
-        const m = list?.find((x) => x.uid === menu.uid);
-        return m ? <MailMenu at={menu} items={actions(m, Boolean(menu.reader))} onClose={() => setMenu(null)} /> : null;
-      })()}
+      {menu &&
+        (() => {
+          const m = list?.find((x) => x.uid === menu.uid);
+          return m ? <MailMenu at={menu} items={actions(m, Boolean(menu.reader))} onClose={() => setMenu(null)} /> : null;
+        })()}
 
       {/* Move to a folder */}
       <Dialog open={moving !== null} onClose={() => setMoving(null)} title="Déplacer vers">
         <div className="grid gap-1">
-          {folders.filter((f) => f.path !== folder).map((f) => (
-            <button
-              key={f.path}
-              type="button"
-              className="flex items-center gap-3 rounded-xl px-3 py-3 text-left text-sm hover:bg-black/5 dark:hover:bg-white/10"
-              onClick={() => {
-                if (moving !== null) void act("move", [moving], f.path);
-                setMoving(null);
-              }}
-            >
-              <MailIcon name={f.role} className="text-neutral-500" />
-              {f.name}
-            </button>
-          ))}
+          {folders
+            .filter((f) => f.path !== folder)
+            .map((f) => (
+              <button
+                key={f.path}
+                type="button"
+                className="flex items-center gap-3 rounded-xl px-3 py-3 text-left text-sm hover:bg-black/5 dark:hover:bg-white/10"
+                onClick={() => {
+                  if (moving) void act("move", moving, f.path);
+                  setMoving(null);
+                  setSelected([]);
+                }}
+              >
+                <MailIcon name={f.role} className="text-neutral-500" />
+                {f.name}
+              </button>
+            ))}
         </div>
+      </Dialog>
+
+      <Dialog open={helpOpen} onClose={() => setHelpOpen(false)} title="Raccourcis clavier">
+        <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-2 text-sm">
+          {[
+            ["j / ↓", "Email suivant"],
+            ["k / ↑", "Email précédent"],
+            ["x", "Sélectionner l'email ouvert"],
+            ["Ctrl/⌘ + A", "Tout sélectionner"],
+            ["Maj + clic", "Sélectionner jusqu'ici"],
+            ["e", "Archiver"],
+            ["# / Suppr", "Supprimer"],
+            ["r", "Répondre"],
+            ["a", "Répondre à tous"],
+            ["f", "Transférer"],
+            ["u / i", "Non lu / Lu"],
+            ["s", "Suivre (étoile)"],
+            ["c", "Écrire"],
+            ["/", "Rechercher"],
+            ["Échap", "Fermer / annuler la sélection"],
+          ].map(([key, what]) => (
+            <Fragment key={key}>
+              <dt>
+                <kbd className="rounded-md border border-black/10 bg-black/[0.03] px-1.5 py-0.5 font-mono text-xs dark:border-white/15 dark:bg-white/5">{key}</kbd>
+              </dt>
+              <dd className="text-neutral-600 dark:text-neutral-300">{what}</dd>
+            </Fragment>
+          ))}
+        </dl>
       </Dialog>
 
       {/* Settings: every mailbox of the app, each with its alerts and its signature */}
@@ -2289,14 +3153,26 @@ export function Mailbox() {
               back={back}
               onChange={(s, patch) => {
                 if (s) setStatus(s);
-                else if (patch) setStatus((old) => (old ? { ...old, accounts: old.accounts.map((a) => (a.id === acc.id ? { ...a, ...patch } : a)) } : old));
+                else if (patch)
+                  setStatus((old) =>
+                    old
+                      ? {
+                          ...old,
+                          accounts: old.accounts.map((a) => (a.id === acc.id ? { ...a, ...patch } : a)),
+                        }
+                      : old,
+                  );
                 if (patch?.signature && acc.id === account) setSignature((x) => (x ? { ...x, on: patch.signature!.on } : x));
               }}
               onRemoved={() => {
                 setSettingsOpen(false);
                 const left = status.accounts.filter((a) => a.id !== acc.id);
                 if (!left.length) setBadge("mail", 0);
-                switchTo(acc.id === account ? left[0]?.id ?? null : account, { ...status, accounts: left, connected: left.length > 0 });
+                switchTo(acc.id === account ? (left[0]?.id ?? null) : account, {
+                  ...status,
+                  accounts: left,
+                  connected: left.length > 0,
+                });
               }}
             />
           ))}
@@ -2327,7 +3203,10 @@ export function Mailbox() {
                 try {
                   const { attachments, showCc: _showCc, ...rest } = draft;
                   void _showCc;
-                  const r = await call<{ draftUid?: number }>("draft", { ...rest, attachments: attachments.map(({ size: _s, ...a }) => (void _s, a)) });
+                  const r = await call<{ draftUid?: number }>("draft", {
+                    ...rest,
+                    attachments: attachments.map(({ size: _s, ...a }) => (void _s, a)),
+                  });
                   setDraft({ ...draft, draftUid: r.draftUid });
                   toast("Brouillon enregistré ✓");
                   void loadFolders();
@@ -2348,7 +3227,10 @@ export function Mailbox() {
                 try {
                   const { attachments, showCc: _showCc, ...rest } = draft;
                   void _showCc;
-                  await call("send", { ...rest, attachments: attachments.map(({ size: _s, ...a }) => (void _s, a)) });
+                  await call("send", {
+                    ...rest,
+                    attachments: attachments.map(({ size: _s, ...a }) => (void _s, a)),
+                  });
                   toast("Email envoyé ✓");
                   setDraft(null);
                   void loadFolders();
@@ -2367,22 +3249,43 @@ export function Mailbox() {
       >
         {draft && (
           <div className="space-y-3">
-            <Field label="À"><Input value={draft.to} onChange={(e) => setDraft({ ...draft, to: e.target.value })} placeholder="adresse@exemple.be (plusieurs : séparées par des virgules)" /></Field>
+            <Field label="À">
+              <Input value={draft.to} onChange={(e) => setDraft({ ...draft, to: e.target.value })} placeholder="adresse@exemple.be (plusieurs : séparées par des virgules)" />
+            </Field>
             {draft.showCc ? (
               <div className="grid gap-3 sm:grid-cols-2">
-                <Field label="Cc"><Input value={draft.cc} onChange={(e) => setDraft({ ...draft, cc: e.target.value })} /></Field>
-                <Field label="Cci"><Input value={draft.bcc} onChange={(e) => setDraft({ ...draft, bcc: e.target.value })} /></Field>
+                <Field label="Cc">
+                  <Input value={draft.cc} onChange={(e) => setDraft({ ...draft, cc: e.target.value })} />
+                </Field>
+                <Field label="Cci">
+                  <Input value={draft.bcc} onChange={(e) => setDraft({ ...draft, bcc: e.target.value })} />
+                </Field>
               </div>
             ) : (
-              <button type="button" className="text-xs underline opacity-70" onClick={() => setDraft({ ...draft, showCc: true })}>Ajouter Cc / Cci</button>
+              <button type="button" className="text-xs underline opacity-70" onClick={() => setDraft({ ...draft, showCc: true })}>
+                Ajouter Cc / Cci
+              </button>
             )}
-            <Field label="Objet"><Input value={draft.subject} onChange={(e) => setDraft({ ...draft, subject: e.target.value })} /></Field>
-            {status.accounts.length > 1 && <p className="text-xs text-neutral-500">Envoyé depuis <strong>{current_?.email}</strong></p>}
-            <Field label="Message"><Textarea rows={10} value={draft.body} onChange={(e) => setDraft({ ...draft, body: e.target.value })} autoFocus /></Field>
+            <Field label="Objet">
+              <Input value={draft.subject} onChange={(e) => setDraft({ ...draft, subject: e.target.value })} />
+            </Field>
+            {status.accounts.length > 1 && (
+              <p className="text-xs text-neutral-500">
+                Envoyé depuis <strong>{current_?.email}</strong>
+              </p>
+            )}
+            <Field label="Message">
+              <Textarea rows={10} value={draft.body} onChange={(e) => setDraft({ ...draft, body: e.target.value })} autoFocus />
+            </Field>
             {signature?.on && signature.html && (
               <div className="space-y-1">
                 <p className="text-xs text-neutral-500">Signature ajoutée à l'envoi</p>
-                <iframe title="Signature" sandbox="" srcDoc={'<body style="margin:8px;background:#fff">' + signature.html + "</body>"} className="h-32 w-full rounded-xl border border-black/5 bg-white dark:border-white/10" />
+                <iframe
+                  title="Signature"
+                  sandbox=""
+                  srcDoc={'<body style="margin:8px;background:#fff">' + signature.html + "</body>"}
+                  className="h-32 w-full rounded-xl border border-black/5 bg-white dark:border-white/10"
+                />
               </div>
             )}
             <div className="flex flex-wrap items-center gap-2">
@@ -2403,7 +3306,13 @@ export function Mailbox() {
                         (f) =>
                           new Promise<MailDraft["attachments"][number]>((resolve) => {
                             const r = new FileReader();
-                            r.onload = () => resolve({ name: f.name, type: f.type || "application/octet-stream", size: f.size, data: String(r.result).split(",")[1] ?? "" });
+                            r.onload = () =>
+                              resolve({
+                                name: f.name,
+                                type: f.type || "application/octet-stream",
+                                size: f.size,
+                                data: String(r.result).split(",")[1] ?? "",
+                              });
                             r.readAsDataURL(f);
                           }),
                       ),
@@ -2413,7 +3322,18 @@ export function Mailbox() {
                 />
               </label>
               {draft.attachments.map((a, i) => (
-                <button key={i} type="button" className="rounded-full bg-black/5 px-3 py-1.5 text-xs dark:bg-white/10" title="Retirer" onClick={() => setDraft({ ...draft, attachments: draft.attachments.filter((_, j) => j !== i) })}>
+                <button
+                  key={i}
+                  type="button"
+                  className="rounded-full bg-black/5 px-3 py-1.5 text-xs dark:bg-white/10"
+                  title="Retirer"
+                  onClick={() =>
+                    setDraft({
+                      ...draft,
+                      attachments: draft.attachments.filter((_, j) => j !== i),
+                    })
+                  }
+                >
                   {a.name} ✕
                 </button>
               ))}
