@@ -2088,10 +2088,10 @@ function MailAccountSettings({
         {sig.on && (
           <>
             <div className="grid gap-3 sm:grid-cols-2">
-              <Field label="Nom affiché (sinon celui de votre profil)">
+              <Field label="Nom affiché" hint="Sinon, celui de votre profil">
                 <Input value={sig.name ?? ""} onChange={(e) => setSig({ ...sig, name: e.target.value })} onBlur={() => void saveSig(sig)} placeholder="ex. Anne Kételair" />
               </Field>
-              <Field label="Votre fonction (facultatif)">
+              <Field label="Votre fonction" hint="Facultatif">
                 <Input value={sig.role ?? ""} onChange={(e) => setSig({ ...sig, role: e.target.value })} onBlur={() => void saveSig(sig)} placeholder="ex. Thérapeute énergéticienne" />
               </Field>
             </div>
@@ -2102,7 +2102,7 @@ function MailAccountSettings({
                 title="Signature"
                 sandbox=""
                 srcDoc={'<body style="margin:12px;background:#fff">' + preview + "</body>"}
-                className="h-36 w-full rounded-xl border border-black/5 bg-white dark:border-white/10"
+                className="h-56 w-full rounded-xl border border-black/5 bg-white dark:border-white/10"
               />
             ) : null}
           </>

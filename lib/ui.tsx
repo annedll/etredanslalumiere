@@ -249,8 +249,9 @@ export const Select = forwardRef<HTMLSelectElement, SelectHTMLAttributes<HTMLSel
 /** A form field: label, control, hint and error message. */
 export function Field({ label, hint, error, children, className }: { label: string; hint?: string; error?: string | null; children: ReactNode; className?: string }) {
   return (
-    <label className={cn("block space-y-1.5", className)}>
-      <span className="text-sm font-medium text-neutral-800 dark:text-neutral-200">{label}</span>
+    // Side by side in a grid, the controls stay aligned even when a label wraps (the label sits at the bottom of its space).
+    <label className={cn("flex h-full flex-col gap-1.5", className)}>
+      <span className="flex flex-1 items-end text-sm font-medium text-neutral-800 dark:text-neutral-200">{label}</span>
       {children}
       {error ? <span className="block text-sm text-red-600">{error}</span> : hint ? <span className="block text-xs text-neutral-500">{hint}</span> : null}
     </label>
