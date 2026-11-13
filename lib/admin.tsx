@@ -2084,11 +2084,11 @@ function MailAccountSettings({
       </div>
       <div className="space-y-3 border-t border-black/5 pt-4 dark:border-white/10">
         <Switch label="Signature automatique" checked={sig.on} disabled={busy} onChange={(on) => void saveSig({ ...sig, on })} />
-        <p className="text-xs leading-relaxed text-neutral-500">Faite avec le logo, le nom, les couleurs et les coordonnées de votre site : elle suit toute seule vos changements.</p>
+        <p className="text-xs leading-relaxed text-neutral-500">Faite avec le logo, le nom, les couleurs et les coordonnées de votre site, avec votre nom et votre téléphone de « Mon profil » (votre photo en haut à droite) : elle suit toute seule vos changements. Chaque administrateur a la sienne.</p>
         {sig.on && (
           <>
             <div className="grid gap-3 sm:grid-cols-2">
-              <Field label="Votre nom (facultatif)">
+              <Field label="Nom affiché (sinon celui de votre profil)">
                 <Input value={sig.name ?? ""} onChange={(e) => setSig({ ...sig, name: e.target.value })} onBlur={() => void saveSig(sig)} placeholder="ex. Anne Kételair" />
               </Field>
               <Field label="Votre fonction (facultatif)">
