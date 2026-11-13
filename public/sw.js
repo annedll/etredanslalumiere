@@ -14,11 +14,13 @@ self.addEventListener("push", (e) => {
     d = e.data ? e.data.json() : {};
   } catch {}
   e.waitUntil(
-    self.registration.showNotification(d.title || "Notification", { body: d.body || "", icon: "/icon-192.png", badge: "/icon-192.png", data: { url: d.url || "/" } }),
+    self.registration.showNotification(d.title || "Notification", { body: d.body || "", icon: "/icon-192.png", badge: "/icon-192.png", tag: d.tag || undefined, data: { url: d.url || "/", read: d.read || "" } }),
   );
 });
 self.addEventListener("notificationclick", (e) => {
   e.notification.close();
+  // Seen on the phone = seen in the app and no delayed email.
+  if (e.notification.data && e.notification.data.read) fetch(e.notification.data.read, { mode: "no-cors", keepalive: true }).catch(() => {});
   const url = new URL((e.notification.data && e.notification.data.url) || "/", self.location.origin).href;
   e.waitUntil(
     self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((list) => {

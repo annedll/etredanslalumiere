@@ -1028,3 +1028,322 @@ export function WeeklyPlanner({ onCreate, extra }: { onCreate: (slots: { start: 
     </Card>
   );
 }
+
+// ------------------------------------------------------------------ reply to a customer
+
+/**
+ * « Répondre » to a customer from the app: a message written here leaves by email in the business's name, and the
+ * customer's answer reaches the business's pro address. <ReplyButton to={m.email} subject={"Re : " + m.subject} onSent={…} />
+ */
+export function ReplyButton({ to, subject, quote, onSent }: { to: string; subject: string; quote?: string; onSent?: () => void }) {
+  const { supabase } = useContent();
+  const [open, setOpen] = useState(false);
+  const [title, setTitle] = useState(subject);
+  const [body, setBody] = useState("");
+  const [busy, setBusy] = useState(false);
+  const base = env.paymentsUrl ? env.paymentsUrl.replace("/api/pay/", "/api/app-notify/") : "";
+  if (!base || !to) return null;
+  return (
+    <>
+      <Button size="sm" variant="secondary" onClick={() => setOpen(true)}>
+        Répondre
+      </Button>
+      <Dialog
+        open={open}
+        onClose={() => setOpen(false)}
+        title={"Répondre à " + to}
+        footer={
+          <>
+            <Button variant="ghost" onClick={() => setOpen(false)}>
+              Annuler
+            </Button>
+            <Button
+              disabled={busy || !body.trim()}
+              onClick={async () => {
+                if (!supabase) return;
+                setBusy(true);
+                try {
+                  const { data } = await supabase.auth.getSession();
+                  const res = await fetch(base + "/reply", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ accessToken: data.session?.access_token ?? "", to, subject: title, body: body + (quote ? "\n\n> " + quote.split("\n").join("\n> ") : "") }),
+                  });
+                  if (!res.ok) throw new Error(((await res.json().catch(() => ({}))) as { error?: string }).error || "Envoi impossible");
+                  toast("Réponse envoyée ✓");
+                  setOpen(false);
+                  setBody("");
+                  onSent?.();
+                } catch (e) {
+                  toast((e as Error).message, "error");
+                } finally {
+                  setBusy(false);
+                }
+              }}
+            >
+              {busy ? "…" : "Envoyer"}
+            </Button>
+          </>
+        }
+      >
+        <div className="space-y-3">
+          <Field label="Objet">
+            <Input value={title} onChange={(e) => setTitle(e.target.value)} maxLength={200} />
+          </Field>
+          <Field label="Message">
+            <Textarea value={body} onChange={(e) => setBody(e.target.value)} rows={8} autoFocus />
+          </Field>
+          {quote && <p className="line-clamp-4 border-l-2 border-black/10 pl-3 text-sm opacity-70 dark:border-white/15">{quote}</p>}
+        </div>
+      </Dialog>
+    </>
+  );
+}
+
+// ------------------------------------------------------------------ mailbox
+
+type MailServer = { host: string; port: number; secure: boolean };
+type MailItem = { uid: number; from: string; fromEmail: string; subject: string; date: string; seen: boolean };
+type MailFull = MailItem & { to: string; text: string; html: string; messageId: string; references: string; attachments: { name: string; size: number }[] };
+
+/**
+ * The business's own mailbox in the console (any IMAP / SMTP provider: OVH, Zimbra, Infomaniak, Gandi, Orange, Yahoo,
+ * iCloud…): read, answer, write from the pro address. The settings are found from the address; the password stays on
+ * Usin's server, encrypted. <Mailbox />
+ */
+export function Mailbox() {
+  const { supabase } = useContent();
+  const base = env.paymentsUrl ? env.paymentsUrl.replace("/api/pay/", "/api/app-notify/") : "";
+  const call = async <T,>(action: string, body: Record<string, unknown> = {}): Promise<T> => {
+    const { data } = await supabase!.auth.getSession();
+    const res = await fetch(base + "/mailbox/" + action, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...body, accessToken: data.session?.access_token ?? "" }) });
+    const json = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error((json as { error?: string }).error || "Erreur " + res.status);
+    return json as T;
+  };
+  const [status, setStatus] = useState<{ connected: boolean; email?: string } | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [list, setList] = useState<MailItem[] | null>(null);
+  const [open, setOpen] = useState<MailFull | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [compose, setCompose] = useState<{ to: string; subject: string; body: string; inReplyTo?: string; references?: string } | null>(null);
+  // Connection form
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [advanced, setAdvanced] = useState(false);
+  const [imap, setImap] = useState<MailServer>({ host: "", port: 993, secure: true });
+  const [smtp, setSmtp] = useState<MailServer>({ host: "", port: 465, secure: true });
+  const [user, setUser] = useState("");
+
+  const refresh = async () => {
+    setError(null);
+    try {
+      setList((await call<{ items: MailItem[] }>("list", { limit: 40 })).items);
+    } catch (e) {
+      setError((e as Error).message);
+    }
+  };
+  useEffect(() => {
+    if (!base || !supabase) return;
+    call<{ connected: boolean; email?: string }>("status")
+      .then((s) => {
+        setStatus(s);
+        if (s.connected) void refresh();
+      })
+      .catch((e: Error) => setError(e.message));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [base, supabase]);
+
+  if (!base) return <EmptyState title="Boîte mail" text="Disponible sur le site publié." />;
+  if (!status) return error ? <p className="text-sm text-red-600">{error}</p> : <Skeleton className="h-40" />;
+
+  if (!status.connected)
+    return (
+      <Card className="space-y-4 p-5">
+        <div className="space-y-1">
+          <p className="text-lg font-semibold text-neutral-900 dark:text-neutral-100">Connecter ma boîte mail pro</p>
+          <p className="text-sm text-neutral-600 dark:text-neutral-400">Lisez, répondez et écrivez vos emails ici, depuis votre adresse habituelle (OVH, Zimbra, Infomaniak, Gandi, Orange, Yahoo, iCloud…). Vos emails restent dans votre boîte : rien ne change sur votre téléphone ou votre ordinateur. Le mot de passe est chiffré et n'est jamais affiché.</p>
+        </div>
+        <Field label="Adresse email">
+          <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="off" />
+        </Field>
+        <Field label="Mot de passe de la boîte mail">
+          <Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="new-password" />
+        </Field>
+        <button type="button" className="text-sm underline opacity-70" onClick={() => setAdvanced(!advanced)}>
+          {advanced ? "Masquer les réglages avancés" : "Réglages avancés (si la connexion automatique échoue)"}
+        </button>
+        {advanced && (
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <Field label="Serveur de réception (IMAP)"><Input value={imap.host} placeholder="ex. ssl0.ovh.net" onChange={(e) => setImap({ ...imap, host: e.target.value.trim() })} /></Field>
+            <Field label="Port IMAP"><Input type="number" value={imap.port} onChange={(e) => setImap({ ...imap, port: Number(e.target.value) || 993, secure: Number(e.target.value) !== 143 })} /></Field>
+            <Field label="Serveur d'envoi (SMTP)"><Input value={smtp.host} placeholder="ex. ssl0.ovh.net" onChange={(e) => setSmtp({ ...smtp, host: e.target.value.trim() })} /></Field>
+            <Field label="Port SMTP"><Input type="number" value={smtp.port} onChange={(e) => setSmtp({ ...smtp, port: Number(e.target.value) || 465, secure: Number(e.target.value) === 465 })} /></Field>
+            <Field label="Identifiant (si différent de l'adresse)"><Input value={user} onChange={(e) => setUser(e.target.value)} autoComplete="off" /></Field>
+          </div>
+        )}
+        {error && <p className="text-sm text-red-600">{error}</p>}
+        <Button
+          disabled={busy || !email || !password}
+          onClick={async () => {
+            setBusy(true);
+            setError(null);
+            try {
+              const s = await call<{ connected: boolean; email: string }>("connect", {
+                email,
+                password,
+                ...(user ? { user } : {}),
+                ...(advanced && imap.host && smtp.host ? { imap, smtp } : {}),
+              });
+              setStatus(s);
+              setPassword("");
+              void refresh();
+            } catch (e) {
+              setError((e as Error).message);
+            } finally {
+              setBusy(false);
+            }
+          }}
+        >
+          {busy ? "Connexion…" : "Connecter"}
+        </Button>
+      </Card>
+    );
+
+  const fmt = (d: string) => new Date(d).toLocaleString(undefined, { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
+  return (
+    <div className="space-y-4">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <p className="min-w-0 truncate font-semibold text-neutral-900 dark:text-neutral-100">📬 {status.email}</p>
+        <div className="flex flex-wrap gap-2">
+          <Button size="sm" onClick={() => setCompose({ to: "", subject: "", body: "" })}>Nouveau message</Button>
+          <Button size="sm" variant="secondary" onClick={() => void refresh()}>Actualiser</Button>
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={async () => {
+              if (!(await confirmAction("Déconnecter la boîte mail de l'appli ? (vos emails ne sont pas supprimés)"))) return;
+              setStatus(await call("disconnect"));
+              setList(null);
+              setOpen(null);
+            }}
+          >
+            Déconnecter
+          </Button>
+        </div>
+      </div>
+      {error && <p className="text-sm text-red-600">{error}</p>}
+      <div className="grid gap-4 lg:grid-cols-[minmax(0,22rem)_1fr]">
+        <Card className={"max-h-[70vh] overflow-y-auto p-1 " + (open ? "hidden lg:block" : "")}>
+          {!list ? (
+            <Skeleton className="m-2 h-40" />
+          ) : list.length ? (
+            list.map((m) => (
+              <button
+                key={m.uid}
+                type="button"
+                onClick={async () => {
+                  setBusy(true);
+                  try {
+                    setOpen(await call<MailFull>("read", { uid: m.uid }));
+                    setList((l) => l?.map((x) => (x.uid === m.uid ? { ...x, seen: true } : x)) ?? l);
+                  } catch (e) {
+                    setError((e as Error).message);
+                  } finally {
+                    setBusy(false);
+                  }
+                }}
+                className={"block w-full rounded-xl px-3 py-2.5 text-left transition hover:bg-black/5 dark:hover:bg-white/5 " + (open?.uid === m.uid ? "bg-[var(--brand)]/10" : "")}
+              >
+                <span className="flex items-center justify-between gap-2 text-sm">
+                  <span className={"min-w-0 truncate " + (m.seen ? "" : "font-semibold")}>{!m.seen && <span className="mr-1.5 inline-block size-2 rounded-full bg-[var(--brand)]" />}{m.from}</span>
+                  <span className="shrink-0 text-xs opacity-60">{fmt(m.date)}</span>
+                </span>
+                <span className={"block truncate text-sm " + (m.seen ? "opacity-70" : "font-medium")}>{m.subject}</span>
+              </button>
+            ))
+          ) : (
+            <p className="p-4 text-sm opacity-70">Aucun email.</p>
+          )}
+        </Card>
+        <Card className={"min-h-[50vh] p-5 " + (open ? "" : "hidden lg:block")}>
+          {busy && !open ? (
+            <Skeleton className="h-40" />
+          ) : open ? (
+            <div className="space-y-4">
+              <button type="button" className="text-sm underline opacity-70 lg:hidden" onClick={() => setOpen(null)}>← Retour à la liste</button>
+              <div className="space-y-1">
+                <p className="text-lg font-semibold text-neutral-900 dark:text-neutral-100">{open.subject}</p>
+                <p className="text-sm opacity-80">{open.from} &lt;{open.fromEmail}&gt; · {fmt(open.date)}</p>
+                {open.to && <p className="text-xs opacity-60">À : {open.to}</p>}
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  size="sm"
+                  onClick={() =>
+                    setCompose({
+                      to: open.fromEmail,
+                      subject: /^re\s*:/i.test(open.subject) ? open.subject : "Re : " + open.subject,
+                      body: "\n\n" + `Le ${fmt(open.date)}, ${open.from} a écrit :\n` + open.text.split("\n").slice(0, 40).map((l) => "> " + l).join("\n"),
+                      inReplyTo: open.messageId,
+                      references: open.references,
+                    })
+                  }
+                >
+                  Répondre
+                </Button>
+                <Button size="sm" variant="secondary" onClick={() => setCompose({ to: "", subject: "Tr : " + open.subject, body: "\n\n---------- Message transféré ----------\n" + `De : ${open.from} <${open.fromEmail}>\n\n` + open.text })}>
+                  Transférer
+                </Button>
+              </div>
+              {open.html ? (
+                <iframe title="email" sandbox="" srcDoc={open.html} className="h-[60vh] w-full rounded-xl border border-black/10 bg-white dark:border-white/10" />
+              ) : (
+                <pre className="whitespace-pre-wrap break-words font-sans text-sm leading-relaxed">{open.text}</pre>
+              )}
+              {open.attachments.length > 0 && <p className="text-xs opacity-60">📎 {open.attachments.map((a) => a.name).join(", ")} (à ouvrir depuis votre messagerie habituelle)</p>}
+            </div>
+          ) : (
+            <p className="text-sm opacity-60">Choisissez un email dans la liste.</p>
+          )}
+        </Card>
+      </div>
+      <Dialog
+        open={Boolean(compose)}
+        onClose={() => setCompose(null)}
+        title={compose?.inReplyTo ? "Répondre" : "Nouveau message"}
+        footer={
+          <>
+            <Button variant="ghost" onClick={() => setCompose(null)}>Annuler</Button>
+            <Button
+              disabled={busy || !compose?.to || !compose?.subject || !compose?.body.trim()}
+              onClick={async () => {
+                if (!compose) return;
+                setBusy(true);
+                try {
+                  await call("send", compose);
+                  toast("Email envoyé ✓");
+                  setCompose(null);
+                } catch (e) {
+                  toast((e as Error).message, "error");
+                } finally {
+                  setBusy(false);
+                }
+              }}
+            >
+              {busy ? "Envoi…" : "Envoyer"}
+            </Button>
+          </>
+        }
+      >
+        {compose && (
+          <div className="space-y-3">
+            <Field label="À"><Input type="email" multiple value={compose.to} onChange={(e) => setCompose({ ...compose, to: e.target.value })} /></Field>
+            <Field label="Objet"><Input value={compose.subject} onChange={(e) => setCompose({ ...compose, subject: e.target.value })} /></Field>
+            <Field label="Message"><Textarea rows={10} value={compose.body} onChange={(e) => setCompose({ ...compose, body: e.target.value })} autoFocus /></Field>
+          </div>
+        )}
+      </Dialog>
+    </div>
+  );
+}

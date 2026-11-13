@@ -199,6 +199,11 @@ export function useNotifications(supabase: SupabaseClient) {
     if (!unread.length) return;
     setItems((list) => list.map((i) => ({ ...i, read_at: i.read_at ?? new Date().toISOString() })));
     await supabase.from("usin_notifications").update({ read_at: new Date().toISOString() }).in("id", unread);
+    // Seen here = the same notifications disappear from this device's notification center.
+    navigator.serviceWorker?.ready
+      .then((reg) => reg.getNotifications())
+      .then((shown) => shown.forEach((n) => unread.includes(n.tag) && n.close()))
+      .catch(() => undefined);
   };
   return { items, unread: items.filter((i) => !i.read_at).length, markAllRead, reload: load, signedIn: Boolean(userId) };
 }
@@ -215,7 +220,7 @@ export function NotificationBell({ supabase, className = "" }: { supabase: Supab
         type="button"
         aria-label={unread ? `Notifications (${unread} non lues)` : "Notifications"}
         onClick={() => setOpen(true)}
-        className={"relative grid size-10 place-items-center rounded-full transition hover:bg-black/5 active:scale-95 dark:hover:bg-white/10 " + className}
+        className={"relative grid size-11 place-items-center rounded-full transition hover:bg-black/5 active:scale-95 dark:hover:bg-white/10 " + className}
       >
         <svg viewBox="0 0 24 24" className="size-6" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
           <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" />
@@ -279,6 +284,8 @@ type SettingsPayload = {
   channels: { id: Channel; label: string }[];
   settings: Settings;
   invoice?: { enabled: boolean; vatRate: number };
+  /** Minutes the team's email waits to be seen in the app or on the phone (0 = right away). */
+  emailDelay?: number;
   log: { event: string; channel: string; recipient: string; status: string; at: string }[];
 };
 
@@ -350,6 +357,26 @@ export function NotificationSettings({ supabase }: { supabase: SupabaseClient })
           </li>
         ))}
       </ul>
+      <div className="rounded-2xl border border-black/10 p-4 dark:border-white/10">
+        <p className="font-medium">Éviter les emails en double</p>
+        <p className="mt-1 text-sm opacity-70">Vos emails d'alerte attendent quelques minutes : si vous avez déjà vu la notification dans l'appli ou sur votre téléphone, l'email n'est pas envoyé.</p>
+        <div className="mt-3 flex flex-wrap gap-2">
+          {[0, 2, 5, 10].map((m) => (
+            <button
+              key={m}
+              type="button"
+              aria-pressed={(data.emailDelay ?? 5) === m}
+              onClick={async () => {
+                setData({ ...data, emailDelay: m });
+                await post("/settings/set", { accessToken: await token(supabase), emailDelay: m }).catch((e: Error) => setError(e.message));
+              }}
+              className={"min-h-11 rounded-full border px-4 text-sm font-medium transition active:scale-95 " + ((data.emailDelay ?? 5) === m ? "border-transparent bg-[var(--brand,#111)] text-white" : "border-black/15 opacity-70 dark:border-white/20")}
+            >
+              {m === 0 ? "Toujours tout de suite" : `Attendre ${m} min`}
+            </button>
+          ))}
+        </div>
+      </div>
       {data.invoice && (
         <div className="rounded-2xl border border-black/10 p-4 dark:border-white/10">
           <p className="font-medium">Factures PDF</p>
