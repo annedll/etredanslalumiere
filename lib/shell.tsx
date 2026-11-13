@@ -6,7 +6,7 @@ import { ChevronDown, LayoutGrid, LogOut, Menu, Pencil, Settings, Shield, User, 
 import { brand } from "./brand";
 import { LanguageSwitcher, useI18n } from "./i18n";
 import { StylePanel, useContent, useContact, getConsent, setConsent, usePreloadPages } from "./content";
-import { Button, ButtonLink, Container, Skeleton, UiRoot, cn, toast } from "./ui";
+import { Button, ButtonLink, Container, Skeleton, UiRoot, cn, toast, useBadge } from "./ui";
 import { ViewAsSwitch } from "./admin";
 import { TabBar, Sheet, type TabItem } from "./mobile";
 import { NotificationBell } from "./notify";
@@ -71,12 +71,15 @@ function AdminMenu({ adminLinks }: { adminLinks: NavItem[] }) {
   const { realAdmin, isAdmin, editMode, setEditMode, supabase } = useContent();
   const [open, setOpen] = useState(false);
   const navigate = useNavigate();
+  // Unread emails + new messages (counted by the management space): shown on the shield and next to « Gestion ».
+  const waiting = useBadge("mail") + useBadge("messages");
   if (!realAdmin) return null;
   const row = "flex min-h-12 w-full items-center gap-3 rounded-2xl px-3 text-left text-sm font-medium text-neutral-800 hover:bg-black/5 dark:text-neutral-100 dark:hover:bg-white/10 [&_svg]:size-5";
   return (
     <>
-      <button type="button" className={cn(ICON_BTN, open && "bg-[var(--brand)]/10 text-[var(--brand)]")} aria-label={tr("admin")} title={tr("admin")} onClick={() => setOpen(true)}>
+      <button type="button" className={cn(ICON_BTN, "relative", open && "bg-[var(--brand)]/10 text-[var(--brand)]")} aria-label={tr("admin")} title={tr("admin")} onClick={() => setOpen(true)}>
         <Shield />
+        {waiting > 0 && <span className="absolute right-1 top-1 grid min-w-4 place-items-center rounded-full bg-[var(--brand)] px-1 text-[10px] font-semibold leading-4 text-white">{waiting > 9 ? "9+" : waiting}</span>}
       </button>
       <Sheet open={open} onClose={() => setOpen(false)} title={tr("admin")}>
         <div className="space-y-1 pb-2">
@@ -91,7 +94,8 @@ function AdminMenu({ adminLinks }: { adminLinks: NavItem[] }) {
               }}
             >
               <span className="grid size-9 place-items-center rounded-full bg-[var(--brand)]/10 text-[var(--brand)]">{l.icon}</span>
-              {l.label}
+              <span className="flex-1">{l.label}</span>
+              {l.to === "/gestion" && waiting > 0 && <span className="rounded-full bg-[var(--brand)] px-2 text-xs leading-5 text-white">{waiting}</span>}
             </button>
           ))}
           {isAdmin && (

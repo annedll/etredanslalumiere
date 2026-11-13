@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { env } from "./env";
 import { Sheet } from "./mobile";
+import { setBadge } from "./ui";
 
 export type NotifyEvent = "contact.new" | "booking.new" | "booking.cancelled" | "order.new" | "signup.new" | "message.new";
 export type NotifyData = {
@@ -205,7 +206,9 @@ export function useNotifications(supabase: SupabaseClient) {
       .then((shown) => shown.forEach((n) => unread.includes(n.tag) && n.close()))
       .catch(() => undefined);
   };
-  return { items, unread: items.filter((i) => !i.read_at).length, markAllRead, reload: load, signedIn: Boolean(userId) };
+  const unread = items.filter((i) => !i.read_at).length;
+  useEffect(() => setBadge("notifications", unread), [unread]);
+  return { items, unread, markAllRead, reload: load, signedIn: Boolean(userId) };
 }
 
 /** Bell for the header (signed-in users): unread count, list in a sheet, device notifications switch. */
