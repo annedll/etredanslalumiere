@@ -1953,6 +1953,19 @@ export function useMailUnread() {
   return n;
 }
 
+/** Web addresses in a message become links (e.g. Google's page to create an app password). */
+function linkify(text: string): ReactNode {
+  return text.split(/((?:https?:\/\/)?(?:[\w-]+\.)+[a-z]{2,}\/[\w\-./?=&%#]*[\w/])/i).map((part, i) =>
+    i % 2 ? (
+      <a key={i} href={/^https?:/.test(part) ? part : "https://" + part} target="_blank" rel="noreferrer" className="font-medium underline">
+        {part}
+      </a>
+    ) : (
+      part
+    ),
+  );
+}
+
 /** Settings of one mailbox: alerts for new emails, signature (built from the app's brand and contact details), removal. */
 function MailAccountSettings({
   acc,
@@ -2478,7 +2491,7 @@ export function Mailbox() {
             </Field>
           </div>
         )}
-        {error && <p className="text-sm text-red-600">{error}</p>}
+        {error && <p className="text-sm text-red-600">{linkify(error)}</p>}
         <div className="flex flex-wrap gap-2">
           <Button
             disabled={busy || !email || !password}
@@ -2824,7 +2837,7 @@ export function Mailbox() {
         ))}
       </div>
 
-      {error && <p className="text-sm text-red-600">{error}</p>}
+      {error && <p className="text-sm text-red-600">{linkify(error)}</p>}
       {query && <p className="text-sm text-neutral-500">Résultats pour « {query} »</p>}
 
       <div className={cn("grid gap-4", two && "grid-cols-[minmax(18rem,24rem)_minmax(0,1fr)]")}>
