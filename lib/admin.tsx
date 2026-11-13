@@ -2,6 +2,7 @@
 import { Fragment, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useContent, useData, invalidate } from "./content";
+import { languages } from "./i18n";
 import { AddressInput, Badge, Button, Card, Container, Dialog, EmptyState, Field, Input, Select, Skeleton, Stat, Switch, Tabs, Textarea, cn, confirmAction, setBadge, toast, useBadge } from "./ui";
 import { ImageEditor, uploadImage } from "./image-editor";
 import { LEGAL_PAGES, legalDefaultText, type LegalKind } from "./legal";
@@ -67,6 +68,7 @@ export function AdminConsole({ title, sections: own, actions, seo = true }: { ti
   // Every management space can write the Google titles of the pages (once, even if the app adds its own).
   const sections: AdminSection[] = !seo || own.some((s) => s.id === "seo") ? own : [...own, { id: "seo", label: tr("seo"), icon: <SearchIcon />, element: <SeoEditor />, group: own[own.length - 1]?.group }];
   useSeo({ title, noindex: true });
+  useAdminTranslation();
   const current = new URLSearchParams(location.search).get("s");
   const active = sections.find((s) => s.id === current) ?? sections[0];
   const [small, setSmall] = useState(() => {
@@ -146,6 +148,168 @@ export function AdminConsole({ title, sections: own, actions, seo = true }: { ti
       </div>
     </Container>
   );
+}
+
+// ------------------------------------------------------------------ management spaces in every language
+
+/*
+ * The texts of the management spaces are written once, in the main language, right in the code. At each publication
+ * Usin translates them (table usin_admin_i18n); here they are shown in the language chosen with the globe. Only texts
+ * that are exactly a text of the code are replaced: customers' names, messages and emails are never touched (and
+ * anything inside translate="no" is skipped).
+ */
+type AdminDict = { exact: Map<string, string>; patterns: { re: RegExp; to: string }[] };
+const adminDicts = new Map<string, Promise<AdminDict | null>>();
+const ATTRS = ["placeholder", "title", "aria-label"] as const;
+
+function loadAdminDict(supabase: NonNullable<ReturnType<typeof useContent>["supabase"]>, lang: string) {
+  let p = adminDicts.get(lang);
+  if (!p) {
+    p = Promise.resolve(supabase.from("usin_admin_i18n").select("dict").eq("lang", lang).maybeSingle())
+      .then(({ data }) => {
+        const dict = ((data as { dict?: Record<string, string> } | null)?.dict ?? {}) as Record<string, string>;
+        const exact = new Map<string, string>();
+        const patterns: AdminDict["patterns"] = [];
+        for (const [src, to] of Object.entries(dict)) {
+          if (typeof to !== "string" || !to.trim() || to === src) continue;
+          if (/\{\d\}/.test(src)) {
+            const re = new RegExp("^" + src.replace(/[.*+?^$()|[\]\\]/g, "\\$&").replace(/\\?\{(\d)\\?\}/g, "(?<v$1>.+?)") + "$");
+            patterns.push({ re, to });
+          } else exact.set(src, to);
+        }
+        return { exact, patterns };
+      })
+      .catch(() => null);
+    adminDicts.set(lang, p);
+  }
+  return p;
+}
+
+function translateText(d: AdminDict, text: string): string | null {
+  const core = text.trim();
+  if (!core || !/\p{L}/u.test(core)) return null;
+  const norm = core.replace(/\s+/g, " ");
+  let to = d.exact.get(norm);
+  if (!to)
+    for (const p of d.patterns) {
+      const m = norm.match(p.re);
+      if (m) {
+        to = p.to.replace(/\{(\d)\}/g, (_, i) => m.groups?.["v" + i] ?? "");
+        break;
+      }
+    }
+  if (!to) return null;
+  const lead = text.match(/^\s*/)?.[0] ?? "";
+  const tail = text.match(/\s*$/)?.[0] ?? "";
+  return lead + to + tail;
+}
+
+/** Shows the management space in the visitor's language while it is open (texts, placeholders, tooltips, dialogs). */
+function useAdminTranslation() {
+  const { supabase, lang } = useContent();
+  useEffect(() => {
+    const main = languages[0] ?? "";
+    const originals = new WeakMap<Node, string>();
+    const shown = new Set<Text>();
+    const attrOriginals = new WeakMap<Element, Record<string, string>>();
+    const touched = new Set<Element>();
+    let dict: AdminDict | null = null;
+    let busy = false;
+    const skip = (el: Element | null) => Boolean(el?.closest('script,style,textarea,code,[translate="no"],[contenteditable="true"],iframe'));
+    const doText = (n: Text) => {
+      if (!dict || skip(n.parentElement)) return;
+      const value = n.nodeValue ?? "";
+      const known = originals.get(n);
+      // React wrote a new text since: it becomes the original.
+      const source = known !== undefined && value === translateText(dict, known) ? known : value;
+      const to = translateText(dict, source);
+      if (to && to !== value) {
+        originals.set(n, source);
+        shown.add(n);
+        n.nodeValue = to;
+      }
+    };
+    // « Demandes à traiter ({n}) » is several text nodes for React: the sentence is translated as a whole.
+    const groupOriginal = new WeakMap<Text, string>();
+    const groupSet = new WeakMap<Text, string>();
+    const doGroup = (el: Element | null) => {
+      if (!dict || !el || skip(el)) return;
+      const nodes = Array.from(el.childNodes);
+      if (nodes.length < 2 || nodes.length > 7 || !nodes.every((n) => n.nodeType === Node.TEXT_NODE)) return;
+      const texts = nodes as Text[];
+      const shownValues = texts.map((n) => n.nodeValue ?? "");
+      // A node still showing what was put there keeps its original; a node React changed since brings its new text.
+      const sources = texts.map((n, i) => (groupSet.has(n) && groupSet.get(n) === shownValues[i] ? groupOriginal.get(n) ?? shownValues[i] : shownValues[i]));
+      const to = translateText(dict, sources.join(""));
+      if (!to || to === shownValues.join("")) return;
+      texts.forEach((n, i) => {
+        groupOriginal.set(n, sources[i]);
+        shown.add(n);
+        originals.set(n, sources[i]);
+        n.nodeValue = i === 0 ? to : "";
+        groupSet.set(n, n.nodeValue);
+      });
+    };
+    const doEl = (el: Element) => {
+      if (!dict || skip(el)) return;
+      doGroup(el);
+      for (const a of ATTRS) {
+        const v = el.getAttribute(a);
+        if (!v) continue;
+        const saved = attrOriginals.get(el) ?? {};
+        const source = saved[a] !== undefined && translateText(dict, saved[a]) === v ? saved[a] : v;
+        const to = translateText(dict, source);
+        if (to && to !== v) {
+          attrOriginals.set(el, { ...saved, [a]: source });
+          touched.add(el);
+          el.setAttribute(a, to);
+        }
+      }
+    };
+    const walk = (root: Node) => {
+      if (root.nodeType === Node.TEXT_NODE) return doText(root as Text);
+      if (root.nodeType !== Node.ELEMENT_NODE) return;
+      doEl(root as Element);
+      const it = document.createTreeWalker(root, NodeFilter.SHOW_TEXT | NodeFilter.SHOW_ELEMENT);
+      for (let n = it.nextNode(); n; n = it.nextNode()) n.nodeType === Node.TEXT_NODE ? doText(n as Text) : doEl(n as Element);
+    };
+    const observer = new MutationObserver((list) => {
+      if (busy) return;
+      busy = true;
+      for (const m of list) {
+        if (m.type === "characterData") {
+          doText(m.target as Text);
+          doGroup((m.target as Text).parentElement);
+        }
+        else if (m.type === "attributes") doEl(m.target as Element);
+        else m.addedNodes.forEach(walk);
+      }
+      observer.takeRecords();
+      busy = false;
+    });
+    let alive = true;
+    if (supabase && lang && main && lang !== main)
+      void loadAdminDict(supabase, lang).then((d) => {
+        if (!alive || !d) return;
+        dict = d;
+        walk(document.body);
+        observer.observe(document.body, { subtree: true, childList: true, characterData: true, attributes: true, attributeFilter: [...ATTRS] });
+      });
+    return () => {
+      alive = false;
+      observer.disconnect();
+      // Back to the original texts (other language chosen, or the management space closed).
+      for (const n of shown) {
+        const o = originals.get(n);
+        if (o === undefined || !dict) continue;
+        if (groupOriginal.has(n) || n.nodeValue === translateText(dict, o)) n.nodeValue = o;
+      }
+      for (const el of touched) {
+        const saved = attrOriginals.get(el);
+        if (saved) for (const [a, v] of Object.entries(saved)) el.setAttribute(a, v);
+      }
+    };
+  }, [supabase, lang]);
 }
 
 /** Title of a section, with its actions on the right. */
@@ -1221,7 +1385,7 @@ function MailRow({
   const who = outgoing ? m.to || "—" : m.from || m.fromEmail;
   const initial = (who.replace(/^[^\p{L}\p{N}]+/u, "")[0] ?? "?").toUpperCase();
   return (
-    <div className="relative overflow-hidden rounded-2xl">
+    <div className="relative overflow-hidden rounded-2xl" translate="no">
       {dx !== 0 && (
         <div className={cn("absolute inset-0 flex items-center px-5 text-sm font-medium text-white", dx > 0 ? "justify-start bg-[var(--brand)]" : "justify-end bg-red-600")}>
           {dx > 0 ? (
@@ -1863,14 +2027,14 @@ export function Mailbox() {
               </div>
               <div className="min-h-0 flex-1 space-y-4 overflow-y-auto p-4 sm:p-6">
                 <div className="flex items-start gap-3">
-                  <h3 className="min-w-0 flex-1 text-xl font-semibold leading-snug text-neutral-900 dark:text-neutral-100">{full?.subject ?? current.subject}</h3>
+                  <h3 translate="no" className="min-w-0 flex-1 text-xl font-semibold leading-snug text-neutral-900 dark:text-neutral-100">{full?.subject ?? current.subject}</h3>
                   <button type="button" aria-label={current.flagged ? "Ne plus suivre" : "Suivre"} onClick={() => void act(current.flagged ? "unstar" : "star", [current.uid])} className={cn("grid size-9 shrink-0 place-items-center rounded-full hover:bg-black/5 dark:hover:bg-white/10", current.flagged ? "text-amber-500" : "text-neutral-400")}>
                     <MailIcon name="star" filled={current.flagged} />
                   </button>
                 </div>
                 <div className="flex items-start gap-3">
                   <span className="grid size-10 shrink-0 place-items-center rounded-full bg-[var(--brand)]/15 font-semibold text-[var(--brand)]">{((full?.from || current.from || "?").replace(/^[^\p{L}\p{N}]+/u, "")[0] ?? "?").toUpperCase()}</span>
-                  <div className="min-w-0 flex-1 text-sm">
+                  <div translate="no" className="min-w-0 flex-1 text-sm">
                     <p className="flex flex-wrap items-baseline gap-x-2">
                       <span className="font-semibold text-neutral-900 dark:text-neutral-100">{full?.from || current.from}</span>
                       {full && <span className="truncate text-neutral-500">{full.fromEmail}</span>}
@@ -1902,7 +2066,7 @@ export function Mailbox() {
                     {full.html ? (
                       <iframe title="email" sandbox="allow-popups allow-popups-to-escape-sandbox" srcDoc={'<base target="_blank"><style>body{font-family:system-ui,sans-serif;margin:16px;word-wrap:break-word}img{max-width:100%;height:auto}</style>' + full.html} className={cn("w-full rounded-xl border border-black/5 bg-white dark:border-white/10", two ? "h-full min-h-[24rem]" : "h-[65vh]")} />
                     ) : (
-                      <pre className="whitespace-pre-wrap break-words font-sans text-sm leading-relaxed text-neutral-800 dark:text-neutral-200">{full.text}</pre>
+                      <pre translate="no" className="whitespace-pre-wrap break-words font-sans text-sm leading-relaxed text-neutral-800 dark:text-neutral-200">{full.text}</pre>
                     )}
                     {role !== "drafts" && (
                       <div className="flex flex-wrap gap-2 pt-2">
