@@ -170,7 +170,7 @@ function Content() {
   const start = (title: string) => { const g = SETTING_GROUPS.find((x) => x.title === title)!; const d: any = {}; g.fields.forEach((f) => (d[f.key] = app.get(f.key))); setDraft(d); setOpen(title); };
   const save = async () => {
     setBusy(true);
-    try { for (const f of group!.fields) { const v = draft[f.key]; if (v === "" || v == null) await app.remove(f.key); else await app.save(f.key, f.type === "bool" ? String(!!v === true || v === "true") : f.type === "number" ? String(v) : v); } setOpen(null); toast("Modifications enregistrées."); } catch { toast(SAVE_ERR, "error"); }
+    try { for (const f of group!.fields) { const v = draft[f.key]; if (v === "" || v == null) await app.remove(f.key); else await app.save(f.key, f.type === "bool" ? String(v === true || v === "true") : f.type === "number" ? String(v) : v); } setOpen(null); toast("Modifications enregistrées."); } catch { toast(SAVE_ERR, "error"); }
     setBusy(false);
   };
   return (
