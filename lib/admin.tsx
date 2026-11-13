@@ -2,7 +2,7 @@
 import { Fragment, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useContent, useData, invalidate } from "./content";
-import { AddressInput, Badge, Button, Card, Container, Dialog, EmptyState, Field, Input, Select, Skeleton, Stat, Switch, Tabs, Textarea, cn, confirmAction, toast } from "./ui";
+import { AddressInput, Badge, Button, Card, Container, Dialog, EmptyState, Field, Input, Select, Skeleton, Stat, Switch, Tabs, Textarea, cn, confirmAction, setBadge, toast, useBadge } from "./ui";
 import { ImageEditor, uploadImage } from "./image-editor";
 import { LEGAL_PAGES, legalDefaultText, type LegalKind } from "./legal";
 import { useSeo } from "./seo";
@@ -50,7 +50,7 @@ function useT() {
 
 // ------------------------------------------------------------------ layout
 
-export type AdminSection = { id: string; label: string; icon?: ReactNode; element: ReactNode; badge?: number; /** Heading the section is listed under (« Activité », « Clients »…): a long menu stays easy to scan. */ group?: string };
+export type AdminSection = { id: string; label: string; icon?: ReactNode; element: ReactNode; badge?: number; /** Needs the whole width (mailbox…): the menu becomes a row above it. */ wide?: boolean; /** Heading the section is listed under (« Activité », « Clients »…): a long menu stays easy to scan. */ group?: string };
 
 /**
  * A management space: menu of sections (column on computers, scrollable pills on phones) and the chosen section.
@@ -73,24 +73,30 @@ export function AdminConsole({ title, sections: own, actions, seo = true }: { ti
     window.scrollTo({ top: 0 });
   };
   return (
-    <Container className="py-6 sm:py-10">
+    <Container className={cn("py-6 sm:py-10", active?.wide && "max-w-[96rem]")}>
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-2xl font-semibold tracking-tight text-neutral-900 sm:text-3xl dark:text-neutral-100">{title}</h1>
         {actions && <div className="flex flex-wrap gap-2">{actions}</div>}
       </div>
-      <div className="grid gap-6 md:grid-cols-[15rem_1fr]">
-        <nav aria-label={title} className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 [scrollbar-width:none] md:sticky md:top-24 md:mx-0 md:flex-col md:self-start md:overflow-visible md:px-0">
+      <div className={cn("grid gap-6", !active?.wide && "md:grid-cols-[15rem_1fr]")}>
+        <nav
+          aria-label={title}
+          className={cn(
+            "-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 [scrollbar-width:none]",
+            !active?.wide && "md:sticky md:top-24 md:mx-0 md:flex-col md:self-start md:overflow-visible md:px-0",
+          )}
+        >
           {sections.map((s, i) => (
             <Fragment key={s.id}>
             {s.group && s.group !== sections[i - 1]?.group && (
-              <p className="hidden px-4 pb-1 pt-4 text-xs font-semibold uppercase tracking-wide text-neutral-500 first:pt-0 md:block dark:text-neutral-400">{s.group}</p>
+              <p className={cn("hidden px-4 pb-1 pt-4 text-xs font-semibold uppercase tracking-wide text-neutral-500 first:pt-0 dark:text-neutral-400", !active?.wide && "md:block")}>{s.group}</p>
             )}
             <button
               type="button"
               onClick={() => go(s.id)}
               aria-current={s.id === active?.id ? "page" : undefined}
               className={cn(
-                "flex min-h-11 shrink-0 items-center gap-3 rounded-full px-4 text-sm font-medium transition md:min-h-10 md:rounded-2xl [&_svg]:size-5",
+                "flex min-h-11 shrink-0 items-center gap-3 rounded-full px-4 text-sm font-medium transition [&_svg]:size-5", !active?.wide && "md:min-h-10 md:rounded-2xl",
                 s.id === active?.id
                   ? "bg-[var(--brand)]/10 text-[var(--brand)] dark:bg-white/10 dark:text-neutral-100"
                   : "text-neutral-600 hover:bg-black/5 dark:text-neutral-400 dark:hover:bg-white/5",
@@ -1108,8 +1114,271 @@ type MailItem = { uid: number; from: string; fromEmail: string; to: string; subj
 type MailFull = { uid: number; from: string; fromEmail: string; to: string; cc: string; subject: string; date: string; text: string; html: string; messageId: string; references: string; attachments: { index: number; name: string; size: number; type: string }[] };
 type MailDraft = { to: string; cc: string; bcc: string; subject: string; body: string; inReplyTo?: string; references?: string; draftUid?: number; attachments: { name: string; type: string; data: string; size: number }[]; showCc: boolean };
 
-const FOLDER_ICON: Record<MailFolder["role"], string> = { inbox: "📥", sent: "📤", drafts: "📝", junk: "🚫", trash: "🗑️", archive: "🗄️", other: "📁" };
 const blankDraft = (): MailDraft => ({ to: "", cc: "", bcc: "", subject: "", body: "", attachments: [], showCc: false });
+
+// Line icons in the app's colours (they take the colour of the text around them, like the rest of the design).
+const MAIL_ICONS = {
+  inbox: '<path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/>',
+  sent: '<path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/>',
+  drafts: '<path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M16 13H8"/><path d="M16 17H8"/>',
+  archive: '<rect width="20" height="5" x="2" y="3" rx="1"/><path d="M4 8v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8"/><path d="M10 12h4"/>',
+  junk: '<circle cx="12" cy="12" r="10"/><path d="m4.9 4.9 14.2 14.2"/>',
+  trash: '<path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>',
+  other: '<path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/>',
+  reply: '<path d="M9 17 4 12l5-5"/><path d="M20 18v-2a4 4 0 0 0-4-4H4"/>',
+  replyAll: '<path d="m7 17-5-5 5-5"/><path d="m12 17-5-5 5-5"/><path d="M22 18v-2a4 4 0 0 0-4-4H7"/>',
+  forward: '<path d="m15 17 5-5-5-5"/><path d="M4 18v-2a4 4 0 0 1 4-4h12"/>',
+  star: '<path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>',
+  unread: '<rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>',
+  read: '<path d="M21.2 8.4c.5.38.8.97.8 1.6v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V10a2 2 0 0 1 .8-1.6l8-6a2 2 0 0 1 2.4 0l8 6Z"/><path d="m22 10-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 10"/>',
+  more: '<circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/>',
+  back: '<path d="m15 18-6-6 6-6"/>',
+  refresh: '<path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/>',
+  write: '<path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/>',
+  search: '<circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>',
+  settings: '<path d="M20 7h-9"/><path d="M14 17H5"/><circle cx="17" cy="17" r="3"/><circle cx="7" cy="7" r="3"/>',
+  clip: '<path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.48"/>',
+  close: '<path d="M18 6 6 18"/><path d="m6 6 12 12"/>',
+  move: '<path d="M2 9V5a2 2 0 0 1 2-2h3.9a2 2 0 0 1 1.69.9l.81 1.2a2 2 0 0 0 1.67.9H20a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-1"/><path d="M2 13h10"/><path d="m9 16 3-3-3-3"/>',
+  remove: '<path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="m10 11 4 4"/><path d="m14 11-4 4"/>',
+  open: '<path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/>',
+} as const;
+type MailIconName = keyof typeof MAIL_ICONS;
+function MailIcon({ name, filled, className }: { name: MailIconName; filled?: boolean; className?: string }) {
+  return (
+    <svg
+      aria-hidden="true"
+      viewBox="0 0 24 24"
+      fill={filled ? "currentColor" : "none"}
+      stroke="currentColor"
+      strokeWidth={1.8}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={cn("size-[1.15rem] shrink-0", className)}
+      dangerouslySetInnerHTML={{ __html: MAIL_ICONS[name] }}
+    />
+  );
+}
+
+/** One email in the list: right-click (computer) or long press (phone) opens its menu; swipe right = archive, left = bin. */
+function MailRow({
+  m,
+  active,
+  outgoing,
+  date,
+  canArchive,
+  onOpen,
+  onStar,
+  onSwipe,
+  onMenu,
+}: {
+  m: MailItem;
+  active: boolean;
+  outgoing: boolean;
+  date: string;
+  canArchive: boolean;
+  onOpen: () => void;
+  onStar: () => void;
+  onSwipe: (to: "archive" | "trash") => void;
+  onMenu: (x: number, y: number) => void;
+}) {
+  const [dx, setDx] = useState(0);
+  const g = useRef<{ x: number; y: number; dir: "h" | "v" | null; press: ReturnType<typeof setTimeout> | null; menu: boolean } | null>(null);
+  const LIMIT = 90;
+  const who = outgoing ? m.to || "—" : m.from || m.fromEmail;
+  const initial = (who.replace(/^[^\p{L}\p{N}]+/u, "")[0] ?? "?").toUpperCase();
+  return (
+    <div className="relative overflow-hidden rounded-2xl">
+      {dx !== 0 && (
+        <div className={cn("absolute inset-0 flex items-center px-5 text-sm font-medium text-white", dx > 0 ? "justify-start bg-[var(--brand)]" : "justify-end bg-red-600")}>
+          {dx > 0 ? (
+            <span className="flex items-center gap-2"><MailIcon name="archive" /> Archiver</span>
+          ) : (
+            <span className="flex items-center gap-2">Corbeille <MailIcon name="trash" /></span>
+          )}
+        </div>
+      )}
+      <div
+        role="button"
+        tabIndex={0}
+        onClick={() => !g.current?.menu && onOpen()}
+        onKeyDown={(e) => e.key === "Enter" && onOpen()}
+        onContextMenu={(e) => {
+          e.preventDefault();
+          onMenu(e.clientX, e.clientY);
+        }}
+        onTouchStart={(e) => {
+          const t = e.touches[0];
+          const press = setTimeout(() => {
+            if (!g.current || g.current.dir) return;
+            g.current.menu = true;
+            navigator.vibrate?.(10);
+            onMenu(t.clientX, t.clientY);
+          }, 500);
+          g.current = { x: t.clientX, y: t.clientY, dir: null, press, menu: false };
+        }}
+        onTouchMove={(e) => {
+          const s = g.current;
+          if (!s) return;
+          const t = e.touches[0];
+          const mx = t.clientX - s.x;
+          const my = t.clientY - s.y;
+          if (!s.dir && Math.abs(mx) + Math.abs(my) > 8) {
+            s.dir = Math.abs(mx) > Math.abs(my) * 1.3 ? "h" : "v";
+            if (s.press) clearTimeout(s.press);
+          }
+          if (s.dir === "h") setDx(Math.max(-160, Math.min(canArchive ? 160 : 0, mx)));
+        }}
+        onTouchEnd={() => {
+          const s = g.current;
+          if (s?.press) clearTimeout(s.press);
+          if (s?.dir === "h" && Math.abs(dx) > LIMIT) onSwipe(dx > 0 ? "archive" : "trash");
+          setDx(0);
+          // The click that follows a long press must not open the email.
+          setTimeout(() => {
+            if (g.current === s) g.current = null;
+          }, 50);
+        }}
+        style={dx ? { transform: `translateX(${dx}px)` } : undefined}
+        className={cn(
+          "group relative flex cursor-pointer select-none items-start gap-3 bg-white px-3 py-3 outline-none transition-colors [-webkit-touch-callout:none] focus-visible:ring-2 focus-visible:ring-[var(--brand)]/40 dark:bg-neutral-900",
+          dx === 0 && "transition-transform",
+          active ? "bg-[color-mix(in_srgb,var(--brand)_10%,white)] dark:bg-[color-mix(in_srgb,var(--brand)_18%,#171717)]" : "hover:bg-neutral-50 dark:hover:bg-white/5",
+        )}
+      >
+        <span className={cn("mt-0.5 grid size-9 shrink-0 place-items-center rounded-full text-sm font-semibold", m.seen ? "bg-neutral-100 text-neutral-500 dark:bg-white/10 dark:text-neutral-400" : "bg-[var(--brand)]/15 text-[var(--brand)]")}>{initial}</span>
+        <span className="min-w-0 flex-1">
+          <span className="flex items-baseline justify-between gap-2">
+            <span className={cn("min-w-0 truncate text-sm", m.seen ? "text-neutral-700 dark:text-neutral-300" : "font-semibold text-neutral-900 dark:text-neutral-100")}>
+              {outgoing ? "À : " : ""}
+              {who}
+            </span>
+            <span className={cn("shrink-0 text-xs", m.seen ? "text-neutral-500" : "font-semibold text-[var(--brand)]")}>{date}</span>
+          </span>
+          <span className="mt-0.5 flex items-center gap-1.5">
+            <span className={cn("min-w-0 flex-1 truncate text-sm", m.seen ? "text-neutral-500 dark:text-neutral-400" : "font-medium text-neutral-800 dark:text-neutral-200")}>{m.subject}</span>
+            {m.attachments && <MailIcon name="clip" className="size-3.5 text-neutral-400" />}
+            <button
+              type="button"
+              aria-label={m.flagged ? "Ne plus suivre" : "Suivre"}
+              onClick={(e) => {
+                e.stopPropagation();
+                onStar();
+              }}
+              className={cn("-m-1.5 grid size-8 place-items-center rounded-full transition hover:bg-black/5 dark:hover:bg-white/10", m.flagged ? "text-amber-500" : "text-neutral-400 opacity-0 group-hover:opacity-100 max-lg:opacity-60")}
+            >
+              <MailIcon name="star" filled={m.flagged} className="size-4" />
+            </button>
+          </span>
+        </span>
+        {!m.seen && <span className="absolute left-1 top-1/2 size-1.5 -translate-y-1/2 rounded-full bg-[var(--brand)]" />}
+      </div>
+    </div>
+  );
+}
+
+type MenuItem = { label: string; icon: MailIconName; run: () => void; danger?: boolean } | "-";
+
+/** Menu at the place of the click (or at the finger), kept inside the screen. Escape / click elsewhere closes it. */
+function MailMenu({ at, items, onClose }: { at: { x: number; y: number }; items: MenuItem[]; onClose: () => void }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [pos, setPos] = useState({ left: at.x, top: at.y });
+  useEffect(() => {
+    const el = ref.current;
+    if (el) {
+      const w = el.offsetWidth;
+      const h = el.offsetHeight;
+      setPos({ left: Math.max(8, Math.min(at.x, window.innerWidth - w - 8)), top: Math.max(8, Math.min(at.y, window.innerHeight - h - 8)) });
+      el.querySelector<HTMLButtonElement>("button")?.focus();
+    }
+    const key = (e: KeyboardEvent) => e.key === "Escape" && onClose();
+    window.addEventListener("keydown", key);
+    window.addEventListener("resize", onClose);
+    return () => {
+      window.removeEventListener("keydown", key);
+      window.removeEventListener("resize", onClose);
+    };
+  }, [at.x, at.y, onClose]);
+  return (
+    <div
+      className="fixed inset-0 z-[90]"
+      onClick={onClose}
+      onContextMenu={(e) => {
+        e.preventDefault();
+        onClose();
+      }}
+    >
+      <div
+        ref={ref}
+        role="menu"
+        style={pos}
+        onClick={(e) => e.stopPropagation()}
+        className="absolute max-h-[80vh] min-w-56 overflow-y-auto rounded-2xl border border-black/5 bg-white p-1.5 shadow-xl shadow-black/10 dark:border-white/10 dark:bg-neutral-900"
+      >
+        {items.map((it, i) =>
+          it === "-" ? (
+            <div key={i} className="my-1 h-px bg-black/5 dark:bg-white/10" />
+          ) : (
+            <button
+              key={i}
+              type="button"
+              role="menuitem"
+              onClick={() => {
+                onClose();
+                it.run();
+              }}
+              className={cn(
+                "flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm outline-none transition focus-visible:bg-black/5 dark:focus-visible:bg-white/10",
+                it.danger ? "text-red-600 hover:bg-red-50 dark:hover:bg-red-500/10" : "text-neutral-800 hover:bg-black/5 dark:text-neutral-200 dark:hover:bg-white/10",
+              )}
+            >
+              <MailIcon name={it.icon} className={it.danger ? "" : "text-neutral-500 dark:text-neutral-400"} />
+              {it.label}
+            </button>
+          ),
+        )}
+      </div>
+    </div>
+  );
+}
+
+async function mailCall<T>(supabase: NonNullable<ReturnType<typeof useContent>["supabase"]>, action: string, body: Record<string, unknown> = {}): Promise<T> {
+  const base = env.paymentsUrl ? env.paymentsUrl.replace("/api/pay/", "/api/app-notify/") : "";
+  const { data } = await supabase.auth.getSession();
+  const res = await fetch(base + "/mailbox/" + action, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...body, accessToken: data.session?.access_token ?? "" }) });
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error((json as { error?: string }).error || "Erreur " + res.status);
+  return json as T;
+}
+
+/**
+ * Unread emails of the connected mailbox, refreshed every 2 minutes: the counter next to « Boîte mail » in the menu
+ * and on the icon of the installed app. 0 when no mailbox is connected.
+ * { id: "mailbox", label: "Boîte mail", icon: <Inbox />, element: <Mailbox />, wide: true, badge: useMailUnread() }
+ */
+export function useMailUnread() {
+  const { supabase } = useContent();
+  const n = useBadge("mail");
+  useEffect(() => {
+    if (!supabase || !env.paymentsUrl) return;
+    let stop = false;
+    const tick = () => {
+      if (document.visibilityState !== "visible") return;
+      mailCall<{ unseen: number }>(supabase, "unseen")
+        .then((r) => !stop && setBadge("mail", r.unseen))
+        .catch(() => undefined);
+    };
+    tick();
+    const t = setInterval(tick, 120_000);
+    document.addEventListener("visibilitychange", tick);
+    return () => {
+      stop = true;
+      clearInterval(t);
+      document.removeEventListener("visibilitychange", tick);
+    };
+  }, [supabase]);
+  return n;
+}
 
 /**
  * The business's own mailbox in the console, like a modern mail app: folders (réception, envoyés, brouillons, spam,
@@ -1120,14 +1389,12 @@ const blankDraft = (): MailDraft => ({ to: "", cc: "", bcc: "", subject: "", bod
 export function Mailbox() {
   const { supabase } = useContent();
   const base = env.paymentsUrl ? env.paymentsUrl.replace("/api/pay/", "/api/app-notify/") : "";
-  const call = async <T,>(action: string, body: Record<string, unknown> = {}): Promise<T> => {
-    const { data } = await supabase!.auth.getSession();
-    const res = await fetch(base + "/mailbox/" + action, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...body, accessToken: data.session?.access_token ?? "" }) });
-    const json = await res.json().catch(() => ({}));
-    if (!res.ok) throw new Error((json as { error?: string }).error || "Erreur " + res.status);
-    return json as T;
-  };
-  const [status, setStatus] = useState<{ connected: boolean; email?: string } | null>(null);
+  const call = <T,>(action: string, body: Record<string, unknown> = {}) => mailCall<T>(supabase!, action, body);
+  const location = useLocation();
+  const [status, setStatus] = useState<{ connected: boolean; email?: string; watch?: boolean } | null>(null);
+  const [menu, setMenu] = useState<{ x: number; y: number; uid: number; reader?: boolean } | null>(null);
+  const [moving, setMoving] = useState<number | null>(null);
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [folders, setFolders] = useState<MailFolder[]>([]);
   const [folder, setFolder] = useState("INBOX");
@@ -1151,7 +1418,13 @@ export function Mailbox() {
   const [user, setUser] = useState("");
 
   const role = folders.find((f) => f.path === folder)?.role ?? "inbox";
-  const loadFolders = () => call<MailFolder[]>("folders").then(setFolders).catch(() => undefined);
+  const loadFolders = () =>
+    call<MailFolder[]>("folders")
+      .then((fs) => {
+        setFolders(fs);
+        setBadge("mail", fs.find((f) => f.role === "inbox")?.unseen ?? 0);
+      })
+      .catch(() => undefined);
   const load = async (opts: { folder?: string; page?: number; search?: string } = {}) => {
     const f = opts.folder ?? folder;
     const p = opts.page ?? 1;
@@ -1215,6 +1488,7 @@ export function Mailbox() {
     if (!m.seen) {
       setList((l) => l?.map((x) => (x.uid === m.uid ? { ...x, seen: true } : x)) ?? l);
       setFolders((fs) => fs.map((f) => (f.path === folder ? { ...f, unseen: Math.max(0, f.unseen - 1) } : f)));
+      if (role === "inbox") setBadge("mail", Math.max(0, (folders.find((f) => f.path === folder)?.unseen ?? 1) - 1));
     }
     if (role === "drafts") {
       const d = hit ?? (await call<MailFull>("read", { uid: m.uid, folder, peek: true }).catch(() => null));
@@ -1247,7 +1521,7 @@ export function Mailbox() {
     }
     try {
       await call("act", { uids, folder, action, to });
-      if (moving) void loadFolders();
+      if (moving || action === "read" || action === "unread") void loadFolders();
     } catch (e) {
       toast((e as Error).message, "error");
       void load({ page: 1 });
@@ -1323,180 +1597,339 @@ export function Mailbox() {
     return date.toDateString() === new Date().toDateString() ? date.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" }) : date.toLocaleDateString(undefined, { day: "numeric", month: "short" });
   };
   const current = list?.find((m) => m.uid === openUid);
-  const iconBtn = "grid size-10 place-items-center rounded-full text-lg transition hover:bg-black/5 active:scale-95 dark:hover:bg-white/10";
-  const reply = (all: boolean) => {
-    if (!full) return;
-    const others = all ? [full.to, full.cc].join(",").split(",").map((x) => x.trim()).filter((x) => x && x.toLowerCase() !== (status.email ?? "").toLowerCase() && x !== full.fromEmail) : [];
+  const outgoing = role === "sent" || role === "drafts";
+  const fullOf = async (m: MailItem) => cache.get(folder + ":" + m.uid) ?? (full?.uid === m.uid ? full : await call<MailFull>("read", { uid: m.uid, folder, peek: true }).catch(() => null));
+  const reply = (f: MailFull | null, all: boolean) => {
+    if (!f) return;
+    const others = all ? [f.to, f.cc].join(",").split(",").map((x) => x.trim()).filter((x) => x && !x.toLowerCase().includes((status.email ?? "").toLowerCase()) && !x.includes(f.fromEmail)) : [];
     setDraft({
       ...blankDraft(),
-      to: full.fromEmail,
+      to: f.fromEmail,
       cc: others.join(", "),
       showCc: others.length > 0,
-      subject: /^re\s*:/i.test(full.subject) ? full.subject : "Re : " + full.subject,
-      body: "\n\n" + `Le ${new Date(full.date).toLocaleString()}, ${full.from} a écrit :\n` + full.text.split("\n").slice(0, 60).map((l) => "> " + l).join("\n"),
-      inReplyTo: full.messageId,
-      references: full.references,
+      subject: /^re\s*:/i.test(f.subject) ? f.subject : "Re : " + f.subject,
+      body: "\n\n" + `Le ${new Date(f.date).toLocaleString()}, ${f.from} a écrit :\n` + f.text.split("\n").slice(0, 60).map((l) => "> " + l).join("\n"),
+      inReplyTo: f.messageId,
+      references: f.references,
     });
   };
+  const forward = (f: MailFull | null) =>
+    f && setDraft({ ...blankDraft(), subject: "Tr : " + f.subject, body: "\n\n---------- Message transféré ----------\n" + `De : ${f.from} <${f.fromEmail}>\nDate : ${new Date(f.date).toLocaleString()}\nObjet : ${f.subject}\n\n` + f.text });
+  const close = () => {
+    setOpenUid(null);
+    setFull(null);
+  };
+  const choose = (path: string) => {
+    setFolder(path);
+    close();
+    void load({ folder: path, page: 1 });
+  };
+  const remove = async (m: MailItem) => {
+    if (role === "trash") {
+      if (await confirmAction("Supprimer définitivement cet email ?")) void act("delete", [m.uid]);
+    } else void act("trash", [m.uid]);
+  };
+  // Same actions everywhere: right-click / long press in the list, « ⋯ » in the email.
+  const actions = (m: MailItem, inReader: boolean): MenuItem[] => [
+    ...(inReader ? [] : [{ label: "Ouvrir", icon: "open" as const, run: () => void openMail(m) }]),
+    ...(role === "drafts"
+      ? []
+      : [
+          { label: "Répondre", icon: "reply" as const, run: async () => reply(await fullOf(m), false) },
+          { label: "Répondre à tous", icon: "replyAll" as const, run: async () => reply(await fullOf(m), true) },
+          { label: "Transférer", icon: "forward" as const, run: async () => forward(await fullOf(m)) },
+          "-" as const,
+        ]),
+    m.seen
+      ? { label: "Marquer comme non lu", icon: "unread", run: () => (void act("unread", [m.uid]), inReader && close()) }
+      : { label: "Marquer comme lu", icon: "read", run: () => void act("read", [m.uid]) },
+    { label: m.flagged ? "Ne plus suivre" : "Suivre (étoile)", icon: "star", run: () => void act(m.flagged ? "unstar" : "star", [m.uid]) },
+    ...(role !== "archive" ? [{ label: "Archiver", icon: "archive" as const, run: () => void act("archive", [m.uid]) }] : []),
+    role === "junk" ? { label: "Ce n'est pas du spam", icon: "inbox", run: () => void act("inbox", [m.uid]) } : { label: "Signaler comme spam", icon: "junk", run: () => void act("junk", [m.uid]) },
+    { label: "Déplacer vers…", icon: "move", run: () => setMoving(m.uid) },
+    "-",
+    { label: role === "trash" ? "Supprimer définitivement" : "Supprimer", icon: role === "trash" ? "remove" : "trash", danger: true, run: () => void remove(m) },
+  ];
+  const inbox = folders.find((f) => f.role === "inbox");
+  const tool = "inline-flex min-h-10 items-center gap-2 rounded-full px-3 text-sm font-medium text-neutral-700 transition hover:bg-black/5 active:scale-[0.97] dark:text-neutral-200 dark:hover:bg-white/10";
 
   return (
-    <div className="space-y-3">
-      <div className="flex flex-wrap items-center gap-2">
-        <Button onClick={() => setDraft(blankDraft())}>✏️ Nouveau message</Button>
+    <div className="space-y-4">
+      {/* Top: write, search, refresh, settings */}
+      <div className="flex items-center gap-2">
+        <Button onClick={() => setDraft(blankDraft())} className="shrink-0">
+          <MailIcon name="write" />
+          <span className="max-sm:hidden">Écrire</span>
+        </Button>
         <form
-          className="flex min-w-0 flex-1 gap-2"
+          className="relative min-w-0 flex-1"
           onSubmit={(e) => {
             e.preventDefault();
             setQuery(search);
+            close();
             void load({ page: 1, search });
           }}
         >
-          <Input className="min-w-0 flex-1" value={search} placeholder="Rechercher (expéditeur, objet, texte)…" onChange={(e) => setSearch(e.target.value)} />
+          <MailIcon name="search" className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-neutral-400" />
+          <Input type="search" className="rounded-full pl-11 pr-10" value={search} placeholder="Rechercher dans les emails" onChange={(e) => setSearch(e.target.value)} />
           {query && (
-            <Button type="button" variant="ghost" onClick={() => { setSearch(""); setQuery(""); void load({ page: 1, search: "" }); }}>
-              ✕
-            </Button>
+            <button type="button" aria-label="Effacer la recherche" className="absolute right-2 top-1/2 grid size-8 -translate-y-1/2 place-items-center rounded-full text-neutral-500 hover:bg-black/5 dark:hover:bg-white/10" onClick={() => { setSearch(""); setQuery(""); void load({ page: 1, search: "" }); }}>
+              <MailIcon name="close" className="size-4" />
+            </button>
           )}
         </form>
-        <Button variant="secondary" onClick={() => { void loadFolders(); void load({ page: 1 }); }}>↻</Button>
-        <Button
-          variant="ghost"
-          onClick={async () => {
-            if (!(await confirmAction("Déconnecter la boîte mail de l'appli ? (vos emails ne sont pas supprimés)"))) return;
-            setStatus(await call("disconnect"));
-          }}
-        >
-          Déconnecter
+        <Button variant="ghost" size="icon" aria-label="Actualiser" title="Actualiser" onClick={() => { void loadFolders(); void load({ page: 1 }); }}>
+          <MailIcon name="refresh" />
+        </Button>
+        <Button variant="ghost" size="icon" aria-label="Réglages de la boîte mail" title="Réglages" onClick={() => setSettingsOpen(true)}>
+          <MailIcon name="settings" />
         </Button>
       </div>
+
+      {/* Folders */}
+      <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 [scrollbar-width:none] sm:mx-0 sm:flex-wrap sm:px-0">
+        {folders.map((f) => (
+          <button
+            key={f.path}
+            type="button"
+            onClick={() => choose(f.path)}
+            className={cn(
+              "inline-flex min-h-10 shrink-0 items-center gap-2 rounded-full px-4 text-sm font-medium transition",
+              folder === f.path ? "bg-[var(--brand)] text-white shadow-sm shadow-[var(--brand)]/20" : "bg-black/[0.04] text-neutral-700 hover:bg-black/[0.07] dark:bg-white/5 dark:text-neutral-300 dark:hover:bg-white/10",
+            )}
+          >
+            <MailIcon name={f.role} className="size-4" />
+            {f.name}
+            {f.unseen > 0 && f.role !== "sent" && f.role !== "trash" && (
+              <span className={cn("rounded-full px-1.5 text-xs leading-5", folder === f.path ? "bg-white/25" : "bg-[var(--brand)] text-white")}>{f.unseen}</span>
+            )}
+          </button>
+        ))}
+      </div>
+
       {error && <p className="text-sm text-red-600">{error}</p>}
-      <div className="grid gap-3 lg:grid-cols-[13rem_minmax(0,21rem)_1fr]">
-        {/* Folders: a column on computers, a menu on phones */}
-        <div className={openUid ? "hidden lg:block" : ""}>
-          <Select className="lg:hidden" value={folder} onChange={(e) => { setFolder(e.target.value); setOpenUid(null); setFull(null); void load({ folder: e.target.value, page: 1 }); }}>
-            {folders.map((f) => (
-              <option key={f.path} value={f.path}>{FOLDER_ICON[f.role]} {f.name}{f.unseen ? ` (${f.unseen})` : ""}</option>
-            ))}
-          </Select>
-          <nav className="hidden space-y-0.5 lg:block">
-            {folders.map((f) => (
-              <button
-                key={f.path}
-                type="button"
-                onClick={() => { setFolder(f.path); setOpenUid(null); setFull(null); void load({ folder: f.path, page: 1 }); }}
-                className={"flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-sm transition " + (folder === f.path ? "bg-[var(--brand)]/10 font-semibold text-[var(--brand)]" : "hover:bg-black/5 dark:hover:bg-white/5")}
-              >
-                <span>{FOLDER_ICON[f.role]}</span>
-                <span className="min-w-0 flex-1 truncate">{f.name}</span>
-                {f.unseen > 0 && f.role !== "sent" && <span className="rounded-full bg-[var(--brand)] px-2 text-xs leading-5 text-white">{f.unseen}</span>}
-              </button>
-            ))}
-          </nav>
-        </div>
+      {query && <p className="text-sm text-neutral-500">Résultats pour « {query} »</p>}
+
+      <div className="grid gap-4 lg:grid-cols-[minmax(20rem,26rem)_minmax(0,1fr)]">
         {/* List */}
-        <Card className={"max-h-[75vh] overflow-y-auto p-1 " + (openUid ? "hidden lg:block" : "")}>
+        <Card className={cn("overflow-hidden p-1.5 lg:h-[calc(100dvh-16rem)] lg:min-h-[30rem] lg:overflow-y-auto", openUid && "max-lg:hidden")}>
           {!list ? (
-            <div className="space-y-2 p-2">{[0, 1, 2, 3, 4].map((i) => <Skeleton key={i} className="h-12" />)}</div>
+            <div className="space-y-2 p-2">{[0, 1, 2, 3, 4, 5].map((i) => <Skeleton key={i} className="h-14" />)}</div>
           ) : list.length ? (
-            <>
+            <div className="space-y-0.5">
               {list.map((m) => (
-                <div key={m.uid} className={"group flex items-start gap-1 rounded-xl px-2 py-2 transition hover:bg-black/5 dark:hover:bg-white/5 " + (openUid === m.uid ? "bg-[var(--brand)]/10" : "")}>
-                  <button type="button" aria-label={m.flagged ? "Retirer l'étoile" : "Étoile"} onClick={() => void act(m.flagged ? "unstar" : "star", [m.uid])} className="mt-0.5 shrink-0 px-1 text-base">
-                    {m.flagged ? "⭐" : <span className="opacity-30 group-hover:opacity-70">☆</span>}
-                  </button>
-                  <button type="button" onClick={() => void openMail(m)} className="min-w-0 flex-1 text-left">
-                    <span className="flex items-center justify-between gap-2 text-sm">
-                      <span className={"min-w-0 truncate " + (m.seen ? "" : "font-semibold")}>
-                        {!m.seen && <span className="mr-1.5 inline-block size-2 rounded-full bg-[var(--brand)]" />}
-                        {role === "sent" || role === "drafts" ? "À : " + (m.to || "—") : m.from}
-                      </span>
-                      <span className="shrink-0 text-xs opacity-60">{m.attachments ? "📎 " : ""}{fmt(m.date)}</span>
-                    </span>
-                    <span className={"block truncate text-sm " + (m.seen ? "opacity-70" : "font-medium")}>{m.subject}</span>
-                  </button>
-                </div>
+                <MailRow
+                  key={m.uid}
+                  m={m}
+                  active={openUid === m.uid}
+                  outgoing={outgoing}
+                  date={fmt(m.date)}
+                  canArchive={role !== "archive"}
+                  onOpen={() => void openMail(m)}
+                  onStar={() => void act(m.flagged ? "unstar" : "star", [m.uid])}
+                  onSwipe={(to) => (to === "trash" ? void remove(m) : void act("archive", [m.uid]))}
+                  onMenu={(x, y) => setMenu({ x, y, uid: m.uid })}
+                />
               ))}
               {hasMore && (
-                <button type="button" className="w-full p-3 text-sm text-[var(--brand)]" onClick={() => void load({ page: page + 1 })}>
-                  Charger plus
+                <button type="button" className="w-full rounded-xl p-3 text-sm font-medium text-[var(--brand)] hover:bg-black/5 dark:hover:bg-white/5" onClick={() => void load({ page: page + 1 })}>
+                  Afficher plus
                 </button>
-              )}
-            </>
-          ) : (
-            <p className="p-4 text-sm opacity-70">{query ? "Aucun email trouvé." : "Aucun email."}</p>
-          )}
-        </Card>
-        {/* Reading */}
-        <Card className={"min-h-[50vh] p-4 sm:p-5 " + (openUid ? "" : "hidden lg:block")}>
-          {!openUid ? (
-            <p className="text-sm opacity-60">Choisissez un email dans la liste.</p>
-          ) : (
-            <div className="space-y-3">
-              <div className="flex flex-wrap items-center gap-0.5">
-                <button type="button" className={iconBtn + " lg:hidden"} aria-label="Retour" onClick={() => { setOpenUid(null); setFull(null); }}>←</button>
-                <button type="button" className={iconBtn} title="Répondre" aria-label="Répondre" onClick={() => reply(false)}>↩️</button>
-                <button type="button" className={iconBtn} title="Répondre à tous" aria-label="Répondre à tous" onClick={() => reply(true)}>⏪</button>
-                <button
-                  type="button"
-                  className={iconBtn}
-                  title="Transférer"
-                  aria-label="Transférer"
-                  onClick={() => full && setDraft({ ...blankDraft(), subject: "Tr : " + full.subject, body: "\n\n---------- Message transféré ----------\n" + `De : ${full.from} <${full.fromEmail}>\nDate : ${new Date(full.date).toLocaleString()}\nObjet : ${full.subject}\n\n` + full.text })}
-                >
-                  ↪️
-                </button>
-                <span className="mx-1 h-6 w-px bg-black/10 dark:bg-white/15" />
-                <button type="button" className={iconBtn} title={current?.flagged ? "Retirer l'étoile" : "Étoile"} onClick={() => current && void act(current.flagged ? "unstar" : "star", [current.uid])}>{current?.flagged ? "⭐" : "☆"}</button>
-                <button type="button" className={iconBtn} title="Marquer comme non lu" onClick={() => current && (void act("unread", [current.uid]), setOpenUid(null), setFull(null))}>✉️</button>
-                {role !== "archive" && <button type="button" className={iconBtn} title="Archiver" onClick={() => openUid && void act("archive", [openUid])}>🗄️</button>}
-                {role === "junk" ? (
-                  <button type="button" className={iconBtn} title="Ce n'est pas du spam" onClick={() => openUid && void act("inbox", [openUid])}>✅</button>
-                ) : (
-                  <button type="button" className={iconBtn} title="Spam" onClick={() => openUid && void act("junk", [openUid])}>🚫</button>
-                )}
-                {role === "trash" ? (
-                  <button type="button" className={iconBtn} title="Supprimer définitivement" onClick={async () => openUid && (await confirmAction("Supprimer définitivement cet email ?")) && void act("delete", [openUid])}>❌</button>
-                ) : (
-                  <button type="button" className={iconBtn} title="Corbeille" onClick={() => openUid && void act("trash", [openUid])}>🗑️</button>
-                )}
-                <Select className="ml-auto h-10 w-auto min-w-0 text-sm" value="" onChange={(e) => e.target.value && openUid && void act("move", [openUid], e.target.value)}>
-                  <option value="">Déplacer…</option>
-                  {folders.filter((f) => f.path !== folder).map((f) => <option key={f.path} value={f.path}>{f.name}</option>)}
-                </Select>
-              </div>
-              {!full ? (
-                <div className="space-y-2">
-                  <p className="text-lg font-semibold">{current?.subject}</p>
-                  <p className="text-sm opacity-70">{current?.from}</p>
-                  <Skeleton className="h-48" />
-                </div>
-              ) : (
-                <>
-                  <div className="space-y-0.5">
-                    <p className="text-lg font-semibold text-neutral-900 dark:text-neutral-100">{full.subject}</p>
-                    <p className="text-sm opacity-80">{full.from} &lt;{full.fromEmail}&gt; · {new Date(full.date).toLocaleString()}</p>
-                    {full.to && <p className="text-xs opacity-60">À : {full.to}{full.cc ? " · Cc : " + full.cc : ""}</p>}
-                  </div>
-                  {full.attachments.length > 0 && (
-                    <div className="flex flex-wrap gap-2">
-                      {full.attachments.map((a) => (
-                        <button key={a.index} type="button" onClick={() => void download(a)} className="rounded-full border border-black/10 px-3 py-1.5 text-xs hover:bg-black/5 dark:border-white/15 dark:hover:bg-white/10">
-                          📎 {a.name} · {Math.max(1, Math.round(a.size / 1024))} Ko
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                  {full.html ? (
-                    <iframe title="email" sandbox="allow-popups allow-popups-to-escape-sandbox" srcDoc={'<base target="_blank">' + full.html} className="h-[62vh] w-full rounded-xl border border-black/10 bg-white dark:border-white/10" />
-                  ) : (
-                    <pre className="whitespace-pre-wrap break-words font-sans text-sm leading-relaxed">{full.text}</pre>
-                  )}
-                </>
               )}
             </div>
+          ) : (
+            <div className="grid place-items-center gap-2 px-4 py-16 text-center text-sm text-neutral-500">
+              <MailIcon name={query ? "search" : role} className="size-8 text-neutral-300 dark:text-neutral-600" />
+              {query ? "Aucun email trouvé." : "Aucun email ici."}
+            </div>
+          )}
+          <p className="hidden px-3 pb-2 pt-3 text-center text-xs text-neutral-400 lg:block">Clic droit sur un email pour plus d'actions</p>
+          <p className="px-3 pb-2 pt-3 text-center text-xs text-neutral-400 lg:hidden">Glissez → archiver · ← corbeille · appui long : plus d'actions</p>
+        </Card>
+
+        {/* Reading */}
+        <Card className={cn("flex min-w-0 flex-col p-0 lg:h-[calc(100dvh-16rem)] lg:min-h-[30rem]", !openUid && "max-lg:hidden")}>
+          {!openUid || !current ? (
+            <div className="grid flex-1 place-items-center gap-2 p-10 text-center text-sm text-neutral-500">
+              <div className="grid justify-items-center gap-3">
+                <MailIcon name="read" className="size-10 text-neutral-300 dark:text-neutral-600" />
+                {inbox && inbox.unseen > 0 ? `${inbox.unseen} email${inbox.unseen > 1 ? "s" : ""} non lu${inbox.unseen > 1 ? "s" : ""}` : "Choisissez un email"}
+              </div>
+            </div>
+          ) : (
+            <>
+              <div className="flex flex-wrap items-center gap-1 border-b border-black/5 px-2 py-2 dark:border-white/10">
+                <button type="button" className={cn(tool, "lg:hidden")} aria-label="Retour à la liste" onClick={close}>
+                  <MailIcon name="back" />
+                </button>
+                {role !== "drafts" && (
+                  <>
+                    <button type="button" className={tool} onClick={() => reply(full, false)} disabled={!full}>
+                      <MailIcon name="reply" />
+                      <span className="max-sm:hidden">Répondre</span>
+                    </button>
+                    <button type="button" className={cn(tool, "max-md:hidden")} onClick={() => reply(full, true)} disabled={!full}>
+                      <MailIcon name="replyAll" />
+                      Répondre à tous
+                    </button>
+                    <button type="button" className={tool} onClick={() => forward(full)} disabled={!full}>
+                      <MailIcon name="forward" />
+                      <span className="max-sm:hidden">Transférer</span>
+                    </button>
+                  </>
+                )}
+                <span className="flex-1" />
+                {role !== "archive" && (
+                  <button type="button" className={tool} title="Archiver" onClick={() => void act("archive", [current.uid])}>
+                    <MailIcon name="archive" />
+                    <span className="max-xl:hidden">Archiver</span>
+                  </button>
+                )}
+                <button type="button" className={cn(tool, "hover:text-red-600")} title={role === "trash" ? "Supprimer définitivement" : "Supprimer"} onClick={() => void remove(current)}>
+                  <MailIcon name={role === "trash" ? "remove" : "trash"} />
+                  <span className="max-xl:hidden">Supprimer</span>
+                </button>
+                <button
+                  type="button"
+                  className={tool}
+                  aria-label="Plus d'actions"
+                  title="Plus d'actions"
+                  onClick={(e) => {
+                    const r = e.currentTarget.getBoundingClientRect();
+                    setMenu({ x: r.right - 224, y: r.bottom + 6, uid: current.uid, reader: true });
+                  }}
+                >
+                  <MailIcon name="more" />
+                </button>
+              </div>
+              <div className="min-h-0 flex-1 space-y-4 overflow-y-auto p-4 sm:p-6">
+                <div className="flex items-start gap-3">
+                  <h3 className="min-w-0 flex-1 text-xl font-semibold leading-snug text-neutral-900 dark:text-neutral-100">{full?.subject ?? current.subject}</h3>
+                  <button type="button" aria-label={current.flagged ? "Ne plus suivre" : "Suivre"} onClick={() => void act(current.flagged ? "unstar" : "star", [current.uid])} className={cn("grid size-9 shrink-0 place-items-center rounded-full hover:bg-black/5 dark:hover:bg-white/10", current.flagged ? "text-amber-500" : "text-neutral-400")}>
+                    <MailIcon name="star" filled={current.flagged} />
+                  </button>
+                </div>
+                <div className="flex items-start gap-3">
+                  <span className="grid size-10 shrink-0 place-items-center rounded-full bg-[var(--brand)]/15 font-semibold text-[var(--brand)]">{((full?.from || current.from || "?").replace(/^[^\p{L}\p{N}]+/u, "")[0] ?? "?").toUpperCase()}</span>
+                  <div className="min-w-0 flex-1 text-sm">
+                    <p className="flex flex-wrap items-baseline gap-x-2">
+                      <span className="font-semibold text-neutral-900 dark:text-neutral-100">{full?.from || current.from}</span>
+                      {full && <span className="truncate text-neutral-500">{full.fromEmail}</span>}
+                    </p>
+                    {full && (
+                      <p className="text-xs text-neutral-500">
+                        {new Date(full.date).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" })}
+                        {full.to ? " · À : " + full.to : ""}
+                        {full.cc ? " · Cc : " + full.cc : ""}
+                      </p>
+                    )}
+                  </div>
+                </div>
+                {!full ? (
+                  <Skeleton className="h-64" />
+                ) : (
+                  <>
+                    {full.attachments.length > 0 && (
+                      <div className="flex flex-wrap gap-2">
+                        {full.attachments.map((a) => (
+                          <button key={a.index} type="button" onClick={() => void download(a)} className="inline-flex items-center gap-2 rounded-xl border border-black/10 px-3 py-2 text-left text-xs transition hover:bg-black/5 dark:border-white/15 dark:hover:bg-white/10">
+                            <MailIcon name="clip" className="size-4 text-neutral-500" />
+                            <span className="max-w-[14rem] truncate font-medium">{a.name}</span>
+                            <span className="text-neutral-500">{Math.max(1, Math.round(a.size / 1024))} Ko</span>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                    {full.html ? (
+                      <iframe title="email" sandbox="allow-popups allow-popups-to-escape-sandbox" srcDoc={'<base target="_blank"><style>body{font-family:system-ui,sans-serif;margin:16px;word-wrap:break-word}img{max-width:100%;height:auto}</style>' + full.html} className="h-[60vh] w-full rounded-xl border border-black/5 bg-white lg:h-full lg:min-h-[24rem] dark:border-white/10" />
+                    ) : (
+                      <pre className="whitespace-pre-wrap break-words font-sans text-sm leading-relaxed text-neutral-800 dark:text-neutral-200">{full.text}</pre>
+                    )}
+                    {role !== "drafts" && (
+                      <div className="flex flex-wrap gap-2 pt-2">
+                        <Button variant="secondary" onClick={() => reply(full, false)}>
+                          <MailIcon name="reply" /> Répondre
+                        </Button>
+                        <Button variant="outline" onClick={() => forward(full)}>
+                          <MailIcon name="forward" /> Transférer
+                        </Button>
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+            </>
           )}
         </Card>
       </div>
+
+      {menu && (() => {
+        const m = list?.find((x) => x.uid === menu.uid);
+        return m ? <MailMenu at={menu} items={actions(m, Boolean(menu.reader))} onClose={() => setMenu(null)} /> : null;
+      })()}
+
+      {/* Move to a folder */}
+      <Dialog open={moving !== null} onClose={() => setMoving(null)} title="Déplacer vers">
+        <div className="grid gap-1">
+          {folders.filter((f) => f.path !== folder).map((f) => (
+            <button
+              key={f.path}
+              type="button"
+              className="flex items-center gap-3 rounded-xl px-3 py-3 text-left text-sm hover:bg-black/5 dark:hover:bg-white/10"
+              onClick={() => {
+                if (moving !== null) void act("move", [moving], f.path);
+                setMoving(null);
+              }}
+            >
+              <MailIcon name={f.role} className="text-neutral-500" />
+              {f.name}
+            </button>
+          ))}
+        </div>
+      </Dialog>
+
+      {/* Settings of the mailbox */}
+      <Dialog open={settingsOpen} onClose={() => setSettingsOpen(false)} title="Réglages de la boîte mail">
+        <div className="space-y-5">
+          <p className="text-sm text-neutral-600 dark:text-neutral-400">Boîte connectée : <strong className="text-neutral-900 dark:text-neutral-100">{status.email}</strong></p>
+          <div className="space-y-2">
+            <Switch
+              label="Me prévenir des nouveaux emails dans l'appli"
+              checked={Boolean(status.watch)}
+              disabled={busy}
+              onChange={async (on) => {
+                setBusy(true);
+                try {
+                  const r = await call<{ watch: boolean }>("watch", { on, url: location.pathname + "?s=" + (new URLSearchParams(location.search).get("s") ?? "mailbox") });
+                  setStatus({ ...status, watch: r.watch });
+                  toast(r.watch ? "Vous serez prévenu des nouveaux emails ✓" : "Alertes des nouveaux emails coupées ✓");
+                } catch (e) {
+                  toast((e as Error).message, "error");
+                } finally {
+                  setBusy(false);
+                }
+              }}
+            />
+            <p className="text-xs leading-relaxed text-neutral-500">
+              Une notification dans l'appli et sur votre téléphone pour chaque nouvel email (vérifié toutes les 5 minutes). Les alertes de l'appli (réservations, messages, avis…) ne vous sont alors plus envoyées par email : vous les voyez dans l'appli et sur votre téléphone. Vos clients reçoivent toujours leurs emails.
+            </p>
+          </div>
+          <div className="border-t border-black/5 pt-4 dark:border-white/10">
+            <Button
+              variant="outline"
+              onClick={async () => {
+                if (!(await confirmAction("Déconnecter la boîte mail de l'appli ? (vos emails ne sont pas supprimés)"))) return;
+                setSettingsOpen(false);
+                setStatus(await call("disconnect"));
+                setBadge("mail", 0);
+              }}
+            >
+              Déconnecter la boîte mail
+            </Button>
+          </div>
+        </div>
+      </Dialog>
+
       <Dialog
         open={Boolean(draft)}
         onClose={() => setDraft(null)}
@@ -1565,7 +1998,8 @@ export function Mailbox() {
             <Field label="Message"><Textarea rows={10} value={draft.body} onChange={(e) => setDraft({ ...draft, body: e.target.value })} autoFocus /></Field>
             <div className="flex flex-wrap items-center gap-2">
               <label className="cursor-pointer rounded-full border border-black/10 px-3 py-1.5 text-sm dark:border-white/15">
-                📎 Joindre un fichier
+                <MailIcon name="clip" className="mr-1.5 inline size-4 align-[-3px]" />
+                Joindre un fichier
                 <input
                   type="file"
                   multiple

@@ -326,6 +326,42 @@ export function toast(text: string, tone: Toast["tone"] = "success") {
 }
 
 /** Place once in the app (in /App.tsx): shows the toasts and the confirmations. */
+// ------------------------------------------------------------------ counters (menu badges + icon of the installed app)
+
+const badges = new Map<string, number>();
+const BADGES = "usin:badges";
+type BadgeNavigator = Navigator & { setAppBadge?: (n?: number) => Promise<void>; clearAppBadge?: () => Promise<void> };
+
+/**
+ * A counter of things waiting (unread emails, new messages…): useBadge(key) shows it in a menu, and the icon of the
+ * installed app (phone, computer) shows the largest one, so the same email is never counted twice.
+ * setBadge("mail", 3); const n = useBadge("mail");
+ */
+export function setBadge(key: string, n: number) {
+  const v = Math.max(0, Math.floor(Number(n) || 0));
+  if ((badges.get(key) ?? -1) === v) return;
+  badges.set(key, v);
+  const top = Math.max(0, ...badges.values());
+  const nav = navigator as BadgeNavigator;
+  try {
+    void (top ? nav.setAppBadge?.(top) : nav.clearAppBadge?.())?.catch(() => undefined);
+  } catch {
+    /* not supported */
+  }
+  window.dispatchEvent(new CustomEvent(BADGES));
+}
+
+export function useBadge(key: string) {
+  const [n, setN] = useState(() => badges.get(key) ?? 0);
+  useEffect(() => {
+    const on = () => setN(badges.get(key) ?? 0);
+    on();
+    window.addEventListener(BADGES, on);
+    return () => window.removeEventListener(BADGES, on);
+  }, [key]);
+  return n;
+}
+
 export function UiRoot() {
   const [toasts, setToasts] = useState<Toast[]>([]);
   const [ask, setAsk] = useState<{ text: string; danger: boolean; resolve: (v: boolean) => void } | null>(null);

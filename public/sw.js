@@ -14,7 +14,12 @@ self.addEventListener("push", (e) => {
     d = e.data ? e.data.json() : {};
   } catch {}
   e.waitUntil(
-    self.registration.showNotification(d.title || "Notification", { body: d.body || "", icon: "/icon-192.png", badge: "/icon-192.png", tag: d.tag || undefined, data: { url: d.url || "/", read: d.read || "" } }),
+    self.registration
+      .showNotification(d.title || "Notification", { body: d.body || "", icon: "/icon-192.png", badge: "/icon-192.png", tag: d.tag || undefined, data: { url: d.url || "/", read: d.read || "" } })
+      // Counter on the icon of the installed app (the app sets the exact count once opened).
+      .then(() => self.registration.getNotifications())
+      .then((shown) => self.navigator.setAppBadge && self.navigator.setAppBadge(shown.length))
+      .catch(() => {}),
   );
 });
 self.addEventListener("notificationclick", (e) => {
