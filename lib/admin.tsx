@@ -1602,12 +1602,26 @@ type MailDraft = {
   showCc: boolean;
 };
 
+type MailSignature = {
+  on: boolean;
+  name?: string;
+  role?: string;
+  style?: "card" | "simple";
+  font?: string;
+  note?: string;
+  button?: string;
+  hideSlogan?: boolean;
+  hideAddress?: boolean;
+  hideButton?: boolean;
+  frame?: boolean;
+};
+const SIGNATURE_FONTS = ["Great Vibes", "Dancing Script", "Playfair Display", "Cormorant Garamond", "Lora", "Montserrat", "Poppins", "Nunito"];
 type MailAccount = {
   id: number;
   email: string;
   watch: boolean;
   every: number;
-  signature: { on: boolean; name?: string; role?: string };
+  signature: MailSignature;
   oauth: string | null;
   shared: boolean;
   mine: boolean;
@@ -1630,6 +1644,7 @@ const blankDraft = (): MailDraft => ({
 
 // Line icons in the app's colours (they take the colour of the text around them, like the rest of the design).
 const MAIL_ICONS = {
+  threads: '<path d="M14 9a2 2 0 0 1-2 2H6l-4 4V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2z"/><path d="M18 9h2a2 2 0 0 1 2 2v11l-4-4h-6a2 2 0 0 1-2-2v-1"/>',
   inbox: '<path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/>',
   sent: '<path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/>',
   drafts: '<path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M16 13H8"/><path d="M16 17H8"/>',
@@ -1997,11 +2012,26 @@ function MailAccountSettings({
   const call = <T,>(action: string, body: Record<string, unknown> = {}) => mailCall<T>(supabase!, action, { account: acc.id, ...body });
   const [busy, setBusy] = useState(false);
   const [sig, setSig] = useState(acc.signature);
-  const [preview, setPreview] = useState<string | null>(null);
+  // Shown at once from the last time (kept on this device), then refreshed.
+  const cacheKey = "usin:signature:" + acc.id;
+  const [preview, setPreviewState] = useState<{ html: string; framed: string } | null>(() => {
+    try {
+      return JSON.parse(localStorage.getItem(cacheKey) ?? "null");
+    } catch {
+      return null;
+    }
+  });
+  const setPreview = (r: { html: string; framed?: string }) => {
+    const v = { html: r.html, framed: r.framed ?? "" };
+    setPreviewState(v);
+    try {
+      localStorage.setItem(cacheKey, JSON.stringify(v));
+    } catch {}
+  };
   useEffect(() => {
-    void call<{ html: string }>("signature")
-      .then((r) => setPreview(r.html))
-      .catch(() => setPreview(""));
+    void call<{ html: string; framed?: string }>("signature")
+      .then(setPreview)
+      .catch(() => setPreviewState((p) => p ?? { html: "", framed: "" }));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [acc.id]);
   const watch = async (on: boolean, every: number) => {
@@ -2035,8 +2065,8 @@ function MailAccountSettings({
     setSig(next);
     setBusy(true);
     try {
-      const r = await call<{ html: string }>("signature-set", next);
-      setPreview(r.html);
+      const r = await call<{ html: string; framed?: string }>("signature-set", next);
+      setPreview(r);
       onChange(null, { signature: next });
     } catch (e) {
       toast((e as Error).message, "error");
@@ -2095,14 +2125,50 @@ function MailAccountSettings({
                 <Input value={sig.role ?? ""} onChange={(e) => setSig({ ...sig, role: e.target.value })} onBlur={() => void saveSig(sig)} placeholder="ex. Thérapeute énergéticienne" />
               </Field>
             </div>
+            <details className="group rounded-xl border border-black/5 px-3 py-2 dark:border-white/10">
+              <summary className="cursor-pointer select-none py-1 text-sm font-medium">Personnaliser la carte</summary>
+              <div className="space-y-3 pt-2 pb-1">
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <Field label="Style" hint={sig.style === "simple" ? "Texte seul : s'affiche partout" : "Carte de visite avec les polices de l'appli"}>
+                    <Select value={sig.style ?? "card"} onChange={(e) => void saveSig({ ...sig, style: e.target.value === "simple" ? "simple" : undefined })}>
+                      <option value="card">Carte de visite</option>
+                      <option value="simple">Simple (texte)</option>
+                    </Select>
+                  </Field>
+                  <Field label="Police du nom" hint="Sinon, celle des titres de l'appli">
+                    <Select value={sig.font ?? ""} onChange={(e) => void saveSig({ ...sig, font: e.target.value || undefined })}>
+                      <option value="">Celle de l'appli</option>
+                      {SIGNATURE_FONTS.map((f) => (
+                        <option key={f} value={f}>
+                          {f}
+                        </option>
+                      ))}
+                    </Select>
+                  </Field>
+                  <Field label="Phrase en plus" hint="Horaires, offre du moment… (facultatif)">
+                    <Input value={sig.note ?? ""} maxLength={140} onChange={(e) => setSig({ ...sig, note: e.target.value })} onBlur={() => void saveSig(sig)} placeholder="ex. Sur rendez-vous, du mardi au samedi" />
+                  </Field>
+                  <Field label="Texte du bouton" hint="Sinon, l'adresse du site">
+                    <Input value={sig.button ?? ""} maxLength={40} onChange={(e) => setSig({ ...sig, button: e.target.value })} onBlur={() => void saveSig(sig)} placeholder="ex. Prendre rendez-vous" />
+                  </Field>
+                </div>
+                <div className="grid gap-1 sm:grid-cols-3">
+                  <Switch label="Slogan" checked={!sig.hideSlogan} disabled={busy} onChange={(v) => void saveSig({ ...sig, hideSlogan: !v || undefined })} />
+                  <Switch label="Adresse" checked={!sig.hideAddress} disabled={busy} onChange={(v) => void saveSig({ ...sig, hideAddress: !v || undefined })} />
+                  <Switch label="Bouton du site" checked={!sig.hideButton} disabled={busy} onChange={(v) => void saveSig({ ...sig, hideButton: !v || undefined })} />
+                </div>
+              </div>
+            </details>
+            <Switch label="Mettre tout l'email dans le cadre de la marque" checked={Boolean(sig.frame)} disabled={busy} onChange={(v) => void saveSig({ ...sig, frame: v || undefined })} />
+            <p className="-mt-2 text-xs leading-relaxed text-neutral-500">Comme un papier à lettre : en-tête avec le logo, page blanche sur un fond aux couleurs de l'appli, pied de page. Les citations des réponses restent en dessous.</p>
             {preview === null ? (
               <Skeleton className="h-24" />
-            ) : preview ? (
+            ) : preview.framed || preview.html ? (
               <iframe
-                title="Signature"
+                title="Aperçu"
                 sandbox=""
-                srcDoc={'<body style="margin:12px;background:#fff">' + preview + "</body>"}
-                className="h-56 w-full rounded-xl border border-black/5 bg-white dark:border-white/10"
+                srcDoc={'<body style="margin:' + (preview.framed ? 0 : 12) + 'px;background:#fff">' + (preview.framed || preview.html) + "</body>"}
+                className={cn("w-full rounded-xl border border-black/5 bg-white dark:border-white/10", preview.framed ? "h-[30rem]" : "h-60")}
               />
             ) : null}
           </>
@@ -2160,6 +2226,8 @@ export function Mailbox() {
     return mailCall<T>(supabase!, action, { ...body, ...(s.account && s.account > 0 ? { account: s.account } : {}), uid: s.uid });
   };
   // Conversations: the emails of one exchange on one line (switch kept on this device).
+  // The earlier emails of a conversation stay folded (one line) until asked: on a phone the open email comes first.
+  const [earlier, setEarlier] = useState(false);
   const [threads, setThreads] = useState(() => {
     try {
       return localStorage.getItem("usin:mail-threads") !== "off";
@@ -2365,12 +2433,23 @@ export function Mailbox() {
     openRef.current = m.uid;
     setOpenUid(m.uid);
     setThread(null);
+    setEarlier(false);
     setOpened({});
     // The whole conversation (my answers included) is fetched next to it.
-    if (threads && role !== "drafts")
+    if (threads && role !== "drafts") {
+      // Opening a conversation reads all of it: its other unread emails of this folder are marked read too.
+      const others = expand([m.uid]).filter((k) => k !== m.uid && list?.find((x) => x.uid === k && !x.seen));
+      if (others.length) void act("read", others, undefined, true);
+      const base = m.uid - split(m.uid).uid;
       void callAt<{ items: ThreadItem[] }>(m.uid, "thread", { subject: m.subject })
-        .then((r) => openRef.current === m.uid && setThread(r.items.length > 1 ? r.items : null))
+        .then((r) => {
+          if (openRef.current !== m.uid) return;
+          setThread(r.items.length > 1 ? r.items : null);
+          const unread = r.items.filter((t) => t.folder === folder && !t.seen && t.uid !== split(m.uid).uid).map((t) => base + t.uid).filter((k) => !others.includes(k));
+          if (unread.length) void act("read", unread, undefined, true);
+        })
         .catch(() => undefined);
+    }
     const k = accountRef.current + ":" + folder + ":" + m.uid;
     const hit = cache.get(k);
     setFull(hit ?? null);
@@ -3167,8 +3246,12 @@ export function Mailbox() {
                 </div>
                 {thread && (
                   <div className="space-y-1.5">
-                    <p className="text-xs font-medium text-neutral-500">{thread.length} messages dans cette conversation</p>
-                    {thread
+                    <button type="button" onClick={() => setEarlier((v) => !v)} className="flex min-h-11 w-full items-center gap-2 rounded-xl bg-black/[0.03] px-3 text-left text-sm font-medium text-neutral-600 dark:bg-white/[0.05] dark:text-neutral-300">
+                      <MailIcon name="threads" />
+                      <span className="flex-1">{thread.length} messages dans cette conversation</span>
+                      <span className="text-xs text-[var(--brand)]">{earlier ? "Masquer" : "Voir les précédents"}</span>
+                    </button>
+                    {earlier && thread
                       .filter((t) => !(t.folder === folder && t.uid === split(openUid!).uid))
                       .map((t) => {
                         const k = t.folder + ":" + t.uid;
@@ -3188,7 +3271,13 @@ export function Mailbox() {
                                 const acc = split(openUid!).account;
                                 void mailCall<MailFull>(supabase!, "read", { ...(acc && acc > 0 ? { account: acc } : {}), uid: t.uid, folder: t.folder, peek: true })
                                   .then((f) => setOpened((x) => ({ ...x, [k]: f })))
-                                  .catch(() => setOpened((x) => ({ ...x, [k]: "loading" })));
+                                  .catch(() =>
+                                    setOpened((x) => {
+                                      const { [k]: _gone, ...rest } = x;
+                                      void _gone;
+                                      return rest;
+                                    }),
+                                  );
                               }}
                             >
                               <span className="grid size-7 shrink-0 place-items-center rounded-full bg-[var(--brand)]/10 text-xs font-semibold text-[var(--brand)]">

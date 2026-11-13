@@ -62,7 +62,7 @@ function Logo({ showName = true, custom }: { showName?: boolean; custom?: ReactN
   return (
     <Link to="/" className="flex min-w-0 items-center gap-2.5" aria-label={brand.name}>
       <img src={brand.logo} alt="" width={36} height={36} className="size-9 shrink-0" style={{ borderRadius: logoCorner() }} />
-      {showName && <span className="truncate text-base font-semibold text-neutral-900 dark:text-neutral-100">{brand.name}</span>}
+      {showName && <span className="truncate pr-[0.25em] text-base font-semibold text-neutral-900 dark:text-neutral-100">{brand.name}</span>}
     </Link>
   );
 }
