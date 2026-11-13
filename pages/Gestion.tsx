@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { AdminConsole, VisitStats, CalendarSync, ReplyButton, Mailbox } from "../lib/admin";
+import { AdminConsole, VisitStats, CalendarSync, ReplyButton, Mailbox, useMailUnread } from "../lib/admin";
+import { setBadge, useBadge } from "../lib/ui";
 import { CalendarDays, PhoneCall, Mail, Quote, Euro, Settings, Phone, Users, ShoppingBag, Newspaper, Star, LayoutDashboard, Ticket, Check, Inbox } from "lucide-react";
 import { useSeo } from "../lib/seo";
 import { ReviewsAdmin, NewsletterAdmin } from "../lib/engage";
@@ -186,7 +187,11 @@ function Clients() {
 
 function Messages() {
   const [rows, setRows] = useState<any[] | null>(null);
-  const load = async () => setRows(await q(supabase.from("contact_messages").select("*").order("created_at", { ascending: false }).limit(100)));
+  const load = async () => {
+    const r = await q(supabase.from("contact_messages").select("*").order("created_at", { ascending: false }).limit(100));
+    setRows(r);
+    setBadge("messages", r.filter((m: any) => !m.handled).length);
+  };
   useEffect(() => { load(); }, []);
   if (!rows) return <Skeleton className="h-40" />;
   return (
@@ -248,15 +253,34 @@ export function GestionPage() {
   return <GestionConsole />;
 }
 
+/** Messages not yet handled: counter in the menu and on the icon of the installed app (refreshed every 2 minutes). */
+function useNewMessages() {
+  const n = useBadge("messages");
+  useEffect(() => {
+    const tick = async () => {
+      if (document.visibilityState !== "visible") return;
+      const { count } = await supabase.from("contact_messages").select("id", { count: "exact", head: true }).eq("handled", false);
+      if (typeof count === "number") setBadge("messages", count);
+    };
+    tick();
+    const t = setInterval(tick, 120_000);
+    document.addEventListener("visibilitychange", tick);
+    return () => { clearInterval(t); document.removeEventListener("visibilitychange", tick); };
+  }, []);
+  return n;
+}
+
 function GestionConsole() {
   const navigate = useNavigate();
+  const mails = useMailUnread();
+  const messages = useNewMessages();
   const go = (id: string) => navigate("/gestion?s=" + id, { replace: true });
   const sections = [
     { id: "dash", label: "Tableau de bord", icon: <LayoutDashboard />, element: <div className="space-y-6"><VisitStats /><Dashboard go={go} /></div> },
     { id: "agenda", label: "Agenda", icon: <CalendarDays />, element: <div className="space-y-6"><CalendarSync /><Agenda /></div> },
     { id: "clients", label: "Clients", icon: <Users />, element: <Clients /> },
-    { id: "messages", label: "Messages", icon: <Mail />, element: <Messages /> },
-    { id: "mailbox", label: "Boîte mail", icon: <Inbox />, element: <Mailbox /> },
+    { id: "messages", label: "Messages", icon: <Mail />, element: <Messages />, badge: messages },
+    { id: "mailbox", label: "Boîte mail", icon: <Inbox />, element: <Mailbox />, wide: true, badge: mails },
     { id: "orders", label: "Commandes", icon: <ShoppingBag />, element: <Orders /> },
     { id: "news", label: "Newsletter", icon: <Newspaper />, element: <NewsletterAdmin supabase={supabase} /> },
     { id: "reviews", label: "Avis", icon: <Star />, element: <Moderation /> },
