@@ -50,10 +50,13 @@ function useT() {
 
 // ------------------------------------------------------------------ layout
 
-export type AdminSection = { id: string; label: string; icon?: ReactNode; element: ReactNode; badge?: number; /** Needs the whole width (mailbox…): the menu becomes a row above it. */ wide?: boolean; /** Heading the section is listed under (« Activité », « Clients »…): a long menu stays easy to scan. */ group?: string };
+export type AdminSection = { id: string; label: string; icon?: ReactNode; element: ReactNode; badge?: number; /** Kept for older apps: the layout is the same for every section. */ wide?: boolean; /** Heading the section is listed under (« Activité », « Clients »…): a long menu stays easy to scan. */ group?: string };
+
+const MENU_KEY = "usin:admin-menu";
 
 /**
- * A management space: menu of sections (column on computers, scrollable pills on phones) and the chosen section.
+ * A management space: the same menu for every section (column on computers, which can be reduced to icons to give
+ * the section more room — remembered on the device; scrollable pills on phones) and the chosen section.
  * The chosen section is kept in the address (?s=…) so a reload or a shared link opens the same place.
  * <AdminConsole title="Gestion" sections={[{ id: "dashboard", label: "Tableau de bord", icon: <Gauge />, element: <… /> }, …]} actions={…} />
  */
@@ -66,6 +69,21 @@ export function AdminConsole({ title, sections: own, actions, seo = true }: { ti
   useSeo({ title, noindex: true });
   const current = new URLSearchParams(location.search).get("s");
   const active = sections.find((s) => s.id === current) ?? sections[0];
+  const [small, setSmall] = useState(() => {
+    try {
+      return localStorage.getItem(MENU_KEY) === "small";
+    } catch {
+      return false;
+    }
+  });
+  const toggle = () => {
+    setSmall(!small);
+    try {
+      localStorage.setItem(MENU_KEY, small ? "full" : "small");
+    } catch {
+      /* private mode */
+    }
+  };
   const go = (id: string) => {
     const params = new URLSearchParams(location.search);
     params.set("s", id);
@@ -73,41 +91,56 @@ export function AdminConsole({ title, sections: own, actions, seo = true }: { ti
     window.scrollTo({ top: 0 });
   };
   return (
-    <Container className={cn("py-6 sm:py-10", active?.wide && "max-w-[96rem]")}>
+    <Container className="py-6 sm:py-10">
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-2xl font-semibold tracking-tight text-neutral-900 sm:text-3xl dark:text-neutral-100">{title}</h1>
         {actions && <div className="flex flex-wrap gap-2">{actions}</div>}
       </div>
-      <div className={cn("grid gap-6", !active?.wide && "md:grid-cols-[15rem_1fr]")}>
-        <nav
-          aria-label={title}
-          className={cn(
-            "-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 [scrollbar-width:none]",
-            !active?.wide && "md:sticky md:top-24 md:mx-0 md:flex-col md:self-start md:overflow-visible md:px-0",
-          )}
-        >
+      <div className={cn("grid gap-6 md:transition-[grid-template-columns] md:duration-200", small ? "md:grid-cols-[3rem_minmax(0,1fr)]" : "md:grid-cols-[15rem_minmax(0,1fr)]")}>
+        <nav aria-label={title} className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 [scrollbar-width:none] md:sticky md:top-24 md:mx-0 md:flex-col md:gap-1 md:self-start md:overflow-visible md:px-0">
           {sections.map((s, i) => (
             <Fragment key={s.id}>
-            {s.group && s.group !== sections[i - 1]?.group && (
-              <p className={cn("hidden px-4 pb-1 pt-4 text-xs font-semibold uppercase tracking-wide text-neutral-500 first:pt-0 dark:text-neutral-400", !active?.wide && "md:block")}>{s.group}</p>
-            )}
-            <button
-              type="button"
-              onClick={() => go(s.id)}
-              aria-current={s.id === active?.id ? "page" : undefined}
-              className={cn(
-                "flex min-h-11 shrink-0 items-center gap-3 rounded-full px-4 text-sm font-medium transition [&_svg]:size-5", !active?.wide && "md:min-h-10 md:rounded-2xl",
-                s.id === active?.id
-                  ? "bg-[var(--brand)]/10 text-[var(--brand)] dark:bg-white/10 dark:text-neutral-100"
-                  : "text-neutral-600 hover:bg-black/5 dark:text-neutral-400 dark:hover:bg-white/5",
+              {s.group && s.group !== sections[i - 1]?.group && (
+                <p className={cn("hidden px-4 pb-1 pt-4 text-xs font-semibold uppercase tracking-wide text-neutral-500 first:pt-0 dark:text-neutral-400", small ? "md:hidden" : "md:block")}>{s.group}</p>
               )}
-            >
-              {s.icon}
-              <span className="whitespace-nowrap">{s.label}</span>
-              {Boolean(s.badge) && <span className="ml-auto rounded-full bg-[var(--brand)] px-2 text-xs leading-5 text-white">{s.badge}</span>}
-            </button>
+              <button
+                type="button"
+                onClick={() => go(s.id)}
+                title={small ? s.label : undefined}
+                aria-label={s.badge ? `${s.label} (${s.badge})` : s.label}
+                aria-current={s.id === active?.id ? "page" : undefined}
+                className={cn(
+                  "relative flex min-h-11 shrink-0 items-center gap-3 rounded-full px-4 text-sm font-medium transition md:min-h-10 md:rounded-2xl [&_svg]:size-5 [&_svg]:shrink-0",
+                  small && "md:size-12 md:justify-center md:px-0",
+                  s.id === active?.id
+                    ? "bg-[var(--brand)]/10 text-[var(--brand)] dark:bg-white/10 dark:text-neutral-100"
+                    : "text-neutral-600 hover:bg-black/5 dark:text-neutral-400 dark:hover:bg-white/5",
+                )}
+              >
+                {s.icon}
+                <span className={cn("whitespace-nowrap", small && "md:sr-only")}>{s.label}</span>
+                {Boolean(s.badge) && (
+                  <span className={cn("ml-auto min-w-5 rounded-full bg-[var(--brand)] px-1.5 text-center text-xs leading-5 text-white", small && "md:absolute md:right-0.5 md:top-0.5 md:ml-0 md:min-w-4 md:px-1 md:text-[10px] md:leading-4")}>
+                    {s.badge}
+                  </span>
+                )}
+              </button>
             </Fragment>
           ))}
+          <button
+            type="button"
+            onClick={toggle}
+            title={small ? "Agrandir le menu" : "Réduire le menu"}
+            aria-label={small ? "Agrandir le menu" : "Réduire le menu"}
+            className={cn("mt-3 hidden min-h-10 items-center gap-3 rounded-2xl px-4 text-sm text-neutral-500 transition hover:bg-black/5 md:flex dark:hover:bg-white/5", small && "md:size-12 md:justify-center md:px-0")}
+          >
+            <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" className={cn("size-5 shrink-0 transition-transform", small && "rotate-180")}>
+              <rect width="18" height="18" x="3" y="3" rx="2" />
+              <path d="M9 3v18" />
+              <path d="m16 15-3-3 3-3" />
+            </svg>
+            {!small && <span>Réduire le menu</span>}
+          </button>
         </nav>
         <div className="min-w-0">{active?.element}</div>
       </div>
@@ -1391,10 +1424,21 @@ export function Mailbox() {
   const base = env.paymentsUrl ? env.paymentsUrl.replace("/api/pay/", "/api/app-notify/") : "";
   const call = <T,>(action: string, body: Record<string, unknown> = {}) => mailCall<T>(supabase!, action, body);
   const location = useLocation();
-  const [status, setStatus] = useState<{ connected: boolean; email?: string; watch?: boolean } | null>(null);
+  const [status, setStatus] = useState<{ connected: boolean; email?: string; watch?: boolean; every?: number } | null>(null);
   const [menu, setMenu] = useState<{ x: number; y: number; uid: number; reader?: boolean } | null>(null);
   const [moving, setMoving] = useState<number | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  // List and email side by side only when the section is wide enough (menu reduced, big screen); otherwise one at a time.
+  const box = useRef<HTMLDivElement>(null);
+  const [two, setTwo] = useState(false);
+  useEffect(() => {
+    const el = box.current;
+    if (!el) return;
+    const ro = new ResizeObserver(() => setTwo(el.clientWidth >= 880));
+    ro.observe(el);
+    setTwo(el.clientWidth >= 880);
+    return () => ro.disconnect();
+  }, [status?.connected]);
   const [error, setError] = useState<string | null>(null);
   const [folders, setFolders] = useState<MailFolder[]>([]);
   const [folder, setFolder] = useState("INBOX");
@@ -1651,10 +1695,22 @@ export function Mailbox() {
     { label: role === "trash" ? "Supprimer définitivement" : "Supprimer", icon: role === "trash" ? "remove" : "trash", danger: true, run: () => void remove(m) },
   ];
   const inbox = folders.find((f) => f.role === "inbox");
+  const watch = async (on: boolean, every: number) => {
+    setBusy(true);
+    try {
+      const r = await call<{ watch: boolean; every: number }>("watch", { on, every, url: location.pathname + "?s=" + (new URLSearchParams(location.search).get("s") ?? "mailbox") });
+      setStatus({ ...status, watch: r.watch, every: r.every });
+      toast(r.watch ? "Vous serez prévenu des nouveaux emails ✓" : "Alertes des nouveaux emails coupées ✓");
+    } catch (e) {
+      toast((e as Error).message, "error");
+    } finally {
+      setBusy(false);
+    }
+  };
   const tool = "inline-flex min-h-10 items-center gap-2 rounded-full px-3 text-sm font-medium text-neutral-700 transition hover:bg-black/5 active:scale-[0.97] dark:text-neutral-200 dark:hover:bg-white/10";
 
   return (
-    <div className="space-y-4">
+    <div ref={box} className="space-y-4">
       {/* Top: write, search, refresh, settings */}
       <div className="flex items-center gap-2">
         <Button onClick={() => setDraft(blankDraft())} className="shrink-0">
@@ -1710,9 +1766,9 @@ export function Mailbox() {
       {error && <p className="text-sm text-red-600">{error}</p>}
       {query && <p className="text-sm text-neutral-500">Résultats pour « {query} »</p>}
 
-      <div className="grid gap-4 lg:grid-cols-[minmax(20rem,26rem)_minmax(0,1fr)]">
+      <div className={cn("grid gap-4", two && "grid-cols-[minmax(18rem,24rem)_minmax(0,1fr)]")}>
         {/* List */}
-        <Card className={cn("overflow-hidden p-1.5 lg:h-[calc(100dvh-16rem)] lg:min-h-[30rem] lg:overflow-y-auto", openUid && "max-lg:hidden")}>
+        <Card className={cn("overflow-hidden p-1.5", two && "h-[calc(100dvh-16rem)] min-h-[30rem] overflow-y-auto", openUid && !two && "hidden")}>
           {!list ? (
             <div className="space-y-2 p-2">{[0, 1, 2, 3, 4, 5].map((i) => <Skeleton key={i} className="h-14" />)}</div>
           ) : list.length ? (
@@ -1743,12 +1799,12 @@ export function Mailbox() {
               {query ? "Aucun email trouvé." : "Aucun email ici."}
             </div>
           )}
-          <p className="hidden px-3 pb-2 pt-3 text-center text-xs text-neutral-400 lg:block">Clic droit sur un email pour plus d'actions</p>
-          <p className="px-3 pb-2 pt-3 text-center text-xs text-neutral-400 lg:hidden">Glissez → archiver · ← corbeille · appui long : plus d'actions</p>
+          <p className="hidden px-3 pb-2 pt-3 text-center text-xs text-neutral-400 [@media(pointer:fine)]:block">Clic droit sur un email pour plus d'actions</p>
+          <p className="px-3 pb-2 pt-3 text-center text-xs text-neutral-400 [@media(pointer:fine)]:hidden">Glissez → archiver · ← corbeille · appui long : plus d'actions</p>
         </Card>
 
         {/* Reading */}
-        <Card className={cn("flex min-w-0 flex-col p-0 lg:h-[calc(100dvh-16rem)] lg:min-h-[30rem]", !openUid && "max-lg:hidden")}>
+        <Card className={cn("@container flex min-w-0 flex-col p-0", two && "h-[calc(100dvh-16rem)] min-h-[30rem]", !openUid && !two && "hidden")}>
           {!openUid || !current ? (
             <div className="grid flex-1 place-items-center gap-2 p-10 text-center text-sm text-neutral-500">
               <div className="grid justify-items-center gap-3">
@@ -1758,23 +1814,26 @@ export function Mailbox() {
             </div>
           ) : (
             <>
-              <div className="flex flex-wrap items-center gap-1 border-b border-black/5 px-2 py-2 dark:border-white/10">
-                <button type="button" className={cn(tool, "lg:hidden")} aria-label="Retour à la liste" onClick={close}>
-                  <MailIcon name="back" />
-                </button>
+              <div className="flex items-center gap-1 overflow-hidden border-b border-black/5 px-2 py-2 dark:border-white/10">
+                {!two && (
+                  <button type="button" className={tool} aria-label="Retour à la liste" onClick={close}>
+                    <MailIcon name="back" />
+                    <span className="max-sm:hidden">Retour</span>
+                  </button>
+                )}
                 {role !== "drafts" && (
                   <>
                     <button type="button" className={tool} onClick={() => reply(full, false)} disabled={!full}>
                       <MailIcon name="reply" />
-                      <span className="max-sm:hidden">Répondre</span>
+                      <span className="@max-sm:hidden">Répondre</span>
                     </button>
-                    <button type="button" className={cn(tool, "max-md:hidden")} onClick={() => reply(full, true)} disabled={!full}>
+                    <button type="button" className={cn(tool, "@max-lg:hidden")} onClick={() => reply(full, true)} disabled={!full}>
                       <MailIcon name="replyAll" />
                       Répondre à tous
                     </button>
                     <button type="button" className={tool} onClick={() => forward(full)} disabled={!full}>
                       <MailIcon name="forward" />
-                      <span className="max-sm:hidden">Transférer</span>
+                      <span className="@max-sm:hidden">Transférer</span>
                     </button>
                   </>
                 )}
@@ -1782,12 +1841,12 @@ export function Mailbox() {
                 {role !== "archive" && (
                   <button type="button" className={tool} title="Archiver" onClick={() => void act("archive", [current.uid])}>
                     <MailIcon name="archive" />
-                    <span className="max-xl:hidden">Archiver</span>
+                    <span className="@max-3xl:hidden">Archiver</span>
                   </button>
                 )}
                 <button type="button" className={cn(tool, "hover:text-red-600")} title={role === "trash" ? "Supprimer définitivement" : "Supprimer"} onClick={() => void remove(current)}>
                   <MailIcon name={role === "trash" ? "remove" : "trash"} />
-                  <span className="max-xl:hidden">Supprimer</span>
+                  <span className="@max-3xl:hidden">Supprimer</span>
                 </button>
                 <button
                   type="button"
@@ -1841,7 +1900,7 @@ export function Mailbox() {
                       </div>
                     )}
                     {full.html ? (
-                      <iframe title="email" sandbox="allow-popups allow-popups-to-escape-sandbox" srcDoc={'<base target="_blank"><style>body{font-family:system-ui,sans-serif;margin:16px;word-wrap:break-word}img{max-width:100%;height:auto}</style>' + full.html} className="h-[60vh] w-full rounded-xl border border-black/5 bg-white lg:h-full lg:min-h-[24rem] dark:border-white/10" />
+                      <iframe title="email" sandbox="allow-popups allow-popups-to-escape-sandbox" srcDoc={'<base target="_blank"><style>body{font-family:system-ui,sans-serif;margin:16px;word-wrap:break-word}img{max-width:100%;height:auto}</style>' + full.html} className={cn("w-full rounded-xl border border-black/5 bg-white dark:border-white/10", two ? "h-full min-h-[24rem]" : "h-[65vh]")} />
                     ) : (
                       <pre className="whitespace-pre-wrap break-words font-sans text-sm leading-relaxed text-neutral-800 dark:text-neutral-200">{full.text}</pre>
                     )}
@@ -1897,21 +1956,19 @@ export function Mailbox() {
               label="Me prévenir des nouveaux emails dans l'appli"
               checked={Boolean(status.watch)}
               disabled={busy}
-              onChange={async (on) => {
-                setBusy(true);
-                try {
-                  const r = await call<{ watch: boolean }>("watch", { on, url: location.pathname + "?s=" + (new URLSearchParams(location.search).get("s") ?? "mailbox") });
-                  setStatus({ ...status, watch: r.watch });
-                  toast(r.watch ? "Vous serez prévenu des nouveaux emails ✓" : "Alertes des nouveaux emails coupées ✓");
-                } catch (e) {
-                  toast((e as Error).message, "error");
-                } finally {
-                  setBusy(false);
-                }
-              }}
+              onChange={(on) => void watch(on, status.every ?? 1)}
             />
+            {status.watch && (
+              <Field label="Vérifier la boîte">
+                <Select value={String(status.every ?? 1)} disabled={busy} onChange={(e) => void watch(true, Number(e.target.value))}>
+                  <option value="1">Toutes les minutes</option>
+                  <option value="2">Toutes les 2 minutes</option>
+                  <option value="5">Toutes les 5 minutes</option>
+                </Select>
+              </Field>
+            )}
             <p className="text-xs leading-relaxed text-neutral-500">
-              Une notification dans l'appli et sur votre téléphone pour chaque nouvel email (vérifié toutes les 5 minutes). Les alertes de l'appli (réservations, messages, avis…) ne vous sont alors plus envoyées par email : vous les voyez dans l'appli et sur votre téléphone. Vos clients reçoivent toujours leurs emails.
+              Une notification dans l'appli et sur votre téléphone pour chaque nouvel email. Les alertes de l'appli (réservations, messages, avis…) ne vous sont alors plus envoyées par email : vous les voyez dans l'appli et sur votre téléphone. Vos clients reçoivent toujours leurs emails.
             </p>
           </div>
           <div className="border-t border-black/5 pt-4 dark:border-white/10">
