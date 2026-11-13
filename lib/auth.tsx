@@ -77,6 +77,23 @@ async function destination(supabase: NonNullable<ReturnType<typeof useContent>["
   return data ? home.admin : home.user;
 }
 
+/** Signed in: the admin goes to their management space, a customer to their account (?next=… wins). */
+function SignedInRedirect({ home }: { home: { admin: string; user: string } }) {
+  const { supabase } = useContent();
+  const navigate = useNavigate();
+  const next = new URLSearchParams(useLocation().search).get("next");
+  useEffect(() => {
+    if (!supabase) return;
+    let alive = true;
+    destination(supabase, next, home).then((to) => alive && navigate(to, { replace: true }));
+    return () => {
+      alive = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [supabase]);
+  return <div className="mx-auto my-24 size-8 animate-spin rounded-full border-2 border-[var(--brand)] border-t-transparent" aria-label="…" />;
+}
+
 /**
  * Sign-in / sign-up form (email + password, Google when switched on, forgotten password, terms to accept).
  * home: where each kind of user lands after signing in.
@@ -107,7 +124,7 @@ export function AuthForm({ initial = "signin", home = { admin: "/gestion", user:
     setBusy(true);
     try {
       if (mode === "magic") {
-        const { error: err } = await supabase.auth.signInWithOtp({ email: mail, options: { shouldCreateUser: false, emailRedirectTo: window.location.origin + (next ?? home.user) } });
+        const { error: err } = await supabase.auth.signInWithOtp({ email: mail, options: { shouldCreateUser: false, emailRedirectTo: window.location.origin + (next ?? window.location.pathname) } });
         if (err && !/signups not allowed|not found/i.test(err.message)) throw err;
         setInfo(tr("magicSent"));
         return;
@@ -165,7 +182,7 @@ export function AuthForm({ initial = "signin", home = { admin: "/gestion", user:
           <Button
             variant="outline"
             className="w-full"
-            onClick={() => signInWithGoogle(next ?? home.user).catch((e: Error) => setError(e.message))}
+            onClick={() => signInWithGoogle(next ?? window.location.pathname).catch((e: Error) => setError(e.message))}
           >
             <svg viewBox="0 0 24 24" aria-hidden="true">
               <path fill="#EA4335" d="M12 10.2v3.9h5.5c-.2 1.3-1.6 3.8-5.5 3.8-3.3 0-6-2.7-6-6.1S8.7 5.9 12 5.9c1.9 0 3.1.8 3.8 1.5l2.6-2.5C16.8 3.4 14.6 2.4 12 2.4 6.7 2.4 2.4 6.7 2.4 12s4.3 9.6 9.6 9.6c5.5 0 9.2-3.9 9.2-9.4 0-.6-.1-1.1-.2-1.6H12z" />
@@ -238,7 +255,7 @@ export function AuthPage({ title, home }: { title?: string; home?: { admin: stri
   const tr = useT();
   const { user } = useContent();
   useSeo({ title: tr("signin"), noindex: true });
-  if (user) return <Navigate to={home?.user ?? "/compte"} replace />;
+  if (user) return <SignedInRedirect home={home ?? { admin: "/gestion", user: "/compte" }} />;
   return (
     <Container className="max-w-md py-10 sm:py-16">
       <Card className="space-y-6 p-6 sm:p-8">
@@ -279,7 +296,7 @@ export function ResetPasswordPage() {
               setBusy(false);
               if (err) return setError(friendly(err.message, tr));
               toast(tr("pwdSaved"));
-              navigate("/compte", { replace: true });
+              if (supabase) navigate(await destination(supabase, null, { admin: "/gestion", user: "/compte" }), { replace: true });
             }}
           >
             <Field label={tr("newPwd")} hint={tr("short")} error={error}>
