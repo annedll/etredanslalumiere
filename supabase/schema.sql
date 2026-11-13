@@ -396,6 +396,8 @@ create or replace function public.admin_delete_person(p_email text) returns void
 declare v uuid;
 begin
   if not public.is_admin() then raise exception 'forbidden'; end if;
+  -- An administrator account is never deleted from here (remove it from « Administrateurs » first).
+  if exists (select 1 from public.app_admins where lower(email) = lower(p_email)) then raise exception 'Compte administrateur : retirez-le d''abord des administrateurs.'; end if;
   select id into v from auth.users where lower(email) = lower(p_email);
   delete from public.appointments where lower(email) = lower(p_email) or (v is not null and user_id = v);
   delete from public.waitlist where lower(email) = lower(p_email);

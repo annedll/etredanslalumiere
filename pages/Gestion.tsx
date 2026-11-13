@@ -137,7 +137,15 @@ function Clients() {
   const [rows, setRows] = useState<any[] | null>(null);
   const [s, setS] = useState("");
   const [busy, setBusy] = useState("");
-  const load = () => q(supabase.from("profiles").select("id,first_name,last_name,email,phone,created_at").order("created_at", { ascending: false }).limit(500)).then(setRows);
+  // The admins are not clients: never listed here (nor deletable by mistake).
+  const load = async () => {
+    const [list, admins] = await Promise.all([
+      q(supabase.from("profiles").select("id,first_name,last_name,email,phone,created_at").order("created_at", { ascending: false }).limit(500)),
+      q(supabase.from("app_admins").select("email")),
+    ]);
+    const adminEmails = new Set(((admins as any[]) || []).map((a) => String(a.email).toLowerCase()));
+    setRows(((list as any[]) || []).filter((c) => !adminEmails.has(String(c.email || "").toLowerCase())));
+  };
   useEffect(() => { load(); }, []);
   // The client receives an email with a link to choose a new password (the admin never sees it).
   const reset = async (c: any) => {
