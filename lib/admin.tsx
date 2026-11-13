@@ -97,7 +97,7 @@ export function AdminConsole({ title, sections: own, actions, seo = true }: { ti
         {actions && <div className="flex flex-wrap gap-2">{actions}</div>}
       </div>
       <div className={cn("grid gap-6 md:transition-[grid-template-columns] md:duration-200", small ? "md:grid-cols-[3rem_minmax(0,1fr)]" : "md:grid-cols-[15rem_minmax(0,1fr)]")}>
-        <nav aria-label={title} className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 [scrollbar-width:none] md:sticky md:top-24 md:mx-0 md:flex-col md:gap-1 md:self-start md:overflow-visible md:px-0">
+        <nav aria-label={title} className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 [scrollbar-width:none] md:sticky md:top-24 md:mx-0 md:max-h-[calc(100dvh-7rem)] md:flex-col md:gap-1 md:self-start md:overflow-y-auto md:overflow-x-visible md:px-0 md:pb-4">
           {sections.map((s, i) => (
             <Fragment key={s.id}>
               {s.group && s.group !== sections[i - 1]?.group && (

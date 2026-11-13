@@ -4,6 +4,36 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { BASE, notifyReady, post, token, type NotifyData } from "./notify";
 import { Sheet } from "./mobile";
 import { Editable } from "./content";
+import { useI18n } from "./i18n";
+
+// Visitor texts in the site's languages (the admin screens stay in the owner's language).
+const W: Record<string, Record<string, string>> = {
+  fr: {
+    trust: "Ils nous font confiance", reviews: "avis", client: "Client", thanks: "Merci pour votre avis !", pickStars: "Choisissez une note de 1 à 5 étoiles.", rating: "Note",
+    star: "étoile", stars: "étoiles", experience: "Votre expérience en quelques mots (facultatif)", firstShown: "Votre prénom (affiché avec l'avis)", sending: "Envoi…", publish: "Publier mon avis",
+    waitLabel: "Me prévenir si une place se libère", waitlist: "Liste d'attente", waitDone: "✓ C'est noté : vous serez prévenu dès qu'une place se libère.", first: "Prénom", email: "Email",
+    joining: "Inscription…", notifyMe: "Me prévenir", newsTitle: "Recevoir nos nouvelles", newsText: "Nouveautés, offres et conseils, une à deux fois par mois. Désabonnement en un clic.",
+    newsDone: "✓ Merci ! Vous êtes inscrit(e).", yourEmail: "Votre email", subscribe: "S'inscrire", addCal: "Ajouter à mon agenda", apple: "Apple Calendrier (iPhone, Mac)", google: "Google Agenda",
+  },
+  en: {
+    trust: "They trust us", reviews: "reviews", client: "Client", thanks: "Thank you for your review!", pickStars: "Choose a rating from 1 to 5 stars.", rating: "Rating",
+    star: "star", stars: "stars", experience: "Your experience in a few words (optional)", firstShown: "Your first name (shown with the review)", sending: "Sending…", publish: "Post my review",
+    waitLabel: "Let me know if a spot opens up", waitlist: "Waiting list", waitDone: "✓ Done: you'll be told as soon as a spot opens up.", first: "First name", email: "Email",
+    joining: "Signing up…", notifyMe: "Let me know", newsTitle: "Get our news", newsText: "News, offers and tips, once or twice a month. Unsubscribe in one click.",
+    newsDone: "✓ Thank you! You're subscribed.", yourEmail: "Your email", subscribe: "Subscribe", addCal: "Add to my calendar", apple: "Apple Calendar (iPhone, Mac)", google: "Google Calendar",
+  },
+  nl: {
+    trust: "Zij vertrouwen ons", reviews: "beoordelingen", client: "Klant", thanks: "Bedankt voor je beoordeling!", pickStars: "Kies een score van 1 tot 5 sterren.", rating: "Score",
+    star: "ster", stars: "sterren", experience: "Je ervaring in een paar woorden (optioneel)", firstShown: "Je voornaam (getoond bij de beoordeling)", sending: "Verzenden…", publish: "Mijn beoordeling plaatsen",
+    waitLabel: "Laat me weten als er een plaats vrijkomt", waitlist: "Wachtlijst", waitDone: "✓ Genoteerd: je hoort het zodra er een plaats vrijkomt.", first: "Voornaam", email: "E-mail",
+    joining: "Inschrijven…", notifyMe: "Laat het me weten", newsTitle: "Ontvang ons nieuws", newsText: "Nieuws, aanbiedingen en tips, een à twee keer per maand. Uitschrijven met één klik.",
+    newsDone: "✓ Bedankt! Je bent ingeschreven.", yourEmail: "Je e-mailadres", subscribe: "Inschrijven", addCal: "Toevoegen aan mijn agenda", apple: "Apple Agenda (iPhone, Mac)", google: "Google Agenda",
+  },
+};
+function useW() {
+  const { lang } = useI18n();
+  return (k: string) => (W[lang] ?? W.en)[k] ?? W.fr[k] ?? k;
+}
 
 const input =
   "min-h-11 w-full rounded-xl border border-black/15 bg-transparent px-3 py-2 text-base outline-none transition focus:border-[var(--brand,#111)] dark:border-white/20";
@@ -71,7 +101,9 @@ export function Stars({ value, size = "size-5" }: { value: number; size?: string
 
 /** Customer reviews section: average, count and the latest reviews (cards). */
 /** title: default text of the title, editable with the pencil (key reviews.title); "" = no title (the section has its own). */
-export function Reviews({ supabase, title = "Ils nous font confiance", limit = 6 }: { supabase: SupabaseClient; title?: string; limit?: number }) {
+export function Reviews({ supabase, title, limit = 6 }: { supabase: SupabaseClient; title?: string; limit?: number }) {
+  const w = useW();
+  if (title === undefined) title = w("trust");
   const { items, average, count, loading } = useReviews(supabase);
   if (loading) return <div className="h-40 animate-pulse rounded-2xl bg-black/5 dark:bg-white/10" />;
   if (!count) return null;
@@ -81,7 +113,7 @@ export function Reviews({ supabase, title = "Ils nous font confiance", limit = 6
         {title && <Editable k="reviews.title" fallback={title} as="h2" className="text-2xl font-bold tracking-tight sm:text-3xl" />}
         <p className="flex items-center gap-2 text-sm">
           <Stars value={average} /> <span className="font-semibold">{String(average).replace(".", ",")}/5</span>
-          <span className="opacity-60">· {count} avis</span>
+          <span className="opacity-60">· {count} {w("reviews")}</span>
         </p>
       </div>
       <div className="-mx-4 flex snap-x snap-mandatory gap-4 overflow-x-auto px-4 pb-2 sm:mx-0 sm:grid sm:grid-cols-2 sm:overflow-visible sm:px-0 lg:grid-cols-3">
@@ -90,7 +122,7 @@ export function Reviews({ supabase, title = "Ils nous font confiance", limit = 6
             <Stars value={r.rating} size="size-4" />
             {r.comment && <blockquote className="mt-3 leading-relaxed">« {r.comment} »</blockquote>}
             <figcaption className="mt-3 text-sm opacity-60">
-              {r.name || "Client"} · {new Date(r.created_at).toLocaleDateString(undefined, { month: "long", year: "numeric" })}
+              {r.name || w("client")} · {new Date(r.created_at).toLocaleDateString(undefined, { month: "long", year: "numeric" })}
             </figcaption>
           </figure>
         ))}
@@ -101,6 +133,7 @@ export function Reviews({ supabase, title = "Ils nous font confiance", limit = 6
 
 /** Review form (page /avis): stars, comment, first name. `reference` comes from the email link (?ref=…). */
 export function ReviewForm({ supabase, reference, onDone }: { supabase?: SupabaseClient | null; reference?: string; onDone?: () => void }) {
+  const w = useW();
   const [rating, setRating] = useState(0);
   const [comment, setComment] = useState("");
   const [name, setName] = useState("");
@@ -130,7 +163,7 @@ export function ReviewForm({ supabase, reference, onDone }: { supabase?: Supabas
     return (
       <div className="rounded-2xl border border-black/10 p-6 text-center dark:border-white/10">
         <p className="text-4xl">🙏</p>
-        <p className="mt-2 text-lg font-semibold">Merci pour votre avis !</p>
+        <p className="mt-2 text-lg font-semibold">{w("thanks")}</p>
       </div>
     );
   return (
@@ -138,7 +171,7 @@ export function ReviewForm({ supabase, reference, onDone }: { supabase?: Supabas
       className="space-y-4"
       onSubmit={async (e) => {
         e.preventDefault();
-        if (!rating) return setError("Choisissez une note de 1 à 5 étoiles.");
+        if (!rating) return setError(w("pickStars"));
         setState("sending");
         setError(null);
         try {
@@ -151,20 +184,20 @@ export function ReviewForm({ supabase, reference, onDone }: { supabase?: Supabas
         }
       }}
     >
-      <div className="flex justify-center gap-2" role="radiogroup" aria-label="Note">
+      <div className="flex justify-center gap-2" role="radiogroup" aria-label={w("rating")}>
         {[1, 2, 3, 4, 5].map((i) => (
-          <button key={i} type="button" role="radio" aria-checked={rating === i} aria-label={`${i} étoile${i > 1 ? "s" : ""}`} onClick={() => setRating(i)} className="grid size-12 place-items-center transition active:scale-90">
+          <button key={i} type="button" role="radio" aria-checked={rating === i} aria-label={`${i} ${w(i > 1 ? "stars" : "star")}`} onClick={() => setRating(i)} className="grid size-12 place-items-center transition active:scale-90">
             <svg viewBox="0 0 24 24" className={"size-10 " + (i <= rating ? "fill-amber-400 text-amber-400" : "fill-black/10 dark:fill-white/15")} aria-hidden="true">
               <path d="M12 2.5l2.9 6 6.6.9-4.8 4.6 1.2 6.5L12 17.4l-5.9 3.1 1.2-6.5L2.5 9.4l6.6-.9z" />
             </svg>
           </button>
         ))}
       </div>
-      <textarea className={input + " min-h-28"} placeholder="Votre expérience en quelques mots (facultatif)" value={comment} onChange={(e) => setComment(e.target.value)} maxLength={2000} />
-      <input className={input + (fromAccount ? " opacity-70" : "")} placeholder="Votre prénom (affiché avec l'avis)" value={name} readOnly={fromAccount} onChange={(e) => setName(e.target.value)} maxLength={80} autoComplete="given-name" />
+      <textarea className={input + " min-h-28"} placeholder={w("experience")} value={comment} onChange={(e) => setComment(e.target.value)} maxLength={2000} />
+      <input className={input + (fromAccount ? " opacity-70" : "")} placeholder={w("firstShown")} value={name} readOnly={fromAccount} onChange={(e) => setName(e.target.value)} maxLength={80} autoComplete="given-name" />
       {error && <p className="text-sm text-red-600">{error}</p>}
       <button type="submit" className={primary + " w-full"} disabled={state === "sending"}>
-        {state === "sending" ? "Envoi…" : "Publier mon avis"}
+        {state === "sending" ? w("sending") : w("publish")}
       </button>
     </form>
   );
@@ -244,7 +277,8 @@ export async function releaseWaitlist(key: string, data: NotifyData, supabase: S
 }
 
 /** « Me prévenir si une place se libère » button for a full slot: name + email in a sheet (pre-filled if signed in). */
-export function WaitlistButton({ supabase, waitlistKey, label = "Me prévenir si une place se libère", className = "" }: { supabase?: SupabaseClient | null; waitlistKey: string; label?: string; className?: string }) {
+export function WaitlistButton({ supabase, waitlistKey, label, className = "" }: { supabase?: SupabaseClient | null; waitlistKey: string; label?: string; className?: string }) {
+  const w = useW();
   const [open, setOpen] = useState(false);
   const [email, setEmail] = useState("");
   const [name, setName] = useState("");
@@ -256,11 +290,11 @@ export function WaitlistButton({ supabase, waitlistKey, label = "Me prévenir si
   return (
     <>
       <button type="button" onClick={() => setOpen(true)} className={"min-h-11 rounded-full border border-black/15 px-4 text-sm font-medium transition active:scale-95 dark:border-white/20 " + className}>
-        🔔 {label}
+        🔔 {label ?? w("waitLabel")}
       </button>
-      <Sheet open={open} onClose={() => setOpen(false)} title="Liste d'attente">
+      <Sheet open={open} onClose={() => setOpen(false)} title={w("waitlist")}>
         {state === "done" ? (
-          <p className="py-6 text-center">✓ C'est noté : vous serez prévenu dès qu'une place se libère.</p>
+          <p className="py-6 text-center">{w("waitDone")}</p>
         ) : (
           <form
             className="space-y-3 pb-2"
@@ -277,11 +311,11 @@ export function WaitlistButton({ supabase, waitlistKey, label = "Me prévenir si
               }
             }}
           >
-            <input className={input} placeholder="Prénom" value={name} onChange={(e) => setName(e.target.value)} autoComplete="given-name" />
-            <input className={input} type="email" inputMode="email" placeholder="Email" required value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="email" />
+            <input className={input} placeholder={w("first")} value={name} onChange={(e) => setName(e.target.value)} autoComplete="given-name" />
+            <input className={input} type="email" inputMode="email" placeholder={w("email")} required value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="email" />
             {error && <p className="text-sm text-red-600">{error}</p>}
             <button type="submit" className={primary + " w-full"} disabled={state === "sending"}>
-              {state === "sending" ? "Inscription…" : "Me prévenir"}
+              {state === "sending" ? w("joining") : w("notifyMe")}
             </button>
           </form>
         )}
@@ -293,11 +327,12 @@ export function WaitlistButton({ supabase, waitlistKey, label = "Me prévenir si
 // ------------------------------------------------------------------ newsletter
 
 /** Newsletter sign-up (footer, home page…): email + clear consent; one-click unsubscribe in every email. */
-export function NewsletterSignup({ supabase, title = "Recevoir nos nouvelles", text = "Nouveautés, offres et conseils, une à deux fois par mois. Désabonnement en un clic." }: { supabase?: SupabaseClient | null; title?: string; text?: string }) {
+export function NewsletterSignup({ supabase, title, text }: { supabase?: SupabaseClient | null; title?: string; text?: string }) {
+  const w = useW();
   const [email, setEmail] = useState("");
   const [state, setState] = useState<"idle" | "sending" | "done">("idle");
   const [error, setError] = useState<string | null>(null);
-  if (state === "done") return <p className="rounded-2xl border border-black/10 p-4 text-sm dark:border-white/10">✓ Merci ! Vous êtes inscrit(e).</p>;
+  if (state === "done") return <p className="rounded-2xl border border-black/10 p-4 text-sm dark:border-white/10">{w("newsDone")}</p>;
   return (
     <form
       className="space-y-2"
@@ -314,12 +349,13 @@ export function NewsletterSignup({ supabase, title = "Recevoir nos nouvelles", t
         }
       }}
     >
-      <p className="font-semibold">{title}</p>
-      <p className="text-sm opacity-70">{text}</p>
+      {/* Editable with the pencil like any text of the site, translated with the others. */}
+      <Editable k="newsletter.title" fallback={title ?? w("newsTitle")} as="p" className="font-semibold" />
+      <Editable k="newsletter.text" fallback={text ?? w("newsText")} as="p" className="text-sm opacity-70" multiline />
       <div className="flex flex-col gap-2 sm:flex-row">
-        <input className={input} type="email" inputMode="email" autoComplete="email" required placeholder="Votre email" value={email} onChange={(e) => setEmail(e.target.value)} />
+        <input className={input} type="email" inputMode="email" autoComplete="email" required placeholder={w("yourEmail")} value={email} onChange={(e) => setEmail(e.target.value)} />
         <button type="submit" className={primary + " shrink-0"} disabled={state === "sending"}>
-          {state === "sending" ? "…" : "S'inscrire"}
+          {state === "sending" ? "…" : w("subscribe")}
         </button>
       </div>
       {error && <p className="text-sm text-red-600">{error}</p>}
@@ -422,21 +458,22 @@ export function calendarLinks(e: CalendarEventInput) {
 
 /** « Ajouter à mon agenda » button (booking confirmation): Google, Apple / iPhone, Outlook. */
 export function AddToCalendar({ className = "", ...event }: CalendarEventInput & { className?: string }) {
+  const w = useW();
   const [open, setOpen] = useState(false);
   const links = calendarLinks(event);
   const item = "flex min-h-12 items-center gap-3 rounded-xl bg-black/5 px-4 font-medium transition active:scale-[0.98] dark:bg-white/10";
   return (
     <>
       <button type="button" onClick={() => setOpen(true)} className={"min-h-11 rounded-full border border-black/15 px-4 text-sm font-medium transition active:scale-95 dark:border-white/20 " + className}>
-        📅 Ajouter à mon agenda
+        📅 {w("addCal")}
       </button>
-      <Sheet open={open} onClose={() => setOpen(false)} title="Ajouter à mon agenda">
+      <Sheet open={open} onClose={() => setOpen(false)} title={w("addCal")}>
         <div className="grid gap-2 pb-2">
           <a className={item} href={links.google} target="_blank" rel="noreferrer">
-            Google Agenda
+            {w("google")}
           </a>
           <a className={item} href={links.ics} download="rendez-vous.ics">
-            Apple Calendrier (iPhone, Mac)
+            {w("apple")}
           </a>
           <a className={item} href={links.outlook} target="_blank" rel="noreferrer">
             Outlook

@@ -494,6 +494,16 @@ export function useData<T>(
   return { data, loading: !current && loading, error, reload: () => key && invalidate(key) };
 }
 
+/**
+ * Rows read another way than useData (own cache, a hook of the app…) shown in the visitor's language: their column
+ * i18n is applied, like with useData. const posts = useLocalized(rows);
+ */
+export function useLocalized<T>(value: T): T {
+  const { lang } = useContent();
+  const main = languages[0] ?? lang;
+  return useMemo(() => (lang !== main ? (localize(value, lang) as T) : value), [value, lang, main]);
+}
+
 /** Overlays the translated fields of each row (and of the rows nested in it) for the given language. */
 function localize(value: unknown, lang: string, depth = 0): unknown {
   if (depth > 4 || !value || typeof value !== "object") return value;

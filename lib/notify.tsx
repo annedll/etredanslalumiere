@@ -5,6 +5,18 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { env } from "./env";
 import { Sheet } from "./mobile";
 import { setBadge } from "./ui";
+import { useI18n } from "./i18n";
+
+// Visitor texts in the site's languages (the admin settings stay in the owner's language).
+const W: Record<string, Record<string, string>> = {
+  fr: { title: "Notifications", unread: "non lues", device: "Notifications sur cet appareil", none: "Aucune notification pour le moment.", install: "📲 Installez l'app sur votre écran d'accueil (Partager → Sur l'écran d'accueil) pour recevoir les notifications sur ce téléphone.", denied: "Les notifications sont bloquées pour cette app dans les réglages de votre appareil.", now: "à l'instant", min: "il y a {n} min", h: "il y a {n} h" },
+  en: { title: "Notifications", unread: "unread", device: "Notifications on this device", none: "No notifications yet.", install: "📲 Add the app to your home screen (Share → Add to Home Screen) to get notifications on this phone.", denied: "Notifications are blocked for this app in your device settings.", now: "just now", min: "{n} min ago", h: "{n} h ago" },
+  nl: { title: "Meldingen", unread: "ongelezen", device: "Meldingen op dit toestel", none: "Nog geen meldingen.", install: "📲 Zet de app op je beginscherm (Delen → Zet op beginscherm) om meldingen op deze telefoon te krijgen.", denied: "Meldingen zijn geblokkeerd voor deze app in de instellingen van je toestel.", now: "zojuist", min: "{n} min geleden", h: "{n} u geleden" },
+};
+function useW() {
+  const { lang } = useI18n();
+  return (k: string, n?: number) => ((W[lang] ?? W.en)[k] ?? W.fr[k] ?? k).replace("{n}", String(n ?? ""));
+}
 
 export type NotifyEvent = "contact.new" | "booking.new" | "booking.cancelled" | "order.new" | "signup.new" | "message.new";
 export type NotifyData = {
@@ -128,6 +140,7 @@ export async function disablePush(supabase: SupabaseClient): Promise<PushState> 
 }
 
 function PushToggle({ supabase }: { supabase: SupabaseClient }) {
+  const w = useW();
   const [state, setState] = useState<PushState | null>(null);
   const [busy, setBusy] = useState(false);
   useEffect(() => {
@@ -135,8 +148,8 @@ function PushToggle({ supabase }: { supabase: SupabaseClient }) {
   }, []);
   if (!state || state === "unsupported") return null;
   if (state === "install-first")
-    return <p className="rounded-xl bg-black/5 p-3 text-sm dark:bg-white/10">📲 Installez l'app sur votre écran d'accueil (Partager → Sur l'écran d'accueil) pour recevoir les notifications sur ce téléphone.</p>;
-  if (state === "denied") return <p className="rounded-xl bg-black/5 p-3 text-sm dark:bg-white/10">Les notifications sont bloquées pour cette app dans les réglages de votre appareil.</p>;
+    return <p className="rounded-xl bg-black/5 p-3 text-sm dark:bg-white/10">{w("install")}</p>;
+  if (state === "denied") return <p className="rounded-xl bg-black/5 p-3 text-sm dark:bg-white/10">{w("denied")}</p>;
   return (
     <button
       type="button"
@@ -151,7 +164,7 @@ function PushToggle({ supabase }: { supabase: SupabaseClient }) {
       }}
       className="flex min-h-11 w-full items-center justify-between gap-3 rounded-xl bg-black/5 px-4 py-3 text-left text-sm font-medium transition active:scale-[0.98] dark:bg-white/10"
     >
-      <span>🔔 Notifications sur cet appareil</span>
+      <span>🔔 {w("device")}</span>
       <span className={"relative h-6 w-11 shrink-0 rounded-full transition " + (state === "on" ? "bg-[var(--brand,#111)]" : "bg-black/20 dark:bg-white/20")}>
         <span className={"absolute top-0.5 size-5 rounded-full bg-white shadow transition-all " + (state === "on" ? "left-[22px]" : "left-0.5")} />
       </span>
@@ -163,11 +176,11 @@ function PushToggle({ supabase }: { supabase: SupabaseClient }) {
 
 type Item = { id: string; title: string; body: string | null; url: string | null; read_at: string | null; created_at: string };
 
-function ago(iso: string) {
+function ago(iso: string, w: (k: string, n?: number) => string = (k, n) => W.fr[k].replace("{n}", String(n ?? ""))) {
   const s = (Date.now() - new Date(iso).getTime()) / 1000;
-  if (s < 60) return "à l'instant";
-  if (s < 3600) return `il y a ${Math.floor(s / 60)} min`;
-  if (s < 86400) return `il y a ${Math.floor(s / 3600)} h`;
+  if (s < 60) return w("now");
+  if (s < 3600) return w("min", Math.floor(s / 60));
+  if (s < 86400) return w("h", Math.floor(s / 3600));
   return new Date(iso).toLocaleDateString(undefined, { day: "numeric", month: "short" });
 }
 
@@ -213,6 +226,7 @@ export function useNotifications(supabase: SupabaseClient) {
 
 /** Bell for the header (signed-in users): unread count, list in a sheet, device notifications switch. */
 export function NotificationBell({ supabase, className = "" }: { supabase: SupabaseClient; className?: string }) {
+  const w = useW();
   const { items, unread, markAllRead, signedIn } = useNotifications(supabase);
   const [open, setOpen] = useState(false);
   const navigate = useNavigate();
@@ -221,7 +235,7 @@ export function NotificationBell({ supabase, className = "" }: { supabase: Supab
     <>
       <button
         type="button"
-        aria-label={unread ? `Notifications (${unread} non lues)` : "Notifications"}
+        aria-label={unread ? `${w("title")} (${unread} ${w("unread")})` : w("title")}
         onClick={() => setOpen(true)}
         className={"relative grid size-11 place-items-center rounded-full transition hover:bg-black/5 active:scale-95 dark:hover:bg-white/10 " + className}
       >
@@ -241,12 +255,12 @@ export function NotificationBell({ supabase, className = "" }: { supabase: Supab
           setOpen(false);
           void markAllRead();
         }}
-        title="Notifications"
+        title={w("title")}
       >
         <div className="space-y-3 pb-2">
           <PushToggle supabase={supabase} />
           {items.length === 0 ? (
-            <p className="py-10 text-center text-sm opacity-60">Aucune notification pour le moment.</p>
+            <p className="py-10 text-center text-sm opacity-60">{w("none")}</p>
           ) : (
             <ul className="divide-y divide-black/5 dark:divide-white/10">
               {items.map((n) => (
@@ -264,7 +278,7 @@ export function NotificationBell({ supabase, className = "" }: { supabase: Supab
                     <span className="min-w-0 flex-1">
                       <span className="block font-medium">{n.title}</span>
                       {n.body && <span className="line-clamp-2 block text-sm opacity-70">{n.body}</span>}
-                      <span className="mt-0.5 block text-xs opacity-50">{ago(n.created_at)}</span>
+                      <span className="mt-0.5 block text-xs opacity-50">{ago(n.created_at, w)}</span>
                     </span>
                   </button>
                 </li>
@@ -289,6 +303,8 @@ type SettingsPayload = {
   invoice?: { enabled: boolean; vatRate: number };
   /** Minutes the team's email waits to be seen in the app or on the phone (0 = right away). */
   emailDelay?: number;
+  /** « Me prévenir des nouveaux emails » is on in the mailbox: the team's alerts no longer go by email. */
+  mailWatch?: boolean;
   log: { event: string; channel: string; recipient: string; status: string; at: string }[];
 };
 
@@ -332,6 +348,14 @@ export function NotificationSettings({ supabase }: { supabase: SupabaseClient })
         <p className="text-sm opacity-70">Choisissez ce qui est envoyé, et comment : par email, dans l'app, ou directement sur le téléphone ou l'ordinateur.</p>
       </div>
       <PushToggle supabase={supabase} />
+      {data.mailWatch && (
+        <div className="rounded-2xl border border-[var(--brand,#111)]/25 bg-[var(--brand,#111)]/5 p-4 text-sm">
+          <p className="font-medium">Vos alertes ne vous arrivent plus par email</p>
+          <p className="mt-1 opacity-75">
+            L'option « Me prévenir des nouveaux emails » est activée dans la Boîte mail : vous êtes prévenu dans l'appli et sur votre téléphone. Ci-dessous, « Email » ne concerne plus que les emails envoyés à vos clients (confirmations, rappels…). Pour recevoir à nouveau vos alertes par email, coupez l'option dans les réglages de la Boîte mail.
+          </p>
+        </div>
+      )}
       <ul className="space-y-3">
         {data.events.map((e) => (
           <li key={e.id} className="rounded-2xl border border-black/10 p-4 dark:border-white/10">
@@ -360,6 +384,7 @@ export function NotificationSettings({ supabase }: { supabase: SupabaseClient })
           </li>
         ))}
       </ul>
+      {!data.mailWatch && (
       <div className="rounded-2xl border border-black/10 p-4 dark:border-white/10">
         <p className="font-medium">Éviter les emails en double</p>
         <p className="mt-1 text-sm opacity-70">Vos emails d'alerte attendent quelques minutes : si vous avez déjà vu la notification dans l'appli ou sur votre téléphone, l'email n'est pas envoyé.</p>
@@ -380,6 +405,7 @@ export function NotificationSettings({ supabase }: { supabase: SupabaseClient })
           ))}
         </div>
       </div>
+      )}
       {data.invoice && (
         <div className="rounded-2xl border border-black/10 p-4 dark:border-white/10">
           <p className="font-medium">Factures PDF</p>

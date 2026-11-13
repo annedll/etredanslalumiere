@@ -72,9 +72,11 @@ function PasswordInput({ value, onChange, autoComplete }: { value: string; onCha
 
 /** Where to go after signing in: ?next=…, else the admin's management space or the customer's account. */
 async function destination(supabase: NonNullable<ReturnType<typeof useContent>["supabase"]>, next: string | null, home: { admin: string; user: string }) {
-  if (next && next.startsWith("/") && !next.startsWith("//")) return next;
+  const safe = next && next.startsWith("/") && !next.startsWith("//") ? next : null;
+  // A page asked for (booking, checkout…) wins; the customer's account (the « account » icon) is not for the admin.
+  if (safe && safe.split("?")[0] !== home.user) return safe;
   const { data } = await supabase.rpc("is_admin").then((r) => r, () => ({ data: false }));
-  return data ? home.admin : home.user;
+  return data ? home.admin : safe ?? home.user;
 }
 
 /** Signed in: the admin goes to their management space, a customer to their account (?next=… wins). */
