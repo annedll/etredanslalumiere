@@ -13,6 +13,7 @@ import { NotificationBell } from "./notify";
 import { NewsletterSignup } from "./engage";
 import { LEGAL_PAGES, madeIn, type LegalKind } from "./legal";
 import { completeGoogleSignIn } from "./google";
+import { Avatar, ProfileSheet, logoCorner } from "./auth";
 import { useSeo } from "./seo";
 
 const T: Record<string, Record<string, string>> = {
@@ -60,7 +61,7 @@ function Logo({ showName = true, custom }: { showName?: boolean; custom?: ReactN
   if (custom) return <>{custom}</>;
   return (
     <Link to="/" className="flex min-w-0 items-center gap-2.5" aria-label={brand.name}>
-      <img src={brand.logo} alt="" width={36} height={36} className="size-9 shrink-0 rounded-full" />
+      <img src={brand.logo} alt="" width={36} height={36} className="size-9 shrink-0" style={{ borderRadius: logoCorner() }} />
       {showName && <span className="truncate text-base font-semibold text-neutral-900 dark:text-neutral-100">{brand.name}</span>}
     </Link>
   );
@@ -172,15 +173,24 @@ function MoreMenu({ items }: { items: NavItem[] }) {
   );
 }
 
+/** Signed in: the person's round photo (who is connected), opening « Mon profil »; otherwise « Connexion ». */
 function AccountButton({ accountPath, signInPath }: { accountPath: string; signInPath: string }) {
   const tr = useT();
-  const { user, realAdmin } = useContent();
-  if (realAdmin) return null;
-  const label = user ? tr("account") : tr("signin");
+  const { user } = useContent();
+  const [open, setOpen] = useState(false);
+  if (!user)
+    return (
+      <Link to={signInPath} className={ICON_BTN} aria-label={tr("signin")} title={tr("signin")}>
+        <User />
+      </Link>
+    );
   return (
-    <Link to={user ? accountPath : signInPath} className={ICON_BTN} aria-label={label} title={label}>
-      <User />
-    </Link>
+    <>
+      <button type="button" className={cn(ICON_BTN, "p-0")} aria-label={tr("account")} title={user.email ?? tr("account")} onClick={() => setOpen(true)}>
+        <Avatar size={30} className="ring-2 ring-white dark:ring-neutral-900" />
+      </button>
+      <ProfileSheet open={open} onClose={() => setOpen(false)} accountPath={accountPath} />
+    </>
   );
 }
 

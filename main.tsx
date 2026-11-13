@@ -61,3 +61,13 @@ createRoot(document.getElementById("root")!).render(
     <App />
   </StrictMode>,
 );
+
+// The loading screen fades out once the app has drawn its first image.
+requestAnimationFrame(() =>
+  requestAnimationFrame(() => {
+    const splash = document.getElementById("usin-splash");
+    if (!splash) return;
+    splash.classList.add("out");
+    setTimeout(() => splash.remove(), 400);
+  }),
+);

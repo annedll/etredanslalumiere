@@ -51,6 +51,23 @@
     <script type="application/ld+json">[{"@context":"https://schema.org","@type":"LocalBusiness","name":"Être dans la lumière","description":"Anne Kételair, thérapeute énergéticienne à Bailleul : soins énergétiques, Reiki, numérologie et méditations, au cabinet ou à distance. Réservez en ligne.","url":"https://etredanslalumiere.be/","logo":"https://etredanslalumiere.be/icon-512.png","legalName":"Etre dans la lumière","address":"Place Abbé César Renard, 31, 7730 Bailleul (Estaimpuis)","email":"anne@etredanslalumiere.be","telephone":"+32495933704"},{"@context":"https://schema.org","@type":"WebSite","name":"Être dans la lumière","url":"https://etredanslalumiere.be/","inLanguage":"fr"}]</script>
   </head>
   <body>
+    <style>
+      #usin-splash{position:fixed;inset:0;z-index:2147483000;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;background:#ffffff;color:#4f46e5;font-family:'Nunito',system-ui,sans-serif;opacity:0;animation:usin-in .35s ease .25s forwards;transition:opacity .35s ease}
+      #usin-splash.out{opacity:0!important;animation:none}
+      #usin-splash .mark{position:relative;width:84px;height:84px}
+      #usin-splash .mark img{position:relative;width:84px;height:84px;border-radius:50%;animation:usin-breathe 2.4s ease-in-out infinite;box-shadow:0 12px 40px -12px #4f46e580}
+      #usin-splash .mark::before{content:"";position:absolute;inset:-14px;border-radius:50%;background:#4f46e5;opacity:.12;animation:usin-halo 2.4s ease-in-out infinite}
+      #usin-splash .name{font-size:17px;font-weight:600;letter-spacing:-.01em;color:#18181b}
+      #usin-splash .bar{width:120px;height:3px;border-radius:3px;background:#4f46e522;overflow:hidden}
+      #usin-splash .bar::after{content:"";display:block;width:40%;height:100%;border-radius:3px;background:linear-gradient(90deg,#4f46e5,#f59e0b);animation:usin-bar 1.2s ease-in-out infinite}
+      @keyframes usin-in{to{opacity:1}}
+      @keyframes usin-breathe{50%{transform:scale(1.05)}}
+      @keyframes usin-halo{0%,100%{transform:scale(.9);opacity:.08}50%{transform:scale(1.08);opacity:.18}}
+      @keyframes usin-bar{0%{transform:translateX(-110%)}100%{transform:translateX(260%)}}
+      @media (prefers-reduced-motion:reduce){#usin-splash *,#usin-splash *::before,#usin-splash *::after{animation:none!important}}
+      @media (prefers-color-scheme:dark){#usin-splash{background:#100f1c;color:#9590ef}#usin-splash .name{color:#f4f4f5}}
+    </style>
+    <div id="usin-splash" aria-hidden="true"><div class="mark"><img src="/icon.svg" alt="" width="84" height="84" /></div><div class="name">Être dans la lumière</div><div class="bar"></div></div>
     <div id="root"></div>
     <script type="module" src="/main.tsx"></script>
   </body>

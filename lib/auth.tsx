@@ -2,7 +2,9 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { Navigate, useLocation, useNavigate } from "react-router-dom";
 import { useContent } from "./content";
-import { Button, Card, Container, Field, Input, Skeleton, Tabs, confirmAction, toast } from "./ui";
+import { Button, Card, Container, Field, Input, Skeleton, Tabs, cn, confirmAction, toast } from "./ui";
+import { Sheet } from "./mobile";
+import { notifyReady } from "./notify";
 import { googleAvailable, signInWithGoogle } from "./google";
 import { notify } from "./notify";
 import { LEGAL_PAGES } from "./legal";
@@ -20,6 +22,9 @@ const T: Record<string, Record<string, string>> = {
     resetSent: "Si un compte existe, un lien vient d'être envoyé par email.", magic: "Recevoir un lien de connexion par email", magicGo: "Envoyer le lien", magicSent: "Lien envoyé ✓ Ouvrez l'email reçu pour vous connecter (pensez aux indésirables).", newPwd: "Nouveau mot de passe", savePwd: "Enregistrer le mot de passe", pwdSaved: "Mot de passe modifié ✓",
     account: "Mon compte", privacy: "Mes données", export: "Télécharger mes données", del: "Supprimer mon compte", delAsk: "Supprimer définitivement votre compte et vos données ?",
     deleted: "Compte supprimé.", nodb: "La connexion sera disponible dès que la base de données de l'app sera créée.", signout: "Se déconnecter", changePwd: "Changer de mot de passe", back: "Retour à la connexion",
+    profile: "Mon profil", photo: "Changer la photo", googlePhoto: "Photo de mon compte Google", noPhoto: "Retirer la photo", first: "Prénom", last: "Nom", phone: "Téléphone",
+    save: "Enregistrer", saved: "Enregistré ✓", newEmail: "Nouvelle adresse email", changeEmail: "Changer d'email", emailSent: "Ouvrez l'email de confirmation envoyé à la nouvelle adresse.",
+    signedAs: "Connecté(e) en tant que", mySpace: "Mon espace", photoErr: "Cette image ne peut pas être utilisée.",
   },
   en: {
     signin: "Sign in", signup: "Create an account", email: "Email", password: "Password", show: "Show", hide: "Hide",
@@ -31,6 +36,9 @@ const T: Record<string, Record<string, string>> = {
     resetSent: "If an account exists, a link has just been sent by email.", magic: "Get a sign-in link by email", magicGo: "Send the link", magicSent: "Link sent ✓ Open the email to sign in (check your spam folder).", newPwd: "New password", savePwd: "Save password", pwdSaved: "Password changed ✓",
     account: "My account", privacy: "My data", export: "Download my data", del: "Delete my account", delAsk: "Permanently delete your account and data?",
     deleted: "Account deleted.", nodb: "Sign-in will be available once the app's database is created.", signout: "Sign out", changePwd: "Change password", back: "Back to sign in",
+    profile: "My profile", photo: "Change photo", googlePhoto: "My Google account photo", noPhoto: "Remove photo", first: "First name", last: "Last name", phone: "Phone",
+    save: "Save", saved: "Saved ✓", newEmail: "New email address", changeEmail: "Change email", emailSent: "Open the confirmation email sent to the new address.",
+    signedAs: "Signed in as", mySpace: "My space", photoErr: "This image can't be used.",
   },
   nl: {
     signin: "Inloggen", signup: "Account aanmaken", email: "E-mail", password: "Wachtwoord", show: "Tonen", hide: "Verbergen",
@@ -42,6 +50,9 @@ const T: Record<string, Record<string, string>> = {
     resetSent: "Als er een account bestaat, is er zonet een link verstuurd.", magic: "Inloglink per e-mail ontvangen", magicGo: "Link versturen", magicSent: "Link verstuurd ✓ Open de e-mail om in te loggen (kijk ook bij spam).", newPwd: "Nieuw wachtwoord", savePwd: "Wachtwoord opslaan", pwdSaved: "Wachtwoord gewijzigd ✓",
     account: "Mijn account", privacy: "Mijn gegevens", export: "Mijn gegevens downloaden", del: "Mijn account verwijderen", delAsk: "Je account en gegevens definitief verwijderen?",
     deleted: "Account verwijderd.", nodb: "Inloggen is beschikbaar zodra de database van de app is aangemaakt.", signout: "Uitloggen", changePwd: "Wachtwoord wijzigen", back: "Terug naar inloggen",
+    profile: "Mijn profiel", photo: "Foto wijzigen", googlePhoto: "Foto van mijn Google-account", noPhoto: "Foto verwijderen", first: "Voornaam", last: "Achternaam", phone: "Telefoon",
+    save: "Opslaan", saved: "Opgeslagen ✓", newEmail: "Nieuw e-mailadres", changeEmail: "E-mailadres wijzigen", emailSent: "Open de bevestigingsmail die naar het nieuwe adres is verstuurd.",
+    signedAs: "Ingelogd als", mySpace: "Mijn ruimte", photoErr: "Deze afbeelding kan niet gebruikt worden.",
   },
 };
 function useT() {
@@ -262,7 +273,7 @@ export function AuthPage({ title, home }: { title?: string; home?: { admin: stri
     <Container className="max-w-md py-10 sm:py-16">
       <Card className="space-y-6 p-6 sm:p-8">
         <div className="space-y-2 text-center">
-          {brand.logo && <img src={brand.logo} alt="" width={56} height={56} className="mx-auto size-14 rounded-2xl" />}
+          {brand.logo && <img src={brand.logo} alt="" width={56} height={56} className="mx-auto size-14 rounded-2xl" style={logoShape() ? { borderRadius: logoCorner() } : undefined} />}
           <h1 className="text-2xl font-semibold tracking-tight text-neutral-900 dark:text-neutral-100">{title ?? brand.name}</h1>
         </div>
         <AuthForm home={home} />
@@ -430,5 +441,232 @@ export function AccountPrivacy() {
         </div>
       </Card>
     </div>
+  );
+}
+
+// ------------------------------------------------------------------ profile (photo, name, contact, password)
+
+/** Shape of the logo chosen in the brand kit (null: none chosen). */
+export const logoShape = () => (brand as unknown as { shape?: string | null }).shape ?? null;
+/** Corner of the logo (round when none was chosen, as before): header logo, profile photos. */
+export const logoCorner = () => ({ square: "0", rounded: "22%", circle: "50%" })[logoShape() ?? "circle"] ?? "50%";
+
+type Meta = { first_name?: string; last_name?: string; full_name?: string; name?: string; phone?: string; avatar_url?: string; picture?: string };
+const photos = new Map<string, string | null>();
+const PHOTO_EVENT = "usin:avatar";
+
+/** The signed-in person: name, initials, photo (the one chosen in « Mon profil », else the Google one). */
+export function useProfile() {
+  const { user, supabase } = useContent();
+  const meta = (user?.user_metadata ?? {}) as Meta;
+  const [photo, setPhoto] = useState<string | null | undefined>(user ? photos.get(user.id) : null);
+  useEffect(() => {
+    if (!user || !supabase) return setPhoto(null);
+    const on = () => setPhoto(photos.get(user.id));
+    window.addEventListener(PHOTO_EVENT, on);
+    if (!photos.has(user.id))
+      void notifyReady()
+        .then(() => supabase.from("usin_profiles").select("avatar").eq("user_id", user.id).maybeSingle())
+        .then(({ data }) => {
+          photos.set(user.id, (data as { avatar?: string | null } | null)?.avatar ?? null);
+          window.dispatchEvent(new Event(PHOTO_EVENT));
+        }, () => undefined);
+    else on();
+    return () => window.removeEventListener(PHOTO_EVENT, on);
+  }, [user?.id, supabase]);
+  const first = meta.first_name?.trim() || (meta.full_name || meta.name || "").trim().split(" ")[0] || "";
+  const last = meta.last_name?.trim() || (meta.full_name || meta.name || "").trim().split(" ").slice(1).join(" ");
+  const name = [first, last].filter(Boolean).join(" ") || user?.email?.split("@")[0] || "";
+  const initials = ((first[0] ?? "") + (last[0] ?? "") || (user?.email?.[0] ?? "?")).toUpperCase();
+  return { user, first, last, name, initials, phone: meta.phone ?? "", email: user?.email ?? "", photo: photo || meta.avatar_url || meta.picture || null, googlePhoto: meta.avatar_url || meta.picture || null, ownPhoto: Boolean(photo) };
+}
+
+/** Photo of the signed-in person, in the shape of the app's logo (initials in the brand colour when there is none). */
+export function Avatar({ size = 32, className }: { size?: number; className?: string }) {
+  const { photo, initials, name } = useProfile();
+  // Same shape as the app's logo (brand kit), and like the logo: initials on the brand colour.
+  const borderRadius = logoCorner();
+  return photo ? (
+    <img src={photo} alt={name} width={size} height={size} referrerPolicy="no-referrer" className={cn("shrink-0 object-cover", className)} style={{ width: size, height: size, borderRadius }} />
+  ) : (
+    <span aria-hidden="true" className={cn("grid shrink-0 place-items-center bg-[var(--brand)] font-semibold text-white", className)} style={{ width: size, height: size, fontSize: size * 0.4, borderRadius }}>
+      {initials}
+    </span>
+  );
+}
+
+/** A picture made small and square (photo of the profile), as a light image kept with the profile. */
+function squarePhoto(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => {
+      const side = Math.min(img.width, img.height);
+      const canvas = document.createElement("canvas");
+      canvas.width = canvas.height = 192;
+      canvas.getContext("2d")!.drawImage(img, (img.width - side) / 2, (img.height - side) / 2, side, side, 0, 0, 192, 192);
+      URL.revokeObjectURL(img.src);
+      resolve(canvas.toDataURL("image/webp", 0.82));
+    };
+    img.onerror = reject;
+    img.src = URL.createObjectURL(file);
+  });
+}
+
+/**
+ * « Mon profil », opened from the photo in the header: photo (from the device, the camera on phones, or the
+ * Google account), name, phone, email, password, sign out. Same look as the rest of the app.
+ */
+export function ProfileSheet({ open, onClose, accountPath }: { open: boolean; onClose: () => void; accountPath?: string }) {
+  const tr = useT();
+  const { supabase, realAdmin } = useContent();
+  const navigate = useNavigate();
+  const me = useProfile();
+  const [first, setFirst] = useState(me.first);
+  const [last, setLast] = useState(me.last);
+  const [phone, setPhone] = useState(me.phone);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [busy, setBusy] = useState(false);
+  useEffect(() => {
+    if (!open) return;
+    setFirst(me.first);
+    setLast(me.last);
+    setPhone(me.phone);
+    setEmail("");
+    setPassword("");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
+  if (!me.user || !supabase) return null;
+  const savePhoto = async (avatar: string | null) => {
+    setBusy(true);
+    try {
+      await notifyReady();
+      const { error } = await supabase.from("usin_profiles").upsert({ user_id: me.user!.id, avatar, updated_at: new Date().toISOString() });
+      if (error) throw error;
+      photos.set(me.user!.id, avatar);
+      window.dispatchEvent(new Event(PHOTO_EVENT));
+      toast(tr("saved"));
+    } catch {
+      toast(tr("photoErr"), "error");
+    } finally {
+      setBusy(false);
+    }
+  };
+  const run = async (work: () => Promise<{ error: { message: string } | null }>, done: string) => {
+    setBusy(true);
+    try {
+      const { error } = await work();
+      if (error) throw new Error(friendly(error.message, tr));
+      toast(done);
+    } catch (e) {
+      toast((e as Error).message, "error");
+    } finally {
+      setBusy(false);
+    }
+  };
+  const section = "space-y-3 border-t border-black/5 pt-4 dark:border-white/10";
+  return (
+    <Sheet open={open} onClose={onClose} title={tr("profile")}>
+      <div className="space-y-5 pb-2">
+        <div className="flex items-center gap-4">
+          <Avatar size={72} />
+          <div className="min-w-0">
+            <p className="truncate text-lg font-semibold text-neutral-900 dark:text-neutral-100">{me.name}</p>
+            <p className="truncate text-sm text-neutral-500">{me.email}</p>
+          </div>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <label className={cn("inline-flex min-h-10 cursor-pointer items-center rounded-full bg-[var(--brand)]/10 px-4 text-sm font-medium text-[var(--brand)] transition hover:bg-[var(--brand)]/15", busy && "pointer-events-none opacity-60")}>
+            {tr("photo")}
+            <input
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={async (e) => {
+                const file = e.target.files?.[0];
+                e.target.value = "";
+                if (file) await squarePhoto(file).then(savePhoto, () => toast(tr("photoErr"), "error"));
+              }}
+            />
+          </label>
+          {me.googlePhoto && me.ownPhoto && (
+            <Button size="sm" variant="ghost" disabled={busy} onClick={() => void savePhoto(null)}>
+              {tr("googlePhoto")}
+            </Button>
+          )}
+          {me.ownPhoto && !me.googlePhoto && (
+            <Button size="sm" variant="ghost" disabled={busy} onClick={() => void savePhoto(null)}>
+              {tr("noPhoto")}
+            </Button>
+          )}
+        </div>
+        <div className={section}>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <Field label={tr("first")}>
+              <Input value={first} onChange={(e) => setFirst(e.target.value)} autoComplete="given-name" />
+            </Field>
+            <Field label={tr("last")}>
+              <Input value={last} onChange={(e) => setLast(e.target.value)} autoComplete="family-name" />
+            </Field>
+          </div>
+          <Field label={tr("phone")}>
+            <Input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} autoComplete="tel" />
+          </Field>
+          <Button
+            disabled={busy}
+            onClick={() =>
+              void run(async () => {
+                const data = { first_name: first.trim(), last_name: last.trim(), full_name: [first.trim(), last.trim()].filter(Boolean).join(" "), phone: phone.trim() };
+                const r = await supabase.auth.updateUser({ data });
+                // The app's own profile table, when it has one, follows.
+                if (!r.error) await Promise.resolve(supabase.from("profiles").update({ first_name: data.first_name, last_name: data.last_name, phone: data.phone }).eq("id", me.user!.id)).catch(() => undefined);
+                return r;
+              }, tr("saved"))
+            }
+          >
+            {tr("save")}
+          </Button>
+        </div>
+        <div className={section}>
+          <Field label={tr("newEmail")}>
+            <Input type="email" value={email} placeholder={me.email} onChange={(e) => setEmail(e.target.value)} autoComplete="email" />
+          </Field>
+          <Button variant="secondary" disabled={busy || !email.includes("@")} onClick={() => void run(() => supabase.auth.updateUser({ email: email.trim() }), tr("emailSent"))}>
+            {tr("changeEmail")}
+          </Button>
+        </div>
+        <div className={section}>
+          <Field label={tr("newPwd")}>
+            <PasswordInput value={password} onChange={setPassword} autoComplete="new-password" />
+          </Field>
+          <Button variant="secondary" disabled={busy || password.length < 8} onClick={() => void run(() => supabase.auth.updateUser({ password }), tr("pwdSaved"))}>
+            {tr("savePwd")}
+          </Button>
+        </div>
+        <div className={cn(section, "flex flex-wrap gap-2")}>
+          {!realAdmin && accountPath && (
+            <Button
+              variant="outline"
+              onClick={() => {
+                onClose();
+                navigate(accountPath);
+              }}
+            >
+              {tr("mySpace")}
+            </Button>
+          )}
+          <Button
+            variant="ghost"
+            onClick={async () => {
+              onClose();
+              await supabase.auth.signOut();
+              navigate("/");
+            }}
+          >
+            {tr("signout")}
+          </Button>
+        </div>
+      </div>
+    </Sheet>
   );
 }
