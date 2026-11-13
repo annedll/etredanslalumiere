@@ -636,7 +636,10 @@ function usePhotoSearch() {
   const call = async (path: string, body: Record<string, unknown>) => {
     const { data } = await supabase.auth.getSession();
     const res = await fetch(base + path, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...body, accessToken: data.session?.access_token ?? "" }) });
-    if (!res.ok) throw new Error(String(res.status));
+    if (!res.ok) {
+      const detail = await res.json().then((j: { message?: string; error?: string }) => j.message || j.error).catch(() => "");
+      throw new Error(`${detail || "Erreur"} (${res.status})`);
+    }
     return res.json();
   };
   return {

@@ -891,18 +891,23 @@ function translateRows(supabase: { auth: { getSession: () => Promise<{ data: { s
 export function CalendarSync() {
   const { supabase } = useContent();
   const [links, setLinks] = useState<{ https: string; webcal: string; google: string } | null>(null);
-  const [failed, setFailed] = useState(false);
+  const [failed, setFailed] = useState<string | false>(false);
   const base = env.paymentsUrl ? env.paymentsUrl.replace("/api/pay/", "/api/app-notify/") : "";
   useEffect(() => {
-    if (!base || !supabase) return setFailed(true);
+    if (!base || !supabase) return setFailed("app non publiée");
     supabase.auth
       .getSession()
       .then(({ data }) => fetch(base + "/calendar/link", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ accessToken: data.session?.access_token ?? "" }) }))
-      .then((r) => (r.ok ? r.json() : Promise.reject()))
+      .then(async (r) => (r.ok ? r.json() : Promise.reject(new Error(((await r.json().catch(() => ({}))) as { message?: string; error?: string }).error || "erreur " + r.status))))
       .then(setLinks)
-      .catch(() => setFailed(true));
+      .catch((e: Error) => setFailed(e.message || "erreur"));
   }, [base, supabase]);
-  if (failed) return null;
+  if (failed)
+    return (
+      <Card className="p-5 text-sm text-neutral-600 dark:text-neutral-400">
+        📅 La synchronisation avec votre agenda n'est pas disponible pour le moment ({failed}).
+      </Card>
+    );
   return (
     <Card className="space-y-3 p-5">
       <div className="space-y-1">

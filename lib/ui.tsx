@@ -195,7 +195,11 @@ export function AddressInput({ value, onChange, onPick, className, placeholder, 
         className={cn(fieldClass, className)}
         value={value}
         placeholder={placeholder}
-        autoComplete="street-address"
+        // Our own suggestions: the browser's autofill list would cover them.
+        autoComplete="off"
+        name="usin-address-search"
+        data-lpignore="true"
+        data-1p-ignore="true"
         onChange={(e) => {
           setTyped(true);
           onChange(e.target.value);

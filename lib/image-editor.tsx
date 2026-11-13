@@ -160,8 +160,8 @@ export function ImageEditor(props: {
       const list = await props.search(query.trim(), page);
       setPhotos(list);
       if (!list.length) setError("Aucune photo trouvée : essayez d'autres mots (en anglais, c'est souvent mieux).");
-    } catch {
-      setError("La recherche de photos est indisponible pour le moment.");
+    } catch (e) {
+      setError("La recherche de photos est indisponible : " + (e instanceof Error ? e.message : "erreur inconnue") + ".");
     } finally {
       setSearching(false);
     }
