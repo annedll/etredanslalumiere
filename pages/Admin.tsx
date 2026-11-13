@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { BarChart3, FileText, Sparkles, CalendarDays, Clock, PhoneCall, BookOpen, Newspaper, Quote, MapPin, Bell, Share2, Scale, Shield, Star, Mail, Plus, Pencil, Trash2, Copy, Download, XCircle, Phone, Ticket, Image as ImageIcon, RotateCcw, ChevronRight, ChevronDown, ArrowUp, ArrowDown } from "lucide-react";
+import { Hourglass, Megaphone, Cookie, UserCog, BarChart3, FileText, Sparkles, CalendarDays, Clock, PhoneCall, BookOpen, Newspaper, Quote, MapPin, Bell, Share2, Scale, Shield, Star, Mail, Plus, Pencil, Trash2, Copy, Download, XCircle, Phone, Ticket, Image as ImageIcon, RotateCcw, ChevronRight, ChevronDown, ArrowUp, ArrowDown } from "lucide-react";
 import { useSeo } from "../lib/seo";
 import { LEGAL_PAGES, legalDefaultText, type LegalKind } from "../lib/legal";
 import { NotificationSettings, notify } from "../lib/notify";
@@ -373,10 +373,10 @@ function Rgpd() {
 
 const SECTIONS = [
   ["dash", "Tableau de bord", BarChart3, "Activité"], ["content", "Informations", FileText, "Activité"], ["offers", "Offres & tarifs", Sparkles, "Activité"], ["places", "Lieux", MapPin, "Activité"], ["slots", "Disponibilités", Clock, "Activité"], ["sessions", "Agenda", CalendarDays, "Activité"],
-  ["apts", "Rendez-vous", PhoneCall, "Clients"], ["regs", "Inscriptions & ventes", Ticket, "Clients"], ["wait", "Liste d'attente", Bell, "Clients"], ["msgs", "Messages", Mail, "Clients"],
+  ["apts", "Rendez-vous", PhoneCall, "Clients"], ["regs", "Inscriptions & ventes", Ticket, "Clients"], ["wait", "Liste d'attente", Hourglass, "Clients"], ["msgs", "Messages", Mail, "Clients"],
   ["posts", "Blog", Newspaper, "Contenus"], ["ebooks", "E-books", BookOpen, "Contenus"], ["tes", "Témoignages", Quote, "Contenus"], ["reviews", "Avis", Star, "Contenus"],
-  ["news", "Newsletter", Mail, "Communication"], ["social", "Réseaux sociaux", Share2, "Communication"], ["notif", "Notifications", Bell, "Communication"],
-  ["legal", "Pages légales", Scale, "Site et sécurité"], ["rgpd", "RGPD & bêta", Shield, "Site et sécurité"],
+  ["news", "Newsletter", Megaphone, "Communication"], ["social", "Réseaux sociaux", Share2, "Communication"], ["notif", "Notifications", Bell, "Communication"],
+  ["legal", "Pages légales", Scale, "Site et sécurité"], ["rgpd", "RGPD & bêta", Cookie, "Site et sécurité"],
 ] as const;
 
 export function AdminPage() {
@@ -415,6 +415,6 @@ export function AdminPage() {
           <Crud table="beta_invites" title="Codes d'invitation" order="created_at" label={(r) => r.code} cols={["email"]} fields={[{ k: "code", label: "Code" }, { k: "email", label: "Email (facultatif)" }]} /></div>,
     admins: <AdminsManager />,
   };
-  const sections = [...SECTIONS, ["admins", "Administrateurs", Shield, "Site et sécurité"] as const].map(([id, label, Icon, group]) => ({ id, label, icon: <Icon />, element: elements[id], group }));
+  const sections = [...SECTIONS, ["admins", "Administrateurs", UserCog, "Site et sécurité"] as const].map(([id, label, Icon, group]) => ({ id, label, icon: <Icon />, element: elements[id], group }));
   return <AdminConsole title="Réglages du site" sections={sections} actions={<ButtonLink to="/gestion" variant="outline">Gestion</ButtonLink>} />;
 }

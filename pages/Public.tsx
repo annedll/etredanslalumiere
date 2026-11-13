@@ -10,6 +10,7 @@ import { notify } from "../lib/notify";
 import { startCheckout } from "../lib/payments";
 import { supabase, isConfigured } from "../lib/supabase";
 import { useApp, Editable, EditableImage, EditableList, Paragraphs, useOfferings, useSessions, useQuery, money, fmtDate, offerPath, isDemoId } from "../lib/data";
+import { useLocalized } from "../lib/content";
 import { DEFAULT_POSTS, DEFAULT_EBOOKS } from "../lib/defaults";
 import { Button, ButtonLink, Card, Badge, Container, EmptyState, Field, Input, Textarea, Checkbox, Skeleton, Tabs, cn, H1 } from "../components/ui";
 import { OfferCard, SessionCard, ShareButtons, ModeBadges, PayTerms, OfferWaitlist, HealthNote } from "../components/Offers";
@@ -46,7 +47,9 @@ function useDbList(key: string, fetcher: () => PromiseLike<any>, fallback: any[]
     });
     return () => { alive = false; };
   }, [key]);
-  return state;
+  // Rows translated by Usin (column i18n) in the visitor's language.
+  const data = useLocalized(state.data);
+  return { ...state, data };
 }
 
 function Header({ titleKey, introKey }: { titleKey: string; introKey: string }) {
