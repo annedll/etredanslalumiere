@@ -154,7 +154,8 @@ export function Checkbox({ checked, onChange, children }: { checked: boolean; on
 }
 
 export function Container({ className, children }: { className?: string; children: React.ReactNode }) {
-  return <div className={cn("mx-auto w-full max-w-6xl px-4 sm:px-6", className)}>{children}</div>;
+  // Same edges as the header on every screen: 80rem of content + the 1rem margins of the bars.
+  return <div className={cn("mx-auto w-full max-w-[82rem] px-4", className)}>{children}</div>;
 }
 
 /** Titre principal unique d'une page (un seul rendu par page). */

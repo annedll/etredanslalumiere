@@ -280,7 +280,7 @@ function GestionConsole() {
     { id: "agenda", label: "Agenda", icon: <CalendarDays />, element: <div className="space-y-6"><CalendarSync /><Agenda /></div> },
     { id: "clients", label: "Clients", icon: <Users />, element: <Clients /> },
     { id: "messages", label: "Messages", icon: <Mail />, element: <Messages />, badge: messages },
-    { id: "mailbox", label: "Boîte mail", icon: <Inbox />, element: <Mailbox />, wide: true, badge: mails },
+    { id: "mailbox", label: "Boîte mail", icon: <Inbox />, element: <Mailbox />, badge: mails },
     { id: "orders", label: "Commandes", icon: <ShoppingBag />, element: <Orders /> },
     { id: "news", label: "Newsletter", icon: <Newspaper />, element: <NewsletterAdmin supabase={supabase} /> },
     { id: "reviews", label: "Avis", icon: <Star />, element: <Moderation /> },
