@@ -25,7 +25,7 @@ export function Logo({ compact }: { compact?: boolean }) {
   return (
     <Link to="/" className="flex items-center gap-2.5 min-w-0 shrink">
       <img src={get("logo_url") || brand.logo || (brand as any).icon} alt={get("biz.name") || brand.name} width={44} height={44} className={cn("rounded-full shrink-0 shadow-sm bg-[var(--brand)] ring-[var(--brand)]/20", compact ? "h-9 w-9 ring-2" : "h-11 w-11 ring-4")} />
-      <span className={cn("font-script leading-none text-[var(--brand)] whitespace-nowrap", !compact && "text-2xl sm:text-[1.7rem]", compact && "min-w-0 truncate text-[1.45rem] pt-1")}>{get("biz.name") || brand.name}</span>
+      <span className={cn("font-script leading-none text-[var(--brand)] whitespace-nowrap", !compact && "text-2xl sm:text-[1.7rem]", compact && "min-w-0 truncate pt-1 pr-[0.3em] pb-[0.1em] text-[clamp(1.15rem,5.6vw,1.45rem)]")}>{get("biz.name") || brand.name}</span>
     </Link>
   );
 }
