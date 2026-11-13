@@ -1311,6 +1311,8 @@ type MailItem = { uid: number; from: string; fromEmail: string; to: string; subj
 type MailFull = { uid: number; from: string; fromEmail: string; to: string; cc: string; subject: string; date: string; text: string; html: string; messageId: string; references: string; attachments: { index: number; name: string; size: number; type: string }[] };
 type MailDraft = { to: string; cc: string; bcc: string; subject: string; body: string; inReplyTo?: string; references?: string; draftUid?: number; attachments: { name: string; type: string; data: string; size: number }[]; showCc: boolean };
 
+type MailAccount = { id: number; email: string; watch: boolean; every: number; signature: { on: boolean; name?: string; role?: string }; oauth: string | null };
+type MailStatus = { connected: boolean; accounts: MailAccount[]; oauth: string[] };
 const blankDraft = (): MailDraft => ({ to: "", cc: "", bcc: "", subject: "", body: "", attachments: [], showCc: false });
 
 // Line icons in the app's colours (they take the colour of the text around them, like the rest of the design).
@@ -1577,6 +1579,103 @@ export function useMailUnread() {
   return n;
 }
 
+/** Settings of one mailbox: alerts for new emails, signature (built from the app's brand and contact details), removal. */
+function MailAccountSettings({ acc, single, back, onChange, onRemoved }: { acc: MailAccount; single: boolean; back: string; onChange: (s: MailStatus | null, patch?: Partial<MailAccount>) => void; onRemoved: () => void }) {
+  const { supabase } = useContent();
+  const call = <T,>(action: string, body: Record<string, unknown> = {}) => mailCall<T>(supabase!, action, { account: acc.id, ...body });
+  const [busy, setBusy] = useState(false);
+  const [sig, setSig] = useState(acc.signature);
+  const [preview, setPreview] = useState<string | null>(null);
+  useEffect(() => {
+    void call<{ html: string }>("signature").then((r) => setPreview(r.html)).catch(() => setPreview(""));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [acc.id]);
+  const watch = async (on: boolean, every: number) => {
+    setBusy(true);
+    try {
+      const r = await call<{ watch: boolean; every: number }>("watch", { on, every, url: back });
+      onChange(null, { watch: r.watch, every: r.every });
+      toast(r.watch ? "Vous serez prévenu des nouveaux emails ✓" : "Alertes des nouveaux emails coupées ✓");
+    } catch (e) {
+      toast((e as Error).message, "error");
+    } finally {
+      setBusy(false);
+    }
+  };
+  const saveSig = async (next: MailAccount["signature"]) => {
+    setSig(next);
+    setBusy(true);
+    try {
+      const r = await call<{ html: string }>("signature-set", next);
+      setPreview(r.html);
+      onChange(null, { signature: next });
+    } catch (e) {
+      toast((e as Error).message, "error");
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <Card className="space-y-5 p-4 sm:p-5">
+      <p className="flex items-center gap-2 font-semibold text-neutral-900 dark:text-neutral-100">
+        <MailIcon name="inbox" className="text-[var(--brand)]" />
+        <span className="min-w-0 truncate">{acc.email}</span>
+        {acc.oauth && <Badge tone="neutral">{acc.oauth === "microsoft" ? "Microsoft" : "Google"}</Badge>}
+      </p>
+      <div className="space-y-2">
+        <Switch label="Me prévenir des nouveaux emails dans l'appli" checked={acc.watch} disabled={busy} onChange={(on) => void watch(on, acc.every)} />
+        {acc.watch && (
+          <Field label="Vérifier la boîte">
+            <Select value={String(acc.every)} disabled={busy} onChange={(e) => void watch(true, Number(e.target.value))}>
+              <option value="1">Toutes les minutes</option>
+              <option value="2">Toutes les 2 minutes</option>
+              <option value="5">Toutes les 5 minutes</option>
+            </Select>
+          </Field>
+        )}
+        <p className="text-xs leading-relaxed text-neutral-500">
+          Une notification dans l'appli et sur votre téléphone pour chaque nouvel email. Dès qu'une boîte vous prévient, les alertes de l'appli (réservations, messages, avis…) ne vous sont plus envoyées par email : vous les voyez dans l'appli et sur votre téléphone. Vos clients reçoivent toujours leurs emails.
+        </p>
+      </div>
+      <div className="space-y-3 border-t border-black/5 pt-4 dark:border-white/10">
+        <Switch label="Signature automatique" checked={sig.on} disabled={busy} onChange={(on) => void saveSig({ ...sig, on })} />
+        <p className="text-xs leading-relaxed text-neutral-500">Faite avec le logo, le nom, les couleurs et les coordonnées de votre site : elle suit toute seule vos changements.</p>
+        {sig.on && (
+          <>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <Field label="Votre nom (facultatif)">
+                <Input value={sig.name ?? ""} onChange={(e) => setSig({ ...sig, name: e.target.value })} onBlur={() => void saveSig(sig)} placeholder="ex. Anne Kételair" />
+              </Field>
+              <Field label="Votre fonction (facultatif)">
+                <Input value={sig.role ?? ""} onChange={(e) => setSig({ ...sig, role: e.target.value })} onBlur={() => void saveSig(sig)} placeholder="ex. Thérapeute énergéticienne" />
+              </Field>
+            </div>
+            {preview === null ? (
+              <Skeleton className="h-24" />
+            ) : preview ? (
+              <iframe title="Signature" sandbox="" srcDoc={'<body style="margin:12px;background:#fff">' + preview + "</body>"} className="h-36 w-full rounded-xl border border-black/5 bg-white dark:border-white/10" />
+            ) : null}
+          </>
+        )}
+      </div>
+      <div className="border-t border-black/5 pt-4 dark:border-white/10">
+        <Button
+          variant="outline"
+          disabled={busy}
+          onClick={async () => {
+            if (!(await confirmAction(`Retirer ${acc.email} de l'appli ? (vos emails ne sont pas supprimés)`))) return;
+            const s = await call<MailStatus>("disconnect");
+            onChange(s);
+            onRemoved();
+          }}
+        >
+          {single ? "Déconnecter la boîte mail" : "Retirer cette boîte"}
+        </Button>
+      </div>
+    </Card>
+  );
+}
+
 /**
  * The business's own mailbox in the console, like a modern mail app: folders (réception, envoyés, brouillons, spam,
  * corbeille, archives…), search, star, unread, archive, spam, bin, move, attachments (read and send), reply / reply
@@ -1586,9 +1685,14 @@ export function useMailUnread() {
 export function Mailbox() {
   const { supabase } = useContent();
   const base = env.paymentsUrl ? env.paymentsUrl.replace("/api/pay/", "/api/app-notify/") : "";
-  const call = <T,>(action: string, body: Record<string, unknown> = {}) => mailCall<T>(supabase!, action, body);
+  // Several mailboxes (contact@, anne@…): every call is for the one shown.
+  const accountRef = useRef<number | null>(null);
+  const [account, setAccount] = useState<number | null>(null);
+  const call = <T,>(action: string, body: Record<string, unknown> = {}) => mailCall<T>(supabase!, action, { ...(accountRef.current ? { account: accountRef.current } : {}), ...body });
   const location = useLocation();
-  const [status, setStatus] = useState<{ connected: boolean; email?: string; watch?: boolean; every?: number } | null>(null);
+  const [status, setStatus] = useState<MailStatus | null>(null);
+  const [adding, setAdding] = useState(false);
+  const [signature, setSignature] = useState<{ html: string; on: boolean } | null>(null);
   const [menu, setMenu] = useState<{ x: number; y: number; uid: number; reader?: boolean } | null>(null);
   const [moving, setMoving] = useState<number | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -1626,13 +1730,33 @@ export function Mailbox() {
   const [user, setUser] = useState("");
 
   const role = folders.find((f) => f.path === folder)?.role ?? "inbox";
+  const current_ = status?.accounts.find((a) => a.id === account) ?? status?.accounts[0];
   const loadFolders = () =>
     call<MailFolder[]>("folders")
       .then((fs) => {
         setFolders(fs);
-        setBadge("mail", fs.find((f) => f.role === "inbox")?.unseen ?? 0);
+        // The counter of the menu: every mailbox together.
+        if ((status?.accounts.length ?? 1) > 1) void mailCall<{ unseen: number }>(supabase!, "unseen").then((r) => setBadge("mail", r.unseen)).catch(() => undefined);
+        else setBadge("mail", fs.find((f) => f.role === "inbox")?.unseen ?? 0);
       })
       .catch(() => undefined);
+  const switchTo = (id: number | null, s: MailStatus | null = status) => {
+    accountRef.current = id;
+    setAccount(id);
+    setFolder("INBOX");
+    setFolders([]);
+    setOpenUid(null);
+    setFull(null);
+    setQuery("");
+    setSearch("");
+    cache.clear();
+    setSignature(null);
+    if (id && s?.connected) {
+      void loadFolders();
+      void load({ folder: "INBOX", search: "" });
+      void call<{ html: string }>("signature").then((r) => setSignature({ html: r.html, on: s.accounts.find((a) => a.id === id)?.signature.on ?? true })).catch(() => undefined);
+    }
+  };
   const load = async (opts: { folder?: string; page?: number; search?: string } = {}) => {
     const f = opts.folder ?? folder;
     const p = opts.page ?? 1;
@@ -1647,7 +1771,7 @@ export function Mailbox() {
       // The first emails are fetched in the background: they open at once.
       void (async () => {
         for (const m of r.items.slice(0, 6)) {
-          const k = f + ":" + m.uid;
+          const k = accountRef.current + ":" + f + ":" + m.uid;
           if (cache.has(k)) continue;
           const one = await call<MailFull>("read", { uid: m.uid, folder: f, peek: true }).catch(() => null);
           if (one) cache.set(k, one);
@@ -1661,13 +1785,20 @@ export function Mailbox() {
 
   useEffect(() => {
     if (!base || !supabase) return;
-    call<{ connected: boolean; email?: string }>("status")
+    // Back from Microsoft's / Google's page: ?box=<new mailbox> or ?mailerr=<reason>.
+    const params = new URLSearchParams(window.location.search);
+    const wanted = Number(params.get("box")) || null;
+    const failed = params.get("mailerr");
+    if (wanted || failed) {
+      params.delete("box");
+      params.delete("mailerr");
+      window.history.replaceState(null, "", window.location.pathname + (params.size ? "?" + params : ""));
+      if (failed) toast(failed, "error");
+    }
+    call<MailStatus>("status")
       .then((s) => {
         setStatus(s);
-        if (s.connected) {
-          void loadFolders();
-          void load({ folder: "INBOX" });
-        }
+        if (s.connected) switchTo(s.accounts.find((a) => a.id === wanted)?.id ?? s.accounts[0].id, s);
       })
       .catch((e: Error) => setError(e.message));
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -1690,7 +1821,7 @@ export function Mailbox() {
   const openMail = async (m: MailItem) => {
     openRef.current = m.uid;
     setOpenUid(m.uid);
-    const k = folder + ":" + m.uid;
+    const k = accountRef.current + ":" + folder + ":" + m.uid;
     const hit = cache.get(k);
     setFull(hit ?? null);
     if (!m.seen) {
@@ -1755,15 +1886,47 @@ export function Mailbox() {
   if (!base) return <EmptyState title="Boîte mail" text="Disponible sur le site publié." />;
   if (!status) return error ? <p className="text-sm text-red-600">{error}</p> : <Skeleton className="h-40" />;
 
-  if (!status.connected)
+  if (!status.connected || adding)
     return (
       <Card className="space-y-4 p-5">
         <div className="space-y-1">
-          <p className="text-lg font-semibold text-neutral-900 dark:text-neutral-100">Connecter ma boîte mail pro</p>
-          <p className="text-sm text-neutral-600 dark:text-neutral-400">Lisez, répondez et écrivez vos emails ici, depuis votre adresse habituelle (OVH, Zimbra, Infomaniak, Gandi, Orange, Yahoo, iCloud…). Vos emails restent dans votre boîte : rien ne change sur votre téléphone ou votre ordinateur. Le mot de passe est chiffré et n'est jamais affiché.</p>
+          <p className="text-lg font-semibold text-neutral-900 dark:text-neutral-100">{status.connected ? "Ajouter une boîte mail" : "Connecter ma boîte mail pro"}</p>
+          <p className="text-sm text-neutral-600 dark:text-neutral-400">Lisez, répondez et écrivez vos emails ici, depuis votre adresse habituelle (OVH, Zimbra, Infomaniak, Gandi, Orange, Yahoo, iCloud, Gmail, Outlook…). Vos emails restent dans votre boîte : rien ne change sur votre téléphone ou votre ordinateur. Le mot de passe est chiffré et n'est jamais affiché.</p>
         </div>
+        {status.oauth.length > 0 && (
+          <div className="flex flex-wrap gap-2">
+            {status.oauth.map((provider) => (
+              <Button
+                key={provider}
+                variant="outline"
+                disabled={busy}
+                onClick={async () => {
+                  setBusy(true);
+                  try {
+                    const r = await call<{ url: string }>("oauth-start", { provider, back: window.location.href });
+                    window.location.href = r.url;
+                  } catch (e) {
+                    setError((e as Error).message);
+                    setBusy(false);
+                  }
+                }}
+              >
+                {provider === "microsoft" ? "Se connecter avec Microsoft (Outlook, Hotmail, 365)" : "Se connecter avec Google (Gmail)"}
+              </Button>
+            ))}
+          </div>
+        )}
         <Field label="Adresse email"><Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="off" /></Field>
         <Field label="Mot de passe de la boîte mail"><Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="new-password" /></Field>
+        {/@(gmail|googlemail)\.com$/i.test(email.trim()) && (
+          <p className="rounded-xl bg-[var(--brand)]/5 p-3 text-sm text-neutral-700 dark:text-neutral-300">
+            Gmail : utilisez un <strong>mot de passe d'application</strong> (pas votre mot de passe habituel). Créez-le sur{" "}
+            <a className="underline" href="https://myaccount.google.com/apppasswords" target="_blank" rel="noreferrer">myaccount.google.com/apppasswords</a> (la validation en deux étapes doit être activée), puis collez-le ici.
+          </p>
+        )}
+        {/@(outlook|hotmail|live|msn)\.[a-z.]+$/i.test(email.trim()) && !status.oauth.includes("microsoft") && (
+          <p className="rounded-xl bg-amber-500/10 p-3 text-sm text-neutral-700 dark:text-neutral-300">Outlook / Hotmail : Microsoft n'accepte plus les mots de passe pour les autres applis. La connexion « Se connecter avec Microsoft » arrive bientôt dans votre appli.</p>
+        )}
         <button type="button" className="text-sm underline opacity-70" onClick={() => setAdvanced(!advanced)}>
           {advanced ? "Masquer les réglages avancés" : "Réglages avancés (si la connexion automatique échoue)"}
         </button>
@@ -1777,26 +1940,34 @@ export function Mailbox() {
           </div>
         )}
         {error && <p className="text-sm text-red-600">{error}</p>}
-        <Button
-          disabled={busy || !email || !password}
-          onClick={async () => {
-            setBusy(true);
-            setError(null);
-            try {
-              const s = await call<{ connected: boolean; email: string }>("connect", { email, password, ...(user ? { user } : {}), ...(advanced && imapS.host && smtpS.host ? { imap: imapS, smtp: smtpS } : {}) });
-              setStatus(s);
-              setPassword("");
-              void loadFolders();
-              void load({ folder: "INBOX" });
-            } catch (e) {
-              setError((e as Error).message);
-            } finally {
-              setBusy(false);
-            }
-          }}
-        >
-          {busy ? "Connexion…" : "Connecter"}
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <Button
+            disabled={busy || !email || !password}
+            onClick={async () => {
+              setBusy(true);
+              setError(null);
+              try {
+                const s = await mailCall<MailStatus & { account: number }>(supabase!, "connect", { email, password, ...(user ? { user } : {}), ...(advanced && imapS.host && smtpS.host ? { imap: imapS, smtp: smtpS } : {}) });
+                setStatus(s);
+                setPassword("");
+                setEmail("");
+                setAdding(false);
+                switchTo(s.account, s);
+              } catch (e) {
+                setError((e as Error).message);
+              } finally {
+                setBusy(false);
+              }
+            }}
+          >
+            {busy ? "Connexion…" : "Connecter"}
+          </Button>
+          {adding && (
+            <Button variant="ghost" onClick={() => { setAdding(false); setError(null); }}>
+              Annuler
+            </Button>
+          )}
+        </div>
       </Card>
     );
 
@@ -1806,10 +1977,10 @@ export function Mailbox() {
   };
   const current = list?.find((m) => m.uid === openUid);
   const outgoing = role === "sent" || role === "drafts";
-  const fullOf = async (m: MailItem) => cache.get(folder + ":" + m.uid) ?? (full?.uid === m.uid ? full : await call<MailFull>("read", { uid: m.uid, folder, peek: true }).catch(() => null));
+  const fullOf = async (m: MailItem) => cache.get(accountRef.current + ":" + folder + ":" + m.uid) ?? (full?.uid === m.uid ? full : await call<MailFull>("read", { uid: m.uid, folder, peek: true }).catch(() => null));
   const reply = (f: MailFull | null, all: boolean) => {
     if (!f) return;
-    const others = all ? [f.to, f.cc].join(",").split(",").map((x) => x.trim()).filter((x) => x && !x.toLowerCase().includes((status.email ?? "").toLowerCase()) && !x.includes(f.fromEmail)) : [];
+    const others = all ? [f.to, f.cc].join(",").split(",").map((x) => x.trim()).filter((x) => x && !x.toLowerCase().includes((current_?.email ?? "").toLowerCase()) && !x.includes(f.fromEmail)) : [];
     setDraft({
       ...blankDraft(),
       to: f.fromEmail,
@@ -1859,18 +2030,7 @@ export function Mailbox() {
     { label: role === "trash" ? "Supprimer définitivement" : "Supprimer", icon: role === "trash" ? "remove" : "trash", danger: true, run: () => void remove(m) },
   ];
   const inbox = folders.find((f) => f.role === "inbox");
-  const watch = async (on: boolean, every: number) => {
-    setBusy(true);
-    try {
-      const r = await call<{ watch: boolean; every: number }>("watch", { on, every, url: location.pathname + "?s=" + (new URLSearchParams(location.search).get("s") ?? "mailbox") });
-      setStatus({ ...status, watch: r.watch, every: r.every });
-      toast(r.watch ? "Vous serez prévenu des nouveaux emails ✓" : "Alertes des nouveaux emails coupées ✓");
-    } catch (e) {
-      toast((e as Error).message, "error");
-    } finally {
-      setBusy(false);
-    }
-  };
+  const back = location.pathname + "?s=" + (new URLSearchParams(location.search).get("s") ?? "mailbox");
   const tool = "inline-flex min-h-10 items-center gap-2 rounded-full px-3 text-sm font-medium text-neutral-700 transition hover:bg-black/5 active:scale-[0.97] dark:text-neutral-200 dark:hover:bg-white/10";
 
   return (
@@ -1881,6 +2041,13 @@ export function Mailbox() {
           <MailIcon name="write" />
           <span className="max-sm:hidden">Écrire</span>
         </Button>
+        {status.accounts.length > 1 && (
+          <Select aria-label="Boîte mail" className="w-auto max-w-[40%] shrink-0 rounded-full" value={String(account ?? "")} onChange={(e) => switchTo(Number(e.target.value))}>
+            {status.accounts.map((a) => (
+              <option key={a.id} value={a.id}>{a.email}</option>
+            ))}
+          </Select>
+        )}
         <form
           className="relative min-w-0 flex-1"
           onSubmit={(e) => {
@@ -2111,43 +2278,37 @@ export function Mailbox() {
         </div>
       </Dialog>
 
-      {/* Settings of the mailbox */}
-      <Dialog open={settingsOpen} onClose={() => setSettingsOpen(false)} title="Réglages de la boîte mail">
-        <div className="space-y-5">
-          <p className="text-sm text-neutral-600 dark:text-neutral-400">Boîte connectée : <strong className="text-neutral-900 dark:text-neutral-100">{status.email}</strong></p>
-          <div className="space-y-2">
-            <Switch
-              label="Me prévenir des nouveaux emails dans l'appli"
-              checked={Boolean(status.watch)}
-              disabled={busy}
-              onChange={(on) => void watch(on, status.every ?? 1)}
-            />
-            {status.watch && (
-              <Field label="Vérifier la boîte">
-                <Select value={String(status.every ?? 1)} disabled={busy} onChange={(e) => void watch(true, Number(e.target.value))}>
-                  <option value="1">Toutes les minutes</option>
-                  <option value="2">Toutes les 2 minutes</option>
-                  <option value="5">Toutes les 5 minutes</option>
-                </Select>
-              </Field>
-            )}
-            <p className="text-xs leading-relaxed text-neutral-500">
-              Une notification dans l'appli et sur votre téléphone pour chaque nouvel email. Les alertes de l'appli (réservations, messages, avis…) ne vous sont alors plus envoyées par email : vous les voyez dans l'appli et sur votre téléphone. Vos clients reçoivent toujours leurs emails.
-            </p>
-          </div>
-          <div className="border-t border-black/5 pt-4 dark:border-white/10">
-            <Button
-              variant="outline"
-              onClick={async () => {
-                if (!(await confirmAction("Déconnecter la boîte mail de l'appli ? (vos emails ne sont pas supprimés)"))) return;
-                setSettingsOpen(false);
-                setStatus(await call("disconnect"));
-                setBadge("mail", 0);
+      {/* Settings: every mailbox of the app, each with its alerts and its signature */}
+      <Dialog open={settingsOpen} onClose={() => setSettingsOpen(false)} title={status.accounts.length > 1 ? "Mes boîtes mail" : "Réglages de la boîte mail"}>
+        <div className="space-y-4">
+          {status.accounts.map((acc) => (
+            <MailAccountSettings
+              key={acc.id}
+              acc={acc}
+              single={status.accounts.length === 1}
+              back={back}
+              onChange={(s, patch) => {
+                if (s) setStatus(s);
+                else if (patch) setStatus((old) => (old ? { ...old, accounts: old.accounts.map((a) => (a.id === acc.id ? { ...a, ...patch } : a)) } : old));
+                if (patch?.signature && acc.id === account) setSignature((x) => (x ? { ...x, on: patch.signature!.on } : x));
               }}
-            >
-              Déconnecter la boîte mail
-            </Button>
-          </div>
+              onRemoved={() => {
+                setSettingsOpen(false);
+                const left = status.accounts.filter((a) => a.id !== acc.id);
+                if (!left.length) setBadge("mail", 0);
+                switchTo(acc.id === account ? left[0]?.id ?? null : account, { ...status, accounts: left, connected: left.length > 0 });
+              }}
+            />
+          ))}
+          <Button
+            variant="secondary"
+            onClick={() => {
+              setSettingsOpen(false);
+              setAdding(true);
+            }}
+          >
+            + Ajouter une boîte mail
+          </Button>
         </div>
       </Dialog>
 
@@ -2216,7 +2377,14 @@ export function Mailbox() {
               <button type="button" className="text-xs underline opacity-70" onClick={() => setDraft({ ...draft, showCc: true })}>Ajouter Cc / Cci</button>
             )}
             <Field label="Objet"><Input value={draft.subject} onChange={(e) => setDraft({ ...draft, subject: e.target.value })} /></Field>
+            {status.accounts.length > 1 && <p className="text-xs text-neutral-500">Envoyé depuis <strong>{current_?.email}</strong></p>}
             <Field label="Message"><Textarea rows={10} value={draft.body} onChange={(e) => setDraft({ ...draft, body: e.target.value })} autoFocus /></Field>
+            {signature?.on && signature.html && (
+              <div className="space-y-1">
+                <p className="text-xs text-neutral-500">Signature ajoutée à l'envoi</p>
+                <iframe title="Signature" sandbox="" srcDoc={'<body style="margin:8px;background:#fff">' + signature.html + "</body>"} className="h-32 w-full rounded-xl border border-black/5 bg-white dark:border-white/10" />
+              </div>
+            )}
             <div className="flex flex-wrap items-center gap-2">
               <label className="cursor-pointer rounded-full border border-black/10 px-3 py-1.5 text-sm dark:border-white/15">
                 <MailIcon name="clip" className="mr-1.5 inline size-4 align-[-3px]" />

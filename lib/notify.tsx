@@ -184,6 +184,26 @@ function ago(iso: string, w: (k: string, n?: number) => string = (k, n) => W.fr[
   return new Date(iso).toLocaleDateString(undefined, { day: "numeric", month: "short" });
 }
 
+/**
+ * This device's push subscription is written again for the signed-in user at each visit: the browser can keep a
+ * subscription that the app no longer knows (account recreated, data cleaned), and then nothing would arrive.
+ */
+const synced = new Set<string>();
+async function syncPush(supabase: SupabaseClient, userId: string) {
+  if (synced.has(userId) || !("serviceWorker" in navigator) || !("PushManager" in window) || Notification.permission !== "granted") return;
+  synced.add(userId);
+  try {
+    const reg = await navigator.serviceWorker.getRegistration();
+    const sub = await reg?.pushManager.getSubscription();
+    if (!sub) return;
+    const json = sub.toJSON() as { endpoint: string; keys: { p256dh: string; auth: string } };
+    await notifyReady();
+    await supabase.from("usin_push_subscriptions").upsert({ endpoint: json.endpoint, user_id: userId, p256dh: json.keys.p256dh, auth: json.keys.auth });
+  } catch {
+    synced.delete(userId);
+  }
+}
+
 /** The signed-in user's notifications, refreshed regularly and when the app comes back to the foreground. */
 export function useNotifications(supabase: SupabaseClient) {
   const [items, setItems] = useState<Item[]>([]);
@@ -193,6 +213,7 @@ export function useNotifications(supabase: SupabaseClient) {
     setUserId(data.user?.id ?? null);
     if (!data.user) return setItems([]);
     await notifyReady();
+    void syncPush(supabase, data.user.id);
     const res = await supabase.from("usin_notifications").select("id, title, body, url, read_at, created_at").order("created_at", { ascending: false }).limit(30);
     if (!res.error) setItems((res.data ?? []) as Item[]);
   }, [supabase]);
