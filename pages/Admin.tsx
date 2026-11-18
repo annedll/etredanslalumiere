@@ -13,7 +13,7 @@ import { Badge, Button, ButtonLink, Card, Container, Dialog, EmptyState, Field, 
 import { AddressInput } from "../lib/ui";
 import { LEGAL_KINDS, phoneHref } from "../components/Layout";
 
-type F = { k: string; label: string; type?: "text" | "textarea" | "number" | "money" | "bool" | "datetime" | "select" | "image" | "modes" | "address"; options?: [string, string][]; hint?: string };
+type F = { k: string; label: string; type?: "text" | "textarea" | "number" | "money" | "bool" | "datetime" | "select" | "image" | "modes" | "places" | "address"; options?: [string, string][]; hint?: string };
 
 const SAVE_ERR = "Enregistrement impossible, réessayez.";
 const toLocal = (iso?: string) => { if (!iso) return ""; const d = new Date(iso); d.setMinutes(d.getMinutes() - d.getTimezoneOffset()); return d.toISOString().slice(0, 16); };
@@ -46,7 +46,7 @@ function FieldInput({ f, v, set }: { f: F; v: any; set: (v: any) => void }) {
     case "datetime": return <Input type="datetime-local" value={toLocal(v)} onChange={(e) => set(e.target.value ? new Date(e.target.value).toISOString() : null)} />;
     case "select": return <Select value={v ?? ""} onChange={(e) => set(e.target.value || null)}><option value="">—</option>{f.options?.map(([a, b]) => <option key={a} value={a}>{b}</option>)}</Select>;
     case "image": return <ImageField value={v || ""} onChange={set} />;
-    case "modes": return <div className="flex flex-wrap gap-2">{[["cabinet", "Au cabinet"], ["distance", "À distance"], ["visio", "En visio"]].map(([m, l]) => { const on = (v || []).includes(m); return <button key={m} type="button" onClick={() => set(on ? v.filter((x: string) => x !== m) : [...(v || []), m])} className={cn("min-h-11 px-4 rounded-xl border text-sm", on ? "border-[var(--brand)] bg-[var(--brand)]/10 text-[var(--brand)]" : "border-neutral-300 dark:border-neutral-700 text-neutral-700 dark:text-neutral-300")}>{l}</button>; })}</div>;
+    case "modes": return <div className="flex flex-wrap gap-2">{MODES.map(([m, l]) => { const on = (v || []).includes(m); return <button key={m} type="button" onClick={() => set(on ? v.filter((x: string) => x !== m) : [...(v || []), m])} className={cn("min-h-11 px-4 rounded-xl border text-sm", on ? "border-[var(--brand)] bg-[var(--brand)]/10 text-[var(--brand)]" : "border-neutral-300 dark:border-neutral-700 text-neutral-700 dark:text-neutral-300")}>{l}</button>; })}</div>;
     default: return <Input value={v ?? ""} onChange={(e) => set(e.target.value)} />;
   }
 }
@@ -63,8 +63,8 @@ function show(f: F, v: any) {
 }
 
 /** Tableau de gestion d'une table : celui d'Usin (recherche, fenêtre d'édition, export, actions par ligne). */
-const MODES: [string, string][] = [["cabinet", "Au cabinet"], ["distance", "À distance"], ["visio", "En visio"]];
-const TYPE_MAP: Record<string, Column["type"]> = { address: "address", textarea: "textarea", number: "number", money: "money", bool: "boolean", datetime: "datetime", select: "select", image: "image", modes: "multi" };
+const MODES: [string, string][] = [["cabinet", "Sur place"], ["distance", "À distance"], ["visio", "Visio"]];
+const TYPE_MAP: Record<string, Column["type"]> = { address: "address", textarea: "textarea", number: "number", money: "money", bool: "boolean", datetime: "datetime", select: "select", image: "image", modes: "multi", places: "multi" };
 function Crud({ table, title, fields, cols, select = "*", order = "created_at", asc = false, defaults = {}, actions, label, noCreate, where }: { table: string; title: string; fields: F[]; cols?: string[]; select?: string; order?: string; asc?: boolean; defaults?: any; where?: Record<string, string | number | boolean>; actions?: (r: any, reload: () => void) => React.ReactNode; label?: (r: any) => React.ReactNode; noCreate?: boolean }) {
   const columns: Column[] = fields.map((f) => ({
     key: f.k,
@@ -213,10 +213,12 @@ function OfferPrices({ offer }: { offer: any }) {
 }
 
 function Offers() {
+  // The places created in « Lieux » (the site's address first): an offer « Sur place » can be given in several.
+  const places = usePlaces();
   return (
     <div className="space-y-10">
       <Crud table="offerings" title="Offres et leurs tarifs" order="sort_order" asc cols={["title", "kind", "is_published"]} actions={(r) => <OfferPrices offer={r} />} defaults={{ kind: "soin", modes: ["cabinet"], is_published: true, sort_order: 50 }}
-        fields={[{ k: "title", label: "Titre" }, { k: "slug", label: "Adresse de la page (ex. soin-energetique)" }, { k: "kind", label: "Catégorie", type: "select", options: KINDS }, { k: "summary", label: "Résumé", type: "textarea" }, { k: "body", label: "Description complète", type: "textarea" }, { k: "deposit_cents", label: "Acompte de cette offre en € (vide = acompte par défaut des Informations, 0 = pas d'acompte)", type: "money" }, { k: "duration_label", label: "Durée (ex. 1h30)" }, { k: "modes", label: "Modalités", type: "modes" }, { k: "image_url", label: "Image", type: "image" }, { k: "is_bookable_slot", label: "Réservable sur créneau", type: "bool" }, { k: "is_published", label: "Publiée", type: "bool" }, { k: "sort_order", label: "Ordre d'affichage", type: "number" }]} />
+        fields={[{ k: "title", label: "Titre" }, { k: "slug", label: "Adresse de la page (ex. soin-energetique)" }, { k: "kind", label: "Catégorie", type: "select", options: KINDS }, { k: "summary", label: "Résumé", type: "textarea" }, { k: "body", label: "Description complète", type: "textarea" }, { k: "deposit_cents", label: "Acompte de cette offre en € (vide = acompte par défaut des Informations, 0 = pas d'acompte)", type: "money" }, { k: "duration_label", label: "Durée (ex. 1h30)" }, { k: "modes", label: "Modalités", type: "modes" }, { k: "places", label: "Lieux « Sur place » (liste modifiable dans « Lieux » ; aucun = adresse du site)", type: "places", options: places }, { k: "image_url", label: "Image", type: "image" }, { k: "is_bookable_slot", label: "Réservable sur créneau", type: "bool" }, { k: "is_published", label: "Publiée", type: "bool" }, { k: "sort_order", label: "Ordre d'affichage", type: "number" }]} />
     </div>
   );
 }
@@ -271,13 +273,13 @@ function Slots() {
         extra={
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <Field label="Lieu"><Select value={loc} onChange={(e) => setLoc(e.target.value)}><option value="">Cabinet (adresse du site)</option>{places.slice(1).map(([v, l]) => <option key={v} value={v}>{l}</option>)}</Select></Field>
-            <Field label="Mode"><Select value={mode} onChange={(e) => setMode(e.target.value)}><option value="cabinet">Au cabinet</option><option value="distance">À distance</option><option value="visio">En visio</option></Select></Field>
+            <Field label="Mode"><Select value={mode} onChange={(e) => setMode(e.target.value)}>{MODES.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</Select></Field>
           </div>
         }
       />
       <p className="text-sm text-neutral-600 dark:text-neutral-400">Pour bloquer des congés, supprimez les créneaux concernés ou cochez « Réservé ».</p>
       <Crud key={n} table="availability_slots" title="Créneaux de disponibilité" order="starts_at" asc label={(r) => show({ k: "", label: "", type: "datetime" }, r.starts_at)} cols={["mode", "is_booked"]} defaults={{ mode: "cabinet", is_booked: false }}
-        fields={[{ k: "starts_at", label: "Début", type: "datetime" }, { k: "ends_at", label: "Fin", type: "datetime" }, { k: "mode", label: "Mode", type: "select", options: [["cabinet", "Au cabinet"], ["distance", "À distance"], ["visio", "En visio"]] }, { k: "location", label: "Lieu (vide = cabinet ; liste dans « Lieux »)", type: "select", options: places }, { k: "is_booked", label: "Réservé / bloqué", type: "bool" }]} />
+        fields={[{ k: "starts_at", label: "Début", type: "datetime" }, { k: "ends_at", label: "Fin", type: "datetime" }, { k: "mode", label: "Mode", type: "select", options: MODES }, { k: "location", label: "Lieu (vide = cabinet ; liste dans « Lieux »)", type: "select", options: places }, { k: "is_booked", label: "Réservé / bloqué", type: "bool" }]} />
     </div>
   );
 }

@@ -31,6 +31,9 @@ export function BookPage() {
   const [offerSlug, setOfferSlug] = useState(sp.get("offre") || "");
   const [priceId, setPriceId] = useState("");
   const [mode, setMode] = useState("cabinet");
+  // « Sur place » in one of the offer's places (none listed = the site's address, as before).
+  const home = addressLine(app.settings, app.get);
+  const [place, setPlace] = useState("");
   const [slot, setSlot] = useState<any>(null);
   const [f, setF] = useState({ first_name: "", last_name: "", email: app.user?.email || "", phone: "", message: "" });
   const [marketing, setMarketing] = useState(false);
@@ -39,7 +42,11 @@ export function BookPage() {
   const [busy, setBusy] = useState(false);
   const offer = bookable.find((o) => o.slug === offerSlug) || bookable[0];
   useEffect(() => { if (offer && !offerSlug) setOfferSlug(offer.slug); }, [offer?.slug]);
-  useEffect(() => { setPriceId(offer?.prices[0]?.id || ""); if (offer && !offer.modes.includes(mode)) setMode(offer.modes[0]); }, [offer?.slug]);
+  useEffect(() => { setPriceId(offer?.prices[0]?.id || ""); if (offer && !offer.modes.includes(mode)) setMode(offer.modes[0]); setPlace(""); }, [offer?.slug]);
+  const offerPlaces = mode === "cabinet" ? (offer?.places || []).filter(Boolean) : [];
+  const chosenPlace = offerPlaces.length === 1 ? offerPlaces[0] : place;
+  // Slots of the chosen place only (a slot without a place is at the site's address).
+  const shownSlots = chosenPlace ? slots.data.filter((s) => (s.location || home) === chosenPlace) : slots.data;
   const calendly = app.get("booking.mode") === "calendly" && app.get("booking.calendly_url");
   const up = (k: string) => (e: any) => setF({ ...f, [k]: e.target.value });
 
@@ -50,7 +57,7 @@ export function BookPage() {
     if (tab === "slot" && !slot) e.slot = t("book.pickSlot");
     setErrs(e); if (Object.keys(e).length || !p.success) return;
     setBusy(true);
-    const service = `${offer?.title || ""}${mode ? " (" + t("mode." + mode) + ")" : ""}`;
+    const service = `${offer?.title || ""}${mode ? " (" + t("mode." + mode) + (chosenPlace ? " – " + chosenPlace : "") + ")" : ""}`;
     let id = "demo";
     if (isConfigured && !isDemoId(offer?.id)) {
       const args = { p_slot_id: tab === "slot" ? slot.id : null, p_offering_id: offer.id, p_price_id: isDemoId(priceId) ? null : priceId || null, p_mode: mode, p_first_name: p.data.first_name, p_last_name: p.data.last_name, p_email: p.data.email, p_phone: p.data.phone, p_message: p.data.message || null, p_marketing: marketing };
@@ -91,14 +98,18 @@ export function BookPage() {
               <Field label={t("book.offer")}><Select value={offer?.slug || ""} onChange={(e) => setOfferSlug(e.target.value)}>{bookable.map((o) => <option key={o.id} value={o.slug}>{o.title}</option>)}</Select></Field>
               {offer?.prices.length ? <Field label={t("offer.prices")}><Select value={priceId} onChange={(e) => setPriceId(e.target.value)}>{offer.prices.map((p) => <option key={p.id} value={p.id}>{p.label} · {money(p.amount_cents, lang)}</option>)}</Select></Field> : <div />}
               <Field label={t("book.mode")}><div className="flex flex-wrap gap-2">{(offer?.modes || []).map((m) => <button key={m} onClick={() => setMode(m)} className={cn("min-h-11 px-4 rounded-xl border text-sm transition-colors", mode === m ? "border-[var(--brand)] bg-[var(--brand)]/10 text-[var(--brand)]" : "border-neutral-300 dark:border-neutral-700 text-neutral-700 dark:text-neutral-300")}>{t("mode." + m)}</button>)}</div></Field>
+              {offerPlaces.length > 1 && (
+                <Field label={t("book.place")}><div className="flex flex-wrap gap-2">{offerPlaces.map((p) => <button key={p} onClick={() => { setPlace(p); setSlot(null); }} className={cn("min-h-11 px-4 rounded-xl border text-left text-sm transition-colors", chosenPlace === p ? "border-[var(--brand)] bg-[var(--brand)]/10 text-[var(--brand)]" : "border-neutral-300 dark:border-neutral-700 text-neutral-700 dark:text-neutral-300")}><MapPin className="mr-1 inline h-4 w-4" />{p}</button>)}</div></Field>
+              )}
+              {offerPlaces.length === 1 && <p className="flex items-start gap-1.5 self-end text-sm text-neutral-600 dark:text-neutral-400"><MapPin className="mt-0.5 h-4 w-4 shrink-0 text-[var(--brand)]" />{offerPlaces[0]}</p>}
             </div>
           )}
           <Tabs value={tab} onChange={setTab} tabs={[{ id: "slot", label: t("book.tabSlot") }, { id: "callback", label: t("book.tabCallback") }]} />
           {tab === "slot" && (calendly ? <ButtonLink to={calendly} target="_blank" rel="noopener noreferrer" variant="secondary">{t("book.calendly")}</ButtonLink> : (
             <div className="space-y-2">
               <p className="text-sm font-medium text-neutral-800 dark:text-neutral-200">{t("book.pickSlot")}</p>
-              {slots.loading ? <Skeleton className="h-24" /> : slots.data.length ? (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">{slots.data.map((s) => (
+              {slots.loading ? <Skeleton className="h-24" /> : shownSlots.length ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">{shownSlots.map((s) => (
                   <button key={s.id} onClick={() => setSlot(s)} className={cn("min-h-12 rounded-xl border px-3 py-2 text-left text-[15px] transition-colors active:scale-95", slot?.id === s.id ? "border-[var(--brand)] bg-[var(--brand)]/10 text-[var(--brand)]" : "border-neutral-300 dark:border-neutral-700 text-neutral-800 dark:text-neutral-200")}>
                     <CalendarDays className="inline h-4 w-4 mr-1" />{fmtDate(s.starts_at, lang)}
                     {s.location && <span className="mt-0.5 flex items-center gap-1 text-xs opacity-75"><MapPin className="h-3.5 w-3.5 shrink-0" />{s.location}</span>}

@@ -105,7 +105,7 @@ export const SETTING_GROUPS: { title: string; fields: SettingField[] }[] = [
 export type Price = { id: string; offering_id?: string; label: string; amount_cents: number; sort_order?: number };
 export type Offering = {
   id: string; kind: "soin" | "numerologie" | "formation" | "atelier" | "meditation"; title: string; slug: string; summary: string; body: string;
-  duration_label: string; modes: string[]; image_url: string; is_bookable_slot: boolean; is_published: boolean; sort_order: number; prices: Price[];
+  duration_label: string; modes: string[]; places?: string[]; image_url: string; is_bookable_slot: boolean; is_published: boolean; sort_order: number; prices: Price[];
 };
 
 const o = (sort: number, kind: Offering["kind"], slug: string, title: string, summary: string, body: string, duration: string, modes: string[], image: string, prices: [string, number][]): Offering => ({

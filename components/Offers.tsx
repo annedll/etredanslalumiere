@@ -10,9 +10,19 @@ import type { Offering } from "../lib/defaults";
 import { Badge, Button, ButtonLink, Card, Input } from "./ui";
 import { FacebookIcon, WhatsAppIcon, MessengerIcon } from "./SocialIcons";
 
-export function ModeBadges({ modes }: { modes: string[] }) {
+export function ModeBadges({ modes, places }: { modes: string[]; places?: string[] }) {
   const { t } = useI18n();
-  return <div className="flex flex-wrap gap-1.5">{(modes || []).map((m) => <Badge key={m} tone="green">{t("mode." + m)}</Badge>)}</div>;
+  const where = (modes || []).includes("cabinet") ? (places || []).filter(Boolean) : [];
+  return (
+    <div className="space-y-2">
+      <div className="flex flex-wrap gap-1.5">{(modes || []).map((m) => <Badge key={m} tone="green">{t("mode." + m)}</Badge>)}</div>
+      {where.length > 0 && (
+        <ul className="space-y-1 text-sm text-neutral-600 dark:text-neutral-400">
+          {where.map((p) => <li key={p} className="flex items-start gap-1.5"><MapPin className="mt-0.5 h-4 w-4 shrink-0 text-[var(--brand)]" /><span>{p}</span></li>)}
+        </ul>
+      )}
+    </div>
+  );
 }
 
 export function priceFrom(o: Offering, lang: string, t: any) {

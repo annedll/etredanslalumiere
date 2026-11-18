@@ -895,3 +895,6 @@ alter table public.offerings add column if not exists i18n jsonb;
 alter table public.offering_prices add column if not exists i18n jsonb;
 alter table public.posts add column if not exists i18n jsonb;
 alter table public.ebooks add column if not exists i18n jsonb;
+
+-- Places of an offer given « Sur place » (lines of « Lieux », the site's address included); none = the site's address.
+alter table public.offerings add column if not exists places text[] not null default '{}';

@@ -251,7 +251,7 @@ export function OfferDetailPage() {
       <aside className="space-y-4 lg:sticky lg:top-24 self-start">
         <Card className="p-6 space-y-4">
           <p className="text-sm text-neutral-600 dark:text-neutral-400">{t("offer.duration")} : <strong className="text-neutral-900 dark:text-neutral-100">{o.duration_label}</strong></p>
-          <ModeBadges modes={o.modes} />
+          <ModeBadges modes={o.modes} places={o.places} />
           <h2 className="font-semibold text-neutral-900 dark:text-neutral-100">{t("offer.prices")}</h2>
           {o.prices.length ? <ul className="divide-y divide-neutral-200 dark:divide-neutral-800">{o.prices.map((p) => (
             <li key={p.id} className="py-3 flex flex-wrap items-center justify-between gap-2">
