@@ -5,7 +5,7 @@ import { createPortal } from "react-dom";
 import type { SupabaseClient, Session } from "@supabase/supabase-js";
 import { brand } from "./brand";
 import { useI18n, t as translate, languages } from "./i18n";
-import { ImageEditor, uploadImage, imageSizeClass, imageFrameRadius, type StockPhoto } from "./image-editor";
+import { ImageEditor, uploadImage, imageSizeClass, imageFrameRadius, setStockSearch, type StockPhoto } from "./image-editor";
 export { imageFrameRadius } from "./image-editor";
 import { Sheet } from "./mobile";
 import { env } from "./env";
@@ -111,6 +111,11 @@ export function ContentProvider({ supabase, defaults = {}, children }: { supabas
   const [ready, setReady] = useState(!supabase);
   const [session, setSession] = useState<Session | null>(null);
   const [realAdmin, setRealAdmin] = useState(false);
+  // Every image editor of the app (offers, prices, articles, any page) offers the photo search (Unsplash through Usin).
+  useEffect(() => {
+    const s = makePhotoSearch(supabase, lang);
+    setStockSearch("search" in s && s.search ? (s as Parameters<typeof setStockSearch>[0]) : null);
+  }, [supabase, lang]);
   const [viewAs, setViewAsState] = useState<ViewAs>(() => {
     try {
       return (localStorage.getItem(VIEW_AS) as ViewAs) || "admin";
@@ -641,6 +646,9 @@ export function Editable({ k, as = "span", className, multiline, fallback }: { k
 /** Photo search for the image editor (Unsplash through Usin), for the admins of a published app. */
 function usePhotoSearch() {
   const { supabase, lang } = useContent();
+  return makePhotoSearch(supabase, lang);
+}
+function makePhotoSearch(supabase: SupabaseClient | null, lang: string) {
   const base = env.paymentsUrl ? env.paymentsUrl.replace("/api/pay/", "/api/app-notify/") : "";
   if (!base || !supabase) return {};
   const call = async (path: string, body: Record<string, unknown>) => {

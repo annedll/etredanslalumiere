@@ -74,6 +74,13 @@ export async function uploadImage(
 const FRAME = 440;
 
 /** Modal editor. aspect: initial ratio (e.g. 16/9), 0 = keep the original ratio. */
+type StockSearch = { search: (query: string, page: number) => Promise<StockPhoto[]>; onStock: (download: string) => void };
+let stockDefault: StockSearch | null = null;
+/** Set once by the content provider: every image editor of the app offers the photo search (Unsplash), wherever it opens. */
+export function setStockSearch(s: StockSearch | null) {
+  stockDefault = s;
+}
+
 export function ImageEditor(props: {
   open: boolean;
   onClose: () => void;
@@ -90,6 +97,8 @@ export function ImageEditor(props: {
   onStock?: (download: string) => void;
 }) {
   const { open, onClose, onSave } = props;
+  const search = props.search ?? stockDefault?.search;
+  const onStock = props.onStock ?? stockDefault?.onStock;
   const [img, setImg] = useState<HTMLImageElement | null>(null);
   const [aspect, setAspect] = useState(props.aspect ?? 16 / 9);
   const [zoom, setZoom] = useState(1);
@@ -153,11 +162,11 @@ export function ImageEditor(props: {
   }
 
   async function runSearch(page = 1) {
-    if (!props.search || !query.trim()) return;
+    if (!search || !query.trim()) return;
     setSearching(true);
     setError(null);
     try {
-      const list = await props.search(query.trim(), page);
+      const list = await search(query.trim(), page);
       setPhotos(list);
       if (!list.length) setError("Aucune photo trouvée : essayez d'autres mots (en anglais, c'est souvent mieux).");
     } catch (e) {
@@ -206,7 +215,7 @@ export function ImageEditor(props: {
       const blob = await new Promise<Blob | null>((r) => canvas.toBlob(r, "image/webp", 0.82));
       if (!blob) throw new Error("Conversion de l'image impossible.");
       await onSave({ blob, size, frame, width: outW, height: outH });
-      if (stock) props.onStock?.(stock.download);
+      if (stock) onStock?.(stock.download);
       setStock(null);
       setImg(null);
       onClose();
@@ -236,7 +245,7 @@ export function ImageEditor(props: {
             <span className="rounded-lg bg-slate-900 px-4 py-2 font-medium text-white">Importer une image</span>
             <span>ou glissez-la ici</span>
           </div>
-            {props.search && (
+            {search && (
               <div className="space-y-2">
                 <form
                   className="flex gap-2"
